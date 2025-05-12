@@ -27,7 +27,7 @@ namespace _2025毕业设计.Models
         public virtual NominationDeclaration? Declaration { get; set; }
         
         /// <summary>
-        /// 操作类型：1-提交申报，2-审核通过，3-审核拒绝，4-转为提名
+        /// 操作类型：1-提交申报，2-审核通过，3-审核拒绝，4-转为提名，5-编辑操作，6-删除操作
         /// </summary>
         public int OperationType { get; set; }
         
@@ -103,6 +103,8 @@ namespace _2025毕业设计.Models
                     2 => "审核通过",
                     3 => "审核拒绝",
                     4 => "转为提名",
+                    5 => "编辑操作",
+                    6 => "删除操作",
                     _ => "未知操作"
                 };
             }

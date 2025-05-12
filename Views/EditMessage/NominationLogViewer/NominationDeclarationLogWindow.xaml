@@ -23,13 +23,22 @@
                     <Setter Property="Foreground" Value="#007ACC" /> <!-- 创建操作显示为蓝色 -->
                 </DataTrigger>
                 <DataTrigger Binding="{Binding OperationType}" Value="1">
-                    <Setter Property="Foreground" Value="#4CAF50" /> <!-- 更新操作显示为绿色 -->
+                    <Setter Property="Foreground" Value="#4CAF50" /> <!-- 提交申报显示为绿色 -->
                 </DataTrigger>
                 <DataTrigger Binding="{Binding OperationType}" Value="2">
-                    <Setter Property="Foreground" Value="#F44336" /> <!-- 删除操作显示为红色 -->
+                    <Setter Property="Foreground" Value="#673AB7" /> <!-- 审核通过显示为紫色 -->
                 </DataTrigger>
                 <DataTrigger Binding="{Binding OperationType}" Value="3">
-                    <Setter Property="Foreground" Value="#FF9800" /> <!-- 审核操作显示为橙色 -->
+                    <Setter Property="Foreground" Value="#FF9800" /> <!-- 审核拒绝显示为橙色 -->
+                </DataTrigger>
+                <DataTrigger Binding="{Binding OperationType}" Value="4">
+                    <Setter Property="Foreground" Value="#009688" /> <!-- 转为提名显示为青色 -->
+                </DataTrigger>
+                <DataTrigger Binding="{Binding OperationType}" Value="5">
+                    <Setter Property="Foreground" Value="#3F51B5" /> <!-- 编辑操作显示为靛蓝色 -->
+                </DataTrigger>
+                <DataTrigger Binding="{Binding OperationType}" Value="6">
+                    <Setter Property="Foreground" Value="#F44336" /> <!-- 删除操作显示为红色 -->
                 </DataTrigger>
             </Style.Triggers>
         </Style>

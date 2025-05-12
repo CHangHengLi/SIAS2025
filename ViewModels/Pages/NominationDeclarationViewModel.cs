@@ -183,7 +183,7 @@ namespace _2025毕业设计.ViewModels.Pages
 
             // 审核命令
             ApproveCommand = new DelegateCommand<NominationDeclaration>(OnApproveDeclaration);
-            RejectCommand = new DelegateCommand<NominationDeclaration>(OnRejectDeclaration);
+            RejectCommand = new DelegateCommand<NominationDeclaration>(OnDeclarationRejected);
 
             // 转为提名命令
             PromoteCommand = new DelegateCommand<NominationDeclaration>(OnPromoteDeclaration);
@@ -852,7 +852,7 @@ namespace _2025毕业设计.ViewModels.Pages
                         var log = new NominationLog
                         {
                             DeclarationId = entity.DeclarationId,
-                            OperationType = 4, // 删除操作
+                            OperationType = 6, // 删除操作
                             OperationTime = DateTime.Now,
                             Content = $"删除操作：{entity.Award?.AwardName ?? "未知奖项"}-{entity.NominatedName}的申报"
                         };
@@ -1136,199 +1136,60 @@ namespace _2025毕业设计.ViewModels.Pages
             dialog.ShowDialog();
         }
 
-        private void OnRejectDeclaration(NominationDeclaration declaration)
+        private async void OnDeclarationRejected(NominationDeclaration declaration)
         {
-            if (declaration == null) return;
+            if (IsLoading) return;
 
-            // 验证状态
-            if (declaration.Status != 0)
+            try
             {
-                Growl.WarningGlobal("只能审核待审核状态的申报");
-                return;
-            }
+                // 记录当前选中项
+                var selectedId = SelectedDeclaration?.DeclarationId;
 
-            // 验证权限
-            if (CurrentUser.RoleId > 2)
-            {
-                Growl.WarningGlobal("您没有权限进行审核操作");
-                return;
-            }
+                // 开始加载
+                IsLoading = true;
 
-            // 管理员不能审核自己创建的申报
-            if (CurrentUser.RoleId == 2 && declaration.DeclarerAdminId == CurrentUser.AdminId)
-            {
-                Growl.WarningGlobal("您不能审核自己创建的申报");
-                return;
-            }
-
-            // 管理员不能审核任何角色为管理员的提名申报
-            if (CurrentUser.RoleId == 2 && declaration.DeclarerAdminId != null)
-            {
-                Growl.WarningGlobal("管理员的提名申报只能由超级管理员审核");
-                return;
-            }
-
-            // 弹出拒绝确认对话框，与审核通过类似，但标题和确认按钮文本不同
-            var dialog = new WindowNS
-            {
-                Title = "拒绝确认",
-                Width = 400,
-                Height = 250,
-                WindowStartupLocation = WindowStartupLocation.CenterScreen,
-                ResizeMode = ResizeMode.NoResize
-            };
-
-            var grid = new Grid { Margin = new Thickness(10) };
-            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
-
-            var titleLabel = new Label
-            {
-                Content = "确认拒绝此申报吗？",
-                FontSize = 16,
-                FontWeight = FontWeights.Bold,
-                Margin = new Thickness(0, 0, 0, 10)
-            };
-
-            var commentLabel = new Label
-            {
-                Content = "拒绝理由（必填）：",
-                Margin = new Thickness(0, 5, 0, 5)
-            };
-
-            var commentTextBox = new System.Windows.Controls.TextBox
-            {
-                Height = 80,
-                TextWrapping = TextWrapping.Wrap,
-                AcceptsReturn = true,
-                VerticalScrollBarVisibility = ScrollBarVisibility.Auto
-            };
-
-            var buttonPanel = new StackPanel
-            {
-                Orientation = Orientation.Horizontal,
-                HorizontalAlignment = HorizontalAlignment.Right,
-                Margin = new Thickness(0, 10, 0, 0)
-            };
-
-            var confirmButton = new Button
-            {
-                Content = "确认拒绝",
-                Width = 80,
-                Height = 30,
-                Margin = new Thickness(0, 0, 10, 0),
-                Style = Application.Current.FindResource("LoginButtonStyle") as Style
-            };
-
-            var cancelButton = new Button
-            {
-                Content = "取消",
-                Width = 80,
-                Height = 30,
-                Style = Application.Current.FindResource("LoginButtonStyle") as Style
-            };
-
-            buttonPanel.Children.Add(confirmButton);
-            buttonPanel.Children.Add(cancelButton);
-
-            Grid.SetRow(titleLabel, 0);
-            Grid.SetRow(commentLabel, 1);
-            Grid.SetRow(commentTextBox, 2);
-            Grid.SetRow(buttonPanel, 3);
-
-            grid.Children.Add(titleLabel);
-            grid.Children.Add(commentLabel);
-            grid.Children.Add(commentTextBox);
-            grid.Children.Add(buttonPanel);
-
-            dialog.Content = grid;
-
-            // 绑定事件
-            confirmButton.Click += (s, e) =>
-            {
-                // 拒绝理由必填
-                if (string.IsNullOrWhiteSpace(commentTextBox.Text))
-                {
-                    Growl.WarningGlobal("请填写拒绝理由");
-                    return;
-                }
-
-                try
-                {
+                // 完全刷新数据
+                await Task.Run(async () => {
                     using (var context = new DataBaseContext())
                     {
-                        var entity = context.NominationDeclarations.Find(declaration.DeclarationId);
-                        if (entity != null)
-                        {
-                            entity.Status = 2; // 已拒绝
-                            entity.ReviewComment = commentTextBox.Text;
-                            entity.ReviewTime = DateTime.Now;
+                        var allDeclarations = await context.NominationDeclarations
+                            .AsNoTracking()
+                            .Where(d => d.Status != 4) // 明确排除已取消的记录
+                            .Include(d => d.Award)
+                            .Include(d => d.Department)
+                            .Include(d => d.NominatedEmployee)
+                            .Include(d => d.NominatedAdmin)
+                            .Include(d => d.DeclarerEmployee)
+                            .Include(d => d.DeclarerAdmin)
+                            .Include(d => d.DeclarerSupAdmin)
+                            .ToListAsync();
 
-                            // 设置审核人
-                            switch (CurrentUser.RoleId)
+                        Application.Current.Dispatcher.Invoke(() => {
+                            // 更新申报集合
+                            Declarations = new ObservableCollection<NominationDeclaration>(allDeclarations);
+
+                            // 应用当前筛选条件
+                            OnSearchDeclaration();
+
+                            // 尝试恢复选中状态
+                            if (selectedId.HasValue)
                             {
-                                case 1: // 超级管理员
-                                    entity.ReviewerSupAdminId = CurrentUser.AdminId;
-                                    break;
-                                case 2: // 管理员
-                                    entity.ReviewerAdminId = CurrentUser.AdminId;
-                                    break;
+                                SelectedDeclaration = ListViewDeclarations.FirstOrDefault(d => d.DeclarationId == selectedId);
                             }
 
-                            context.SaveChanges();
-
-                            // 添加审核日志
-                            var log = new NominationLog
-                            {
-                                DeclarationId = entity.DeclarationId,
-                                OperationType = 3, // 审核拒绝
-                                OperationTime = DateTime.Now,
-                                Content = $"拒绝理由：{commentTextBox.Text}"
-                            };
-
-                            // 添加操作日志
-                            switch (CurrentUser.RoleId)
-                            {
-                                case 1: // 超级管理员
-                                    log.OperatorSupAdminId = CurrentUser.AdminId;
-                                    log.OperatorAdminId = null;
-                                    log.OperatorEmployeeId = null;
-                                    break;
-                                case 2: // 管理员
-                                    log.OperatorAdminId = CurrentUser.AdminId;
-                                    log.OperatorSupAdminId = null;
-                                    log.OperatorEmployeeId = null;
-                                    break;
-                            }
-
-                            context.NominationLogs.Add(log);
-                            context.SaveChanges();
-
-                            declaration.Status = 2;
-                            declaration.ReviewComment = commentTextBox.Text;
-                            declaration.ReviewTime = DateTime.Now;
-
-                            // 发布审核拒绝事件
-                            eventAggregator.GetEvent<NominationDeclarationRejectEvent>().Publish(declaration);
-
-                            Growl.SuccessGlobal("已拒绝此申报");
-                            LoadDeclarationsAsync();
-                        }
+                            System.Diagnostics.Debug.WriteLine("申报拒绝事件处理完成，已刷新界面");
+                        });
                     }
-                }
-                catch (Exception ex)
-                {
-                    Growl.ErrorGlobal($"审核操作失败：{ex.Message}");
-                }
-
-                dialog.Close();
-            };
-
-            cancelButton.Click += (s, e) => dialog.Close();
-
-            dialog.ShowDialog();
+                });
+            }
+            catch (Exception ex)
+            {
+                System.Diagnostics.Debug.WriteLine($"处理申报拒绝事件时出错: {ex.Message}");
+            }
+            finally
+            {
+                IsLoading = false;
+            }
         }
         #endregion
 
@@ -1890,7 +1751,7 @@ namespace _2025毕业设计.ViewModels.Pages
         }
         #endregion
 
-        #region 事件处理
+        0#region 事件处理
         private async void OnDeclarationAdded()
         {
             if (IsLoading) return;
@@ -2085,6 +1946,8 @@ namespace _2025毕业设计.ViewModels.Pages
                     using (var context = new DataBaseContext())
                     {
                         var allDeclarations = await context.NominationDeclarations
+                            .AsNoTracking()
+                            .Where(d => d.Status != 4) // 明确排除已取消的记录
                             .Include(d => d.Award)
                             .Include(d => d.Department)
                             .Include(d => d.NominatedEmployee)
@@ -2107,7 +1970,7 @@ namespace _2025毕业设计.ViewModels.Pages
                                 SelectedDeclaration = ListViewDeclarations.FirstOrDefault(d => d.DeclarationId == selectedId);
                             }
 
-                            System.Diagnostics.Debug.WriteLine("申报审批通过事件处理完成，已刷新界面");
+                            System.Diagnostics.Debug.WriteLine($"申报审批通过事件处理完成，已刷新界面，加载的数据类型: NominationDeclaration，数量: {allDeclarations.Count}");
                         });
                     }
                 });
@@ -2122,59 +1985,7 @@ namespace _2025毕业设计.ViewModels.Pages
             }
         }
 
-        private async void OnDeclarationRejected(NominationDeclaration declaration)
-        {
-            if (IsLoading) return;
-
-            try
-            {
-                // 记录当前选中项
-                var selectedId = SelectedDeclaration?.DeclarationId;
-
-                // 开始加载
-                IsLoading = true;
-
-                // 完全刷新数据
-                await Task.Run(async () => {
-                    using (var context = new DataBaseContext())
-                    {
-                        var allDeclarations = await context.NominationDeclarations
-                            .Include(d => d.Award)
-                            .Include(d => d.Department)
-                            .Include(d => d.NominatedEmployee)
-                            .Include(d => d.NominatedAdmin)
-                            .Include(d => d.DeclarerEmployee)
-                            .Include(d => d.DeclarerAdmin)
-                            .Include(d => d.DeclarerSupAdmin)
-                            .ToListAsync();
-
-                        Application.Current.Dispatcher.Invoke(() => {
-                            // 更新申报集合
-                            Declarations = new ObservableCollection<NominationDeclaration>(allDeclarations);
-
-                            // 应用当前筛选条件
-                            OnSearchDeclaration();
-
-                            // 尝试恢复选中状态
-                            if (selectedId.HasValue)
-                            {
-                                SelectedDeclaration = ListViewDeclarations.FirstOrDefault(d => d.DeclarationId == selectedId);
-                            }
-
-                            System.Diagnostics.Debug.WriteLine("申报拒绝事件处理完成，已刷新界面");
-                        });
-                    }
-                });
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"处理申报拒绝事件时出错: {ex.Message}");
-            }
-            finally
-            {
-                IsLoading = false;
-            }
-        }
+                // 已删除重复的OnDeclarationRejected方法
 
         private async void OnDeclarationPromoted(NominationDeclaration declaration)
         {
@@ -2193,6 +2004,8 @@ namespace _2025毕业设计.ViewModels.Pages
                     using (var context = new DataBaseContext())
                     {
                         var allDeclarations = await context.NominationDeclarations
+                            .AsNoTracking()
+                            .Where(d => d.Status != 4) // 明确排除已取消的记录
                             .Include(d => d.Award)
                             .Include(d => d.Department)
                             .Include(d => d.NominatedEmployee)
