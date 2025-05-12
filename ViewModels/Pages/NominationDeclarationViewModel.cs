@@ -1179,13 +1179,13 @@ namespace _2025毕业设计.ViewModels.Pages
 
                             System.Diagnostics.Debug.WriteLine("申报拒绝事件处理完成，已刷新界面");
                         });
-                    }
+                        }
                 });
-            }
-            catch (Exception ex)
-            {
+                }
+                catch (Exception ex)
+                {
                 System.Diagnostics.Debug.WriteLine($"处理申报拒绝事件时出错: {ex.Message}");
-            }
+                }
             finally
             {
                 IsLoading = false;
