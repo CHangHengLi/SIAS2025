@@ -1,13 +1,11 @@
 // 等待DOM加载完成
 document.addEventListener('DOMContentLoaded', function() {
     // 检测安装包下载按钮点击
-    const downloadButtons = document.querySelectorAll('a[href="SIAS2025/SIASGraduate.application"]');
+    const downloadButtons = document.querySelectorAll('a[href="SIASGraduate.zip"]');
     downloadButtons.forEach(button => {
         button.addEventListener('click', function(e) {
-            // 此处可以添加检测文件是否存在的逻辑
-            // 由于浏览器安全限制，直接检测文件存在与否较困难
-            // 这里使用简单提示
-            if(!confirm('您即将下载SIAS2025安装程序。是否继续？')) {
+            // 更新为ZIP下载提示
+            if(!confirm('您即将下载SIAS2025应用程序压缩包。下载后请解压缩并运行其中的SIASGraduate.exe文件。是否继续？')) {
                 e.preventDefault();
             }
         });
