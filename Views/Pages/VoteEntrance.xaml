@@ -1,0 +1,933 @@
+<UserControl
+    x:Class="_2025毕业设计.Views.Pages.VoteEntrance"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:common="clr-namespace:_2025毕业设计.Common"
+    xmlns:converter="clr-namespace:_2025毕业设计.Converter"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:hc="https://handyorg.github.io/handycontrol"
+    xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
+    xmlns:local="clr-namespace:_2025毕业设计.Views.Pages"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:prism="http://prismlibrary.com/"
+    d:DesignHeight="680"
+    d:DesignWidth="980"
+    prism:ViewModelLocator.AutoWireViewModel="True"
+    mc:Ignorable="d">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/2025毕业设计;component/Dict/ConverterDict.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+
+            <!--  内置转换器  -->
+            <converter:BooleanInvertConverter x:Key="BooleanInvertConverter"/>
+            <BooleanToVisibilityConverter x:Key="BoolToVisConverter" />
+            <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+
+            <!--  页面专用转换器  -->
+            <converter:ObjectToBooleanConverter x:Key="ObjectToBooleanConverter" />
+            <converter:ByteArrayToImageConverter x:Key="ByteArrayToImageConverter" />
+
+            <!--  阴影效果  -->
+            <DropShadowEffect
+                x:Key="EffectShadow2"
+                BlurRadius="10"
+                Direction="270"
+                ShadowDepth="2"
+                Color="#22000000" />
+
+            <!--  已投票卡片边框样式  -->
+            <Style x:Key="VotedCardStyle" TargetType="Border">
+                <Setter Property="BorderBrush" Value="#DDDDDD" />
+                <Setter Property="BorderThickness" Value="1" />
+                <Setter Property="Background" Value="White" />
+                <Style.Triggers>
+                    <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource Mode=FindAncestor, AncestorType=Grid}}" Value="True">
+                        <Setter Property="BorderBrush" Value="#E53935" />
+                        <Setter Property="BorderThickness" Value="2" />
+                        <Setter Property="Background" Value="#FFF3F3" />
+                    </DataTrigger>
+                </Style.Triggers>
+            </Style>
+
+            <!--  投票按钮样式  -->
+            <Style x:Key="VoteButtonStyle" TargetType="Button">
+                <Setter Property="Template">
+                    <Setter.Value>
+                        <ControlTemplate TargetType="Button">
+                            <Border
+                                x:Name="BorderRoot"
+                                Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}"
+                                CornerRadius="30">
+                                <ContentPresenter
+                                    HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                                    VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                                    Content="{TemplateBinding Content}" />
+                            </Border>
+                            <ControlTemplate.Triggers>
+                                <Trigger Property="IsMouseOver" Value="True">
+                                    <Setter Property="Cursor" Value="Hand" />
+                                    <Setter TargetName="BorderRoot" Property="Opacity" Value="0.9" />
+                                </Trigger>
+                                <Trigger Property="IsPressed" Value="True">
+                                    <Setter TargetName="BorderRoot" Property="Opacity" Value="0.8" />
+                                </Trigger>
+                                <Trigger Property="IsEnabled" Value="False">
+                                    <Setter TargetName="BorderRoot" Property="Opacity" Value="0.4" />
+                                </Trigger>
+                            </ControlTemplate.Triggers>
+                        </ControlTemplate>
+                    </Setter.Value>
+                </Setter>
+            </Style>
+
+            <!--  默认奖项资源  -->
+            <ImageSource x:Key="DefaultAvatarImage">/2025毕业设计;component/Images/默认奖项.jpg</ImageSource>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="auto" />
+            <RowDefinition Height="auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+
+        <!--  顶部背景和标题  -->
+        <StackPanel
+            Grid.Row="0"
+            Height="130"
+            VerticalAlignment="Top">
+            <StackPanel.Background>
+                <ImageBrush ImageSource="/2025毕业设计;component/Images/投票入口.jpg" Stretch="UniformToFill" />
+            </StackPanel.Background>
+        </StackPanel>
+        <Label
+            Width="150"
+            Height="80"
+            Background="Transparent"
+            BorderThickness="0"
+            Content="投票入口"
+            FontSize="30"
+            FontWeight="Bold"
+            Foreground="Black" />
+
+        <!--  奖项选择区域  -->
+        <Grid Grid.Row="1" Margin="20,10">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="250" />
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+
+            <TextBlock
+                Grid.Column="0"
+                Margin="0,0,10,0"
+                VerticalAlignment="Center"
+                FontSize="16"
+                Text="筛选奖项:" />
+
+            <!--  改进的ComboBox，启用内置自动补全  -->
+            <ComboBox
+                x:Name="AwardComboBox"
+                Grid.Column="1"
+                Width="200"
+                Margin="10,0,0,0"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Center"
+                DisplayMemberPath="AwardName"
+                IsEditable="True"
+                ItemsSource="{Binding Awards}"
+                MaxDropDownHeight="300"
+                SelectedItem="{Binding SelectedAward}"
+                Style="{StaticResource ComboBoxBaseStyle}"
+                Text="{Binding SearchedAwardName, UpdateSourceTrigger=PropertyChanged}">
+                <i:Interaction.Triggers>
+                    <i:EventTrigger EventName="PreviewKeyDown">
+                        <i:InvokeCommandAction Command="{Binding ComboBoxPreviewKeyDownCommand}" PassEventArgsToCommand="True" />
+                    </i:EventTrigger>
+                    <i:EventTrigger EventName="KeyDown">
+                        <i:InvokeCommandAction Command="{Binding ComboBoxKeyDownCommand}" PassEventArgsToCommand="True" />
+                    </i:EventTrigger>
+                </i:Interaction.Triggers>
+            </ComboBox>
+
+            <TextBlock
+                Grid.Column="2"
+                Margin="20,0,10,0"
+                VerticalAlignment="Center"
+                FontSize="16"
+                Text="搜索:" />
+
+            <!--  添加搜索关键词输入框  -->
+            <TextBox
+                Grid.Column="3"
+                MinWidth="120"
+                Margin="0,0,10,0"
+                VerticalAlignment="Center"
+                hc:InfoElement.Placeholder="输入关键词搜索提名..."
+                Style="{StaticResource TextBoxBaseStyle}"
+                Text="{Binding SearchKeyword, UpdateSourceTrigger=PropertyChanged}" />
+
+            <Button
+                Grid.Column="4"
+                Margin="10,0,0,0"
+                Padding="10,5"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Center"
+                Background="#2196F3"
+                BorderThickness="0"
+                Command="{Binding SearchCommand}"
+                Content="搜索"
+                Foreground="White"
+                ToolTip="搜索" />
+        </Grid>
+
+        <!--  主滚动区域  -->
+        <ScrollViewer
+            x:Name="MainScrollViewer"
+            Grid.Row="2"
+            Padding="0,0,0,0"
+            HorizontalScrollBarVisibility="Disabled"
+            VerticalScrollBarVisibility="Auto">
+            <Grid>
+                <!--  加载指示器  -->
+                <Grid Panel.ZIndex="999" Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisConverter}}">
+                    <Grid MinHeight="300" Background="#80FFFFFF">
+                        <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                            <!--  使用标准控件替代hc:LoadingCircle  -->
+                            <ProgressBar
+                                Width="50"
+                                Height="50"
+                                Foreground="#2196F3"
+                                IsIndeterminate="True" />
+                            <TextBlock
+                                Margin="0,10,0,0"
+                                FontSize="14"
+                                Foreground="#333333"
+                                Text="正在加载数据..." />
+                        </StackPanel>
+                    </Grid>
+                </Grid>
+
+                <!--  提名列表区域  -->
+                <ItemsControl
+                    x:Name="NominationsItemsControl"
+                    Height="Auto"
+                    Margin="20,0,20,100"
+                    ItemsSource="{Binding PagedNominations}"
+                    PreviewMouseWheel="Control_PreviewMouseWheel"
+                    VirtualizingPanel.CacheLength="2,2"
+                    VirtualizingPanel.CacheLengthUnit="Page"
+                    VirtualizingPanel.ScrollUnit="Pixel"
+                    VirtualizingStackPanel.IsVirtualizing="True"
+                    VirtualizingStackPanel.VirtualizationMode="Recycling">
+                    <!--  改进的ItemsControl模板，防止滚动事件被内部捕获  -->
+                    <ItemsControl.Template>
+                        <ControlTemplate>
+                            <Border
+                                Padding="{TemplateBinding Padding}"
+                                Background="Transparent"
+                                BorderThickness="0">
+                                <!--  禁用内部滚动，完全依赖外部ScrollViewer  -->
+                                <ItemsPresenter SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
+                            </Border>
+                        </ControlTemplate>
+                    </ItemsControl.Template>
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <VirtualizingStackPanel Orientation="Vertical" />
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Grid HorizontalAlignment="Center">
+                                <Grid.Tag>
+                                    <Binding Path="IsUserVoted" />
+                                </Grid.Tag>
+
+                                <!--  使用StackPanel垂直布局，让评论区在卡片下方  -->
+                                <StackPanel>
+                                    <!--  提名卡片  -->
+                                    <Border
+                                        Width="600"
+                                        Margin="0,5,0,10"
+                                        Padding="10"
+                                        CornerRadius="5"
+                                        Style="{StaticResource VotedCardStyle}">
+                                        <i:Interaction.Triggers>
+                                            <i:EventTrigger EventName="MouseLeftButtonDown">
+                                                <i:InvokeCommandAction Command="{Binding DataContext.ViewNominationDetailsCommand, ElementName=NominationsItemsControl}" CommandParameter="{Binding}" />
+                                            </i:EventTrigger>
+                                        </i:Interaction.Triggers>
+                                        <Grid>
+                                            <Grid.ColumnDefinitions>
+                                                <ColumnDefinition Width="Auto" />
+                                                <ColumnDefinition Width="*" />
+                                                <ColumnDefinition Width="Auto" />
+                                            </Grid.ColumnDefinitions>
+
+                                            <!--  提名图片和编号  -->
+                                            <StackPanel Grid.Column="0" Margin="0,0,15,0">
+                                                <Border
+                                                    Width="100"
+                                                    Height="100"
+                                                    ClipToBounds="True"
+                                                    CornerRadius="50">
+                                                    <Border.Background>
+                                                        <SolidColorBrush Color="#F0F0F0" />
+                                                    </Border.Background>
+                                                    <Grid>
+                                                        <!--  默认奖项作为底层  -->
+                                                        <Image Source="/2025毕业设计;component/Images/默认奖项.jpg" Stretch="UniformToFill">
+                                                            <Image.Clip>
+                                                                <EllipseGeometry
+                                                                    Center="50,50"
+                                                                    RadiusX="50"
+                                                                    RadiusY="50" />
+                                                            </Image.Clip>
+                                                            <Image.Style>
+                                                                <Style TargetType="Image">
+                                                                    <Setter Property="Visibility" Value="Visible" />
+                                                                    <Style.Triggers>
+                                                                        <!--  当CoverImage不为null时隐藏默认图片  -->
+                                                                        <DataTrigger Binding="{Binding Path=CoverImage, Converter={StaticResource ObjectToBooleanConverter}}" Value="True">
+                                                                            <Setter Property="Visibility" Value="Collapsed" />
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </Image.Style>
+                                                        </Image>
+
+                                                        <!--  使用Nomination的CoverImage  -->
+                                                        <Image Source="{Binding CoverImage, Converter={StaticResource ByteArrayToImageConverter}}" Stretch="UniformToFill">
+                                                            <Image.Clip>
+                                                                <EllipseGeometry
+                                                                    Center="50,50"
+                                                                    RadiusX="50"
+                                                                    RadiusY="50" />
+                                                            </Image.Clip>
+                                                            <Image.Style>
+                                                                <Style TargetType="Image">
+                                                                    <Setter Property="Visibility" Value="Collapsed" />
+                                                                    <Style.Triggers>
+                                                                        <!--  当CoverImage不为null时显示  -->
+                                                                        <DataTrigger Binding="{Binding Path=CoverImage, Converter={StaticResource ObjectToBooleanConverter}}" Value="True">
+                                                                            <Setter Property="Visibility" Value="Visible" />
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </Image.Style>
+                                                        </Image>
+                                                    </Grid>
+                                                </Border>
+
+                                                <!--  提名编号  -->
+                                                <TextBlock
+                                                    Margin="0,5,0,0"
+                                                    HorizontalAlignment="Center"
+                                                    FontSize="12"
+                                                    Foreground="#757575"
+                                                    Text="{Binding NominationId, StringFormat=编号: {0}}" />
+                                            </StackPanel>
+
+                                            <!--  提名信息  -->
+                                            <StackPanel Grid.Column="1" VerticalAlignment="Center">
+                                                <!--  添加显示奖项名称  -->
+                                                <StackPanel Margin="0,0,0,5" Orientation="Horizontal">
+                                                    <TextBlock
+                                                        FontSize="14"
+                                                        FontWeight="Bold"
+                                                        Foreground="#1976D2"
+                                                        Text="{Binding Award.AwardName, StringFormat='奖项: {0}', TargetNullValue='奖项: 未知'}" />
+                                                </StackPanel>
+
+                                                <TextBlock>
+                                                    <Run
+                                                        FontSize="18"
+                                                        FontWeight="Bold"
+                                                        Text="{Binding NominatedEmployee.EmployeeName, TargetNullValue='未指定员工'}" />
+                                                    <Run
+                                                        FontSize="18"
+                                                        FontWeight="Bold"
+                                                        Text="{Binding NominatedAdmin.AdminName, TargetNullValue=''}" />
+                                                </TextBlock>
+
+                                                <TextBlock
+                                                    Margin="0,0,0,5"
+                                                    FontSize="14"
+                                                    Text="{Binding Department.DepartmentName, StringFormat='部门: {0}', TargetNullValue='部门: 未指定'}" />
+
+                                                <TextBlock
+                                                    Margin="0,0,0,5"
+                                                    FontSize="14"
+                                                    Text="{Binding Introduction, StringFormat='简介: {0}', TargetNullValue='简介: 暂无'}"
+                                                    TextWrapping="Wrap" />
+
+                                                <TextBlock
+                                                    FontSize="14"
+                                                    Text="{Binding NominateReason, StringFormat='提名理由: {0}', TargetNullValue='提名理由: 暂无'}"
+                                                    TextWrapping="Wrap" />
+                                            </StackPanel>
+
+                                            <!--  投票按钮  -->
+                                            <StackPanel
+                                                Grid.Column="2"
+                                                Margin="15,0,0,0"
+                                                VerticalAlignment="Center">
+                                                <Button
+                                                    x:Name="VoteButton"
+                                                    Width="60"
+                                                    Height="60"
+                                                    Margin="0,0,0,15"
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center"
+                                                    hc:FloatingBlock.Duration="0:0:1"
+                                                    hc:FloatingBlock.ToX="0"
+                                                    hc:FloatingBlock.ToY="-80"
+                                                    hc:FloatingBlock.VerticalOffset="-20"
+                                                    Background="#2196F3"
+                                                    BorderThickness="0"
+                                                    Command="{Binding DataContext.VoteCommand, ElementName=NominationsItemsControl}"
+                                                    CommandParameter="{Binding}"
+                                                    IsEnabled="{Binding DataContext.IsSuperAdmin, ElementName=NominationsItemsControl, Converter={StaticResource BooleanInvertConverter}}"
+                                                    Foreground="White">
+                                                    <Button.Tag>
+                                                        <Binding Path="IsUserVoted" />
+                                                    </Button.Tag>
+                                                    <Button.Style>
+                                                        <Style BasedOn="{StaticResource VoteButtonStyle}" TargetType="Button">
+                                                            <Setter Property="Background" Value="#2196F3" />
+                                                            <Setter Property="ToolTip" Value="点击投票" />
+                                                            <Setter Property="Effect">
+                                                                <Setter.Value>
+                                                                    <DropShadowEffect
+                                                                        BlurRadius="10"
+                                                                        Direction="270"
+                                                                        ShadowDepth="2"
+                                                                        Color="#22000000" />
+                                                                </Setter.Value>
+                                                            </Setter>
+                                                            <Style.Triggers>
+                                                                <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource Self}}" Value="True">
+                                                                    <Setter Property="Background" Value="#E53935" />
+                                                                    <Setter Property="ToolTip" Value="您已经投过票了" />
+                                                                    <Setter Property="Effect">
+                                                                        <Setter.Value>
+                                                                            <DropShadowEffect
+                                                                                BlurRadius="12"
+                                                                                Direction="270"
+                                                                                ShadowDepth="3"
+                                                                                Color="#44FF0000" />
+                                                                        </Setter.Value>
+                                                                    </Setter>
+                                                                </DataTrigger>
+                                                                <DataTrigger Binding="{Binding DataContext.IsSuperAdmin, ElementName=NominationsItemsControl}" Value="True">
+                                                                    <Setter Property="Background" Value="#E53935" />
+                                                                    <Setter Property="ToolTip" Value="超级管理员仅可查看，不能投票" />
+                                                                    <Setter Property="Effect">
+                                                                        <Setter.Value>
+                                                                            <DropShadowEffect
+                                                                                BlurRadius="12"
+                                                                                Direction="270"
+                                                                                ShadowDepth="3"
+                                                                                Color="#44FF0000" />
+                                                                        </Setter.Value>
+                                                                    </Setter>
+                                                                </DataTrigger>
+                                                            </Style.Triggers>
+                                                        </Style>
+                                                    </Button.Style>
+                                                    <StackPanel>
+                                                        <!--  第一个TextBlock (图标)  -->
+                                                        <TextBlock
+                                                            HorizontalAlignment="Center"
+                                                            FontSize="24"
+                                                            FontWeight="Bold"
+                                                            Text="👍">
+                                                            <TextBlock.Style>
+                                                                <Style TargetType="TextBlock">
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource AncestorType=Button}}" Value="True">
+                                                                            <Setter Property="Text" Value="✓" />
+                                                                        </DataTrigger>
+                                                                        <DataTrigger Binding="{Binding DataContext.IsSuperAdmin, ElementName=NominationsItemsControl}" Value="True">
+                                                                            <Setter Property="Text" Value="👁️" />
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </TextBlock.Style>
+                                                        </TextBlock>
+
+                                                        <!--  第二个TextBlock (文本)  -->
+                                                        <TextBlock
+                                                            Margin="0,2,0,0"
+                                                            HorizontalAlignment="Center"
+                                                            FontSize="12"
+                                                            FontWeight="SemiBold"
+                                                            Text="投票">
+                                                            <TextBlock.Style>
+                                                                <Style TargetType="TextBlock">
+                                                                    <Style.Triggers>
+                                                                        <DataTrigger Binding="{Binding Tag, RelativeSource={RelativeSource AncestorType=Button}}" Value="True">
+                                                                            <Setter Property="Text" Value="已投" />
+                                                                        </DataTrigger>
+                                                                        <DataTrigger Binding="{Binding DataContext.IsSuperAdmin, ElementName=NominationsItemsControl}" Value="True">
+                                                                            <Setter Property="Text" Value="查看" />
+                                                                        </DataTrigger>
+                                                                    </Style.Triggers>
+                                                                </Style>
+                                                            </TextBlock.Style>
+                                                        </TextBlock>
+                                                    </StackPanel>
+                                                    <hc:FloatingBlock.ContentTemplate>
+                                                        <DataTemplate>
+                                                            <!--  使用固定Text值，避免复杂绑定导致的Freezable错误  -->
+                                                            <TextBlock
+                                                                FontSize="24"
+                                                                FontWeight="Bold"
+                                                                Foreground="#FF4081"
+                                                                Text="👍" />
+                                                        </DataTemplate>
+                                                    </hc:FloatingBlock.ContentTemplate>
+                                                </Button>
+
+                                                <!--  评论按钮  -->
+                                                <hc:Badge
+                                                    Width="60"
+                                                    Height="60"
+                                                    HorizontalAlignment="Center"
+                                                    VerticalAlignment="Center"
+                                                    BadgeMargin="0,-14,-14,0"
+                                                    Style="{DynamicResource BadgeInfo}"
+                                                    Value="{Binding CommentCount}">
+                                                    <Button
+                                                        x:Name="CommentButton"
+                                                        Width="60"
+                                                        Height="60"
+                                                        Background="#4CAF50"
+                                                        BorderThickness="0"
+                                                        Command="{Binding DataContext.ShowCommentsCommand, ElementName=NominationsItemsControl}"
+                                                        CommandParameter="{Binding}"
+                                                        Foreground="White"
+                                                        Style="{StaticResource VoteButtonStyle}">
+                                                        <StackPanel>
+                                                            <TextBlock
+                                                                HorizontalAlignment="Center"
+                                                                FontSize="24"
+                                                                FontWeight="Bold"
+                                                                Text="💬" />
+                                                            <TextBlock
+                                                                Margin="0,2,0,0"
+                                                                HorizontalAlignment="Center"
+                                                                FontSize="12"
+                                                                FontWeight="SemiBold"
+                                                                Text="评论" />
+                                                        </StackPanel>
+                                                    </Button>
+                                                </hc:Badge>
+                                            </StackPanel>
+                                        </Grid>
+                                    </Border>
+
+                                    <!--  评论区域 - 放在主卡片下方而不是覆盖它  -->
+                                    <Border
+                                        x:Name="CommentSection"
+                                        Width="600"
+                                        Margin="0,0,0,30"
+                                        Padding="15"
+                                        Background="White"
+                                        BorderBrush="#DDDDDD"
+                                        BorderThickness="1"
+                                        CornerRadius="5"
+                                        Effect="{StaticResource EffectShadow2}"
+                                        Visibility="{Binding IsCommentSectionVisible, Converter={StaticResource BoolToVisConverter}, UpdateSourceTrigger=PropertyChanged}">
+                                        <Grid>
+                                            <Grid.RowDefinitions>
+                                                <RowDefinition Height="Auto" />
+                                                <RowDefinition Height="*" />
+                                                <RowDefinition Height="Auto" />
+                                            </Grid.RowDefinitions>
+
+                                            <!--  评论区标题和关闭按钮  -->
+                                            <Grid Grid.Row="0">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+
+                                                <TextBlock
+                                                    Grid.Column="0"
+                                                    Margin="0,0,0,10"
+                                                    FontSize="16"
+                                                    FontWeight="Bold"
+                                                    Text="评论区" />
+
+                                                <Button
+                                                    Grid.Column="1"
+                                                    Width="80"
+                                                    Background="#E53935"
+                                                    BorderThickness="0"
+                                                    Command="{Binding DataContext.HideCommentsCommand, ElementName=NominationsItemsControl}"
+                                                    CommandParameter="{Binding}"
+                                                    Content="收起"
+                                                    Foreground="White" />
+                                            </Grid>
+
+                                            <!--  评论列表  -->
+                                            <Grid Grid.Row="1">
+                                                <ScrollViewer
+                                                    MaxHeight="300"
+                                                    PreviewMouseWheel="Control_PreviewMouseWheel"
+                                                    VerticalScrollBarVisibility="Auto">
+                                                    <StackPanel>
+                                                        <ItemsControl ItemsSource="{Binding UIComments}">
+                                                            <ItemsControl.ItemTemplate>
+                                                                <DataTemplate>
+                                                                    <Border
+                                                                        Margin="0,5"
+                                                                        Padding="10"
+                                                                        BorderBrush="#EEEEEE"
+                                                                        BorderThickness="0,0,0,1">
+                                                                        <Grid>
+                                                                            <Grid.ColumnDefinitions>
+                                                                                <ColumnDefinition Width="Auto" />
+                                                                                <ColumnDefinition Width="*" />
+                                                                                <ColumnDefinition Width="Auto" />
+                                                                            </Grid.ColumnDefinitions>
+
+                                                                            <!--  评论者头像  -->
+                                                                            <Border
+                                                                                Grid.Column="0"
+                                                                                Width="40"
+                                                                                Height="40"
+                                                                                Margin="0,0,10,0"
+                                                                                ClipToBounds="True"
+                                                                                CornerRadius="20">
+                                                                                <Grid>
+                                                                                    <!--  默认奖项  -->
+                                                                                    <Image Source="/2025毕业设计;component/Images/默认奖项.jpg" Stretch="UniformToFill">
+                                                                                        <Image.Clip>
+                                                                                            <EllipseGeometry
+                                                                                                Center="20,20"
+                                                                                                RadiusX="20"
+                                                                                                RadiusY="20" />
+                                                                                        </Image.Clip>
+                                                                                    </Image>
+
+                                                                                    <!--  管理员头像  -->
+                                                                                    <Image Source="{Binding CommenterAdmin.AdminImage, Converter={StaticResource ByteArrayToImageConverter}}" Stretch="UniformToFill">
+                                                                                        <Image.Clip>
+                                                                                            <EllipseGeometry
+                                                                                                Center="20,20"
+                                                                                                RadiusX="20"
+                                                                                                RadiusY="20" />
+                                                                                        </Image.Clip>
+                                                                                        <Image.Style>
+                                                                                            <Style TargetType="Image">
+                                                                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                                                                <Style.Triggers>
+                                                                                                    <DataTrigger Binding="{Binding CommenterAdminId, Converter={StaticResource ObjectToBooleanConverter}}" Value="True">
+                                                                                                        <Setter Property="Visibility" Value="Visible" />
+                                                                                                    </DataTrigger>
+                                                                                                </Style.Triggers>
+                                                                                            </Style>
+                                                                                        </Image.Style>
+                                                                                    </Image>
+
+                                                                                    <!--  超级管理员头像  -->
+                                                                                    <Image Source="{Binding CommenterSupAdmin.SupAdminImage, Converter={StaticResource ByteArrayToImageConverter}}" Stretch="UniformToFill">
+                                                                                        <Image.Clip>
+                                                                                            <EllipseGeometry
+                                                                                                Center="20,20"
+                                                                                                RadiusX="20"
+                                                                                                RadiusY="20" />
+                                                                                        </Image.Clip>
+                                                                                        <Image.Style>
+                                                                                            <Style TargetType="Image">
+                                                                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                                                                <Style.Triggers>
+                                                                                                    <DataTrigger Binding="{Binding CommenterSupAdminId, Converter={StaticResource ObjectToBooleanConverter}}" Value="True">
+                                                                                                        <Setter Property="Visibility" Value="Visible" />
+                                                                                                    </DataTrigger>
+                                                                                                </Style.Triggers>
+                                                                                            </Style>
+                                                                                        </Image.Style>
+                                                                                    </Image>
+
+                                                                                    <!--  员工头像  -->
+                                                                                    <Image Source="{Binding CommenterEmployee.EmployeeImage, Converter={StaticResource ByteArrayToImageConverter}}" Stretch="UniformToFill">
+                                                                                        <Image.Clip>
+                                                                                            <EllipseGeometry
+                                                                                                Center="20,20"
+                                                                                                RadiusX="20"
+                                                                                                RadiusY="20" />
+                                                                                        </Image.Clip>
+                                                                                        <Image.Style>
+                                                                                            <Style TargetType="Image">
+                                                                                                <Setter Property="Visibility" Value="Collapsed" />
+                                                                                                <Style.Triggers>
+                                                                                                    <DataTrigger Binding="{Binding CommenterEmployeeId, Converter={StaticResource ObjectToBooleanConverter}}" Value="True">
+                                                                                                        <Setter Property="Visibility" Value="Visible" />
+                                                                                                    </DataTrigger>
+                                                                                                </Style.Triggers>
+                                                                                            </Style>
+                                                                                        </Image.Style>
+                                                                                    </Image>
+                                                                                </Grid>
+                                                                            </Border>
+
+                                                                            <!--  评论内容  -->
+                                                                            <StackPanel Grid.Column="1">
+                                                                                <StackPanel Orientation="Horizontal">
+                                                                                    <!--  修改名称显示逻辑，使用更可靠的方式检查评论者  -->
+                                                                                    <TextBlock
+                                                                                        FontWeight="Bold"
+                                                                                        Text="{Binding CommenterEmployee.EmployeeName}"
+                                                                                        Visibility="{Binding CommenterEmployeeId, Converter={StaticResource ObjectToBooleanConverter}, ConverterParameter=true, Mode=OneWay}" />
+                                                                                    <TextBlock
+                                                                                        FontWeight="Bold"
+                                                                                        Text="{Binding CommenterAdmin.AdminName}"
+                                                                                        Visibility="{Binding CommenterAdminId, Converter={StaticResource ObjectToBooleanConverter}, ConverterParameter=true, Mode=OneWay}" />
+                                                                                    <TextBlock
+                                                                                        FontWeight="Bold"
+                                                                                        Text="{Binding CommenterSupAdmin.SupAdminName}"
+                                                                                        Visibility="{Binding CommenterSupAdminId, Converter={StaticResource ObjectToBooleanConverter}, ConverterParameter=true, Mode=OneWay}" />
+                                                                                    <TextBlock Margin="5,0" Text=" • " />
+                                                                                    <TextBlock
+                                                                                        FontSize="12"
+                                                                                        Foreground="#757575"
+                                                                                        Text="{Binding CommentTime, StringFormat={}{0:yyyy-MM-dd HH:mm}}" />
+                                                                                </StackPanel>
+
+                                                                                <TextBlock
+                                                                                    Margin="0,5,0,0"
+                                                                                    Text="{Binding Content}"
+                                                                                    TextWrapping="Wrap" />
+
+                                                                                <!--  已删除标记  -->
+                                                                                <TextBlock
+                                                                                    Margin="0,5,0,0"
+                                                                                    FontStyle="Italic"
+                                                                                    Foreground="#E53935"
+                                                                                    Text="[此评论已被删除]"
+                                                                                    Visibility="{Binding IsDeleted, Converter={StaticResource BoolToVisConverter}}" />
+                                                                            </StackPanel>
+
+                                                                            <!--  删除按钮 (仅对管理员和超级管理员可见)  -->
+                                                                            <Button
+                                                                                Grid.Column="2"
+                                                                                Width="Auto"
+                                                                                Height="30"
+                                                                                Margin="0,0,0,0"
+                                                                                Padding="8,2"
+                                                                                VerticalAlignment="Center"
+                                                                                Background="#E53935"
+                                                                                BorderBrush="#B71C1C"
+                                                                                BorderThickness="1"
+                                                                                Command="{Binding DataContext.DeleteCommentCommand, ElementName=NominationsItemsControl}"
+                                                                                CommandParameter="{Binding}"
+                                                                                Foreground="White"
+                                                                                ToolTip="删除此评论"
+                                                                                Visibility="{Binding DataContext.IsAdmin, ElementName=NominationsItemsControl, Converter={StaticResource BoolToVisConverter}}">
+                                                                                <StackPanel Orientation="Horizontal">
+                                                                                    <TextBlock
+                                                                                        Margin="0,0,5,0"
+                                                                                        VerticalAlignment="Center"
+                                                                                        FontSize="14"
+                                                                                        Text="🗑️" />
+                                                                                    <TextBlock
+                                                                                        VerticalAlignment="Center"
+                                                                                        FontSize="12"
+                                                                                        Text="删除" />
+                                                                                </StackPanel>
+                                                                            </Button>
+                                                                        </Grid>
+                                                                    </Border>
+                                                                </DataTemplate>
+                                                            </ItemsControl.ItemTemplate>
+                                                        </ItemsControl>
+
+                                                        <!--  加载更多按钮  -->
+                                                        <Button
+                                                            Width="150"
+                                                            Height="30"
+                                                            Margin="0,10"
+                                                            HorizontalAlignment="Center"
+                                                            Background="#4CAF50"
+                                                            BorderThickness="0"
+                                                            Command="{Binding DataContext.LoadMoreCommentsCommand, ElementName=NominationsItemsControl}"
+                                                            CommandParameter="{Binding}"
+                                                            Content="加载更多评论"
+                                                            Foreground="White"
+                                                            Visibility="{Binding HasMoreComments, Converter={StaticResource BoolToVisConverter}}" />
+                                                    </StackPanel>
+                                                </ScrollViewer>
+                                            </Grid>
+
+                                            <!--  发表评论区域  -->
+                                            <Grid Grid.Row="2" Margin="0,10,0,0">
+                                                <Grid.ColumnDefinitions>
+                                                    <ColumnDefinition Width="*" />
+                                                    <ColumnDefinition Width="Auto" />
+                                                </Grid.ColumnDefinitions>
+
+                                                <TextBox
+                                                    Grid.Column="0"
+                                                    Height="60"
+                                                    Margin="0,0,10,0"
+                                                    Padding="10"
+                                                    VerticalAlignment="Stretch"
+                                                    VerticalContentAlignment="Top"
+                                                    hc:InfoElement.Placeholder="请输入评论内容..."
+                                                    Text="{Binding NewCommentText, UpdateSourceTrigger=PropertyChanged}"
+                                                    TextWrapping="Wrap" />
+
+                                                <Button
+                                                    Grid.Column="1"
+                                                    Width="100"
+                                                    Height="60"
+                                                    Background="#4CAF50"
+                                                    BorderThickness="0"
+                                                    Command="{Binding DataContext.AddCommentCommand, ElementName=NominationsItemsControl}"
+                                                    CommandParameter="{Binding}"
+                                                    Content="发表评论"
+                                                    Foreground="White" />
+                                            </Grid>
+                                        </Grid>
+                                    </Border>
+                                </StackPanel>
+                            </Grid>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </Grid>
+        </ScrollViewer>
+
+        <!--  分页控件  -->
+        <DockPanel
+            Grid.Row="2"
+            Margin="10,0,10,20"
+            HorizontalAlignment="Center"
+            VerticalAlignment="Bottom"
+            Panel.ZIndex="100"
+            PreviewMouseWheel="Control_PreviewMouseWheel">
+            <!--  总记录数显示  -->
+            <Label Content="共" Style="{DynamicResource LabelBase}" />
+            <Label Content="{Binding Nominations.Count}" Style="{DynamicResource LabelBase}" />
+            <Label Content="条" Style="{DynamicResource LabelBase}" />
+
+            <!--  每页显示条数  -->
+            <Label Content="每页显示" Style="{DynamicResource LabelBase}" />
+            <ComboBox
+                Width="60"
+                Height="25"
+                FontSize="12"
+                ItemsSource="{Binding PageSizeOptions}"
+                SelectedItem="{Binding PageSize}">
+                <i:Interaction.Triggers>
+                    <i:EventTrigger EventName="SelectionChanged">
+                        <i:InvokeCommandAction Command="{Binding PageSizeChangedCommand}" CommandParameter="{Binding SelectedItem, RelativeSource={RelativeSource AncestorType=ComboBox}}" />
+                    </i:EventTrigger>
+                </i:Interaction.Triggers>
+            </ComboBox>
+            <Label Content="条" Style="{DynamicResource LabelBase}" />
+
+            <!--  跳转页码  -->
+            <TextBox
+                Width="40"
+                Height="25"
+                Margin="5,0"
+                VerticalContentAlignment="Center"
+                FontSize="12"
+                Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}">
+                <i:Interaction.Triggers>
+                    <i:EventTrigger EventName="KeyUp">
+                        <i:InvokeCommandAction Command="{Binding PreviewTextInputCommand}" CommandParameter="{Binding Text, RelativeSource={RelativeSource AncestorType=TextBox}}" />
+                    </i:EventTrigger>
+                </i:Interaction.Triggers>
+            </TextBox>
+
+            <!--  跳转按钮  -->
+            <Button
+                Width="50"
+                Height="25"
+                Margin="0,0,10,0"
+                Background="#2196F3"
+                BorderThickness="0"
+                Command="{Binding JumpPageCommand}"
+                Content="跳转"
+                Foreground="White" />
+
+            <!--  首页按钮  -->
+            <Button
+                Width="50"
+                Height="25"
+                Margin="0,0,5,0"
+                Background="#2196F3"
+                BorderThickness="0"
+                Command="{Binding FirstPageCommand}"
+                Content="首页"
+                Foreground="White" />
+
+            <!--  上一页按钮  -->
+            <Button
+                Width="60"
+                Height="25"
+                Margin="0,0,5,0"
+                Background="#2196F3"
+                BorderThickness="0"
+                Command="{Binding PreviousPageCommand}"
+                Content="上一页"
+                Foreground="White" />
+
+            <!--  页码显示  -->
+            <Label
+                VerticalAlignment="Center"
+                Content="第"
+                Style="{DynamicResource LabelBase}" />
+            <TextBlock
+                VerticalAlignment="Center"
+                FontWeight="Bold"
+                Text="{Binding CurrentPage}" />
+            <Label
+                VerticalAlignment="Center"
+                Content="/"
+                Style="{DynamicResource LabelBase}" />
+            <TextBlock
+                VerticalAlignment="Center"
+                FontWeight="Bold"
+                Text="{Binding TotalPages}" />
+            <Label
+                VerticalAlignment="Center"
+                Content="页"
+                Style="{DynamicResource LabelBase}" />
+
+            <!--  下一页按钮  -->
+            <Button
+                Width="60"
+                Height="25"
+                Margin="5,0,0,0"
+                Background="#2196F3"
+                BorderThickness="0"
+                Command="{Binding NextPageCommand}"
+                Content="下一页"
+                Foreground="White" />
+
+            <!--  末页按钮  -->
+            <Button
+                Width="50"
+                Height="25"
+                Margin="5,0,0,0"
+                Background="#2196F3"
+                BorderThickness="0"
+                Command="{Binding LastPageCommand}"
+                Content="末页"
+                Foreground="White" />
+        </DockPanel>
+    </Grid>
+</UserControl>

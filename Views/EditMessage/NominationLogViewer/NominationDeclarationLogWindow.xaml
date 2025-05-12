@@ -1,0 +1,233 @@
+<Window
+    x:Class="_2025毕业设计.Views.EditMessage.NominationLogViewer.NominationDeclarationLogWindow"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:local="clr-namespace:_2025毕业设计.Views.EditMessage.NominationLogViewer"
+    xmlns:hc="https://handyorg.github.io/handycontrol"
+    xmlns:converter="clr-namespace:_2025毕业设计.Converter"
+    mc:Ignorable="d"
+    Title="申报日志" Height="600" Width="800"
+    WindowStartupLocation="CenterScreen">
+
+    <Window.Resources>
+        <converter:BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <converter:NullToFalseConverter x:Key="NullToFalseConverter" />
+        
+        <!-- 操作类型颜色转换 -->
+        <Style x:Key="OperationTypeStyle" TargetType="TextBlock">
+            <Setter Property="Foreground" Value="Black" />
+            <Style.Triggers>
+                <DataTrigger Binding="{Binding OperationType}" Value="0">
+                    <Setter Property="Foreground" Value="#007ACC" /> <!-- 创建操作显示为蓝色 -->
+                </DataTrigger>
+                <DataTrigger Binding="{Binding OperationType}" Value="1">
+                    <Setter Property="Foreground" Value="#4CAF50" /> <!-- 更新操作显示为绿色 -->
+                </DataTrigger>
+                <DataTrigger Binding="{Binding OperationType}" Value="2">
+                    <Setter Property="Foreground" Value="#F44336" /> <!-- 删除操作显示为红色 -->
+                </DataTrigger>
+                <DataTrigger Binding="{Binding OperationType}" Value="3">
+                    <Setter Property="Foreground" Value="#FF9800" /> <!-- 审核操作显示为橙色 -->
+                </DataTrigger>
+            </Style.Triggers>
+        </Style>
+    </Window.Resources>
+    
+    <Grid Margin="15">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="Auto" />
+        </Grid.RowDefinitions>
+        
+        <!-- 头部信息区域 -->
+        <Border Grid.Row="0" Background="#F5F5F5" BorderBrush="#DDDDDD" BorderThickness="1" Padding="15" Margin="0,0,0,15">
+            <StackPanel>
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="Auto" />
+                    </Grid.ColumnDefinitions>
+                    
+                    <StackPanel Grid.Column="0" Orientation="Horizontal">
+                        <TextBlock Text="奖项：" FontWeight="Bold" />
+                        <TextBlock Text="{Binding Award.AwardName, Mode=OneWay}" Margin="5,0,15,0" />
+                        
+                        <TextBlock Text="申报对象：" FontWeight="Bold" />
+                        <TextBlock Text="{Binding NominatedName, Mode=OneWay}" Margin="5,0,15,0" />
+                        
+                        <TextBlock Text="部门：" FontWeight="Bold" />
+                        <TextBlock Text="{Binding Department.DepartmentName, Mode=OneWay}" Margin="5,0,15,0" />
+                        
+                        <TextBlock Text="状态：" FontWeight="Bold" />
+                        <TextBlock Text="{Binding StatusText, Mode=OneWay}" Margin="5,0,0,0" />
+                    </StackPanel>
+                    
+                    <Button Grid.Column="1" Content="刷新" Command="{Binding RefreshCommand}" 
+                            Style="{StaticResource ButtonPrimary}" Width="80" Height="28" />
+                </Grid>
+            </StackPanel>
+        </Border>
+        
+        <!-- 日志列表区域 -->
+        <Grid Grid.Row="1">
+            <ListView ItemsSource="{Binding Logs}" BorderThickness="1" BorderBrush="#DDDDDD"
+                      VirtualizingPanel.IsVirtualizing="True"
+                      VirtualizingPanel.VirtualizationMode="Recycling"
+                      VirtualizingPanel.CacheLength="1,1"
+                      ScrollViewer.CanContentScroll="True">
+                <ListView.ItemContainerStyle>
+                    <Style TargetType="ListViewItem">
+                        <Setter Property="HorizontalContentAlignment" Value="Stretch" />
+                        <Setter Property="Padding" Value="8,6" />
+                        <Style.Triggers>
+                            <Trigger Property="ItemsControl.AlternationIndex" Value="0">
+                                <Setter Property="Background" Value="#FFFFFF" />
+                            </Trigger>
+                            <Trigger Property="ItemsControl.AlternationIndex" Value="1">
+                                <Setter Property="Background" Value="#F9F9F9" />
+                            </Trigger>
+                        </Style.Triggers>
+                    </Style>
+                </ListView.ItemContainerStyle>
+                <ListView.View>
+                    <GridView>
+                        <GridViewColumn Header="操作类型" Width="100">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding OperationTypeText, Mode=OneWay}"
+                                               Style="{StaticResource OperationTypeStyle}" />
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+                        
+                        <GridViewColumn Header="操作时间" Width="150">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding OperationTime, StringFormat='yyyy-MM-dd HH:mm:ss', Mode=OneWay}" />
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+                        
+                        <GridViewColumn Header="操作人" Width="150">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock>
+                                        <Run Text="{Binding OperatorName, Mode=OneWay}">
+                                            <Run.Style>
+                                                <Style TargetType="Run">
+                                                    <Setter Property="Text" Value="未知" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding OperatorEmployee}" Value="{x:Null}">
+                                                            <Setter Property="Text" Value="{Binding OperatorAdmin.AdminName, Mode=OneWay}" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding OperatorAdmin}" Value="{x:Null}">
+                                                            <Setter Property="Text" Value="{Binding OperatorEmployee.EmployeeName, Mode=OneWay}" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding OperatorSupAdmin, Converter={StaticResource NullToFalseConverter}}" Value="True">
+                                                            <Setter Property="Text" Value="{Binding OperatorSupAdmin.SupAdminName, Mode=OneWay}" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Run.Style>
+                                        </Run>
+                                        <Run Text=" (">
+                                            <Run.Style>
+                                                <Style TargetType="Run">
+                                                    <Setter Property="Foreground" Value="Transparent" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding OperatorEmployee.Department}" Value="{x:Null}">
+                                                            <Setter Property="Foreground" Value="Transparent" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding OperatorEmployee.Department, Converter={StaticResource NullToFalseConverter}}" Value="True">
+                                                            <Setter Property="Foreground" Value="Black" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Run.Style>
+                                        </Run>
+                                        <Run Text="{Binding OperatorEmployee.Department.DepartmentName, Mode=OneWay}">
+                                            <Run.Style>
+                                                <Style TargetType="Run">
+                                                    <Setter Property="Foreground" Value="Transparent" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding OperatorEmployee.Department}" Value="{x:Null}">
+                                                            <Setter Property="Foreground" Value="Transparent" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding OperatorEmployee.Department, Converter={StaticResource NullToFalseConverter}}" Value="True">
+                                                            <Setter Property="Foreground" Value="Black" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Run.Style>
+                                        </Run>
+                                        <Run Text=")">
+                                            <Run.Style>
+                                                <Style TargetType="Run">
+                                                    <Setter Property="Foreground" Value="Transparent" />
+                                                    <Style.Triggers>
+                                                        <DataTrigger Binding="{Binding OperatorEmployee.Department}" Value="{x:Null}">
+                                                            <Setter Property="Foreground" Value="Transparent" />
+                                                        </DataTrigger>
+                                                        <DataTrigger Binding="{Binding OperatorEmployee.Department, Converter={StaticResource NullToFalseConverter}}" Value="True">
+                                                            <Setter Property="Foreground" Value="Black" />
+                                                        </DataTrigger>
+                                                    </Style.Triggers>
+                                                </Style>
+                                            </Run.Style>
+                                        </Run>
+                                    </TextBlock>
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+                        
+                        <GridViewColumn Header="内容" Width="300">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding Content, Mode=OneWay}" TextWrapping="Wrap" />
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+                    </GridView>
+                </ListView.View>
+            </ListView>
+            
+            <!-- 加载指示器 -->
+            <Grid Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}">
+                <Rectangle Fill="#80FFFFFF" />
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <hc:LoadingCircle Foreground="#007ACC" HorizontalAlignment="Center" VerticalAlignment="Center" IsRunning="{Binding IsLoading}" />
+                    <TextBlock Text="正在加载数据..." FontSize="14" Margin="0,10,0,0" HorizontalAlignment="Center"/>
+                </StackPanel>
+            </Grid>
+        </Grid>
+        
+        <!-- 底部按钮区域 -->
+        <Grid Grid.Row="2" Margin="0,15,0,0">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="Auto" />
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="Auto" />
+            </Grid.ColumnDefinitions>
+            
+            <!-- 加载更多按钮 -->
+            <Button Grid.Column="0" Content="加载更多" Command="{Binding LoadMoreCommand}" 
+                    Visibility="{Binding HasMoreToLoad, Converter={StaticResource BooleanToVisibilityConverter}}"
+                    Style="{StaticResource ButtonSuccess}" Width="120" Height="30" HorizontalAlignment="Left" />
+            
+            <!-- 状态信息 -->
+            <TextBlock Grid.Column="1" Text="{Binding Logs.Count, StringFormat=已加载 {0} 条记录}" 
+                       VerticalAlignment="Center" HorizontalAlignment="Center" Margin="10,0" />
+            
+            <!-- 导出与关闭按钮 -->
+            <StackPanel Grid.Column="2" Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="导出日志" Command="{Binding ExportCommand}" 
+                        Style="{StaticResource ButtonPrimary}" Width="100" Height="30" Margin="0,0,10,0" />
+                <Button Content="关闭" Click="CloseButton_Click" 
+                        Style="{StaticResource ButtonDefault}" Width="100" Height="30" />
+            </StackPanel>
+        </Grid>
+    </Grid>
+</Window> 

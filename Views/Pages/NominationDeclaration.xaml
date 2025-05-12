@@ -1,0 +1,369 @@
+<UserControl
+    x:Class="_2025毕业设计.Views.Pages.NominationDeclaration"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:common="clr-namespace:_2025毕业设计.Common"
+    xmlns:converter="clr-namespace:_2025毕业设计.Converter"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:hc="https://handyorg.github.io/handycontrol"
+    xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
+    xmlns:local="clr-namespace:_2025毕业设计.Views.Pages"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:prism="http://prismlibrary.com/"
+    xmlns:viewmodels="clr-namespace:_2025毕业设计.ViewModels.Pages"
+    d:DesignHeight="450"
+    d:DesignWidth="800"
+    prism:ViewModelLocator.AutoWireViewModel="True"
+    mc:Ignorable="d">
+    <UserControl.Resources>
+        <BooleanToVisibilityConverter x:Key="BooleanToVisibilityConverter" />
+        <converter:ByteArrayToImageConverter x:Key="ByteArrayToImageConverter" />
+    </UserControl.Resources>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="auto" />
+            <RowDefinition Height="*" />
+        </Grid.RowDefinitions>
+        <!--  顶部标题区  -->
+        <StackPanel
+            Grid.Row="0"
+            Height="130"
+            VerticalAlignment="Top">
+            <StackPanel.Background>
+                <ImageBrush ImageSource="/2025毕业设计;component/Images/奖项提名.jpg" Stretch="UniformToFill" />
+            </StackPanel.Background>
+        </StackPanel>
+        <Label
+            Width="150"
+            Height="80"
+            Background="Transparent"
+            BorderThickness="0"
+            Content="提名申报"
+            FontSize="30"
+            FontWeight="Bold"
+            Foreground="Black" />
+        <!--  主体区域  -->
+        <Grid Grid.Row="1">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="auto" />
+                <RowDefinition Height="270" />
+                <RowDefinition Height="auto" />
+            </Grid.RowDefinitions>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="auto" />
+                <ColumnDefinition Width="auto" />
+            </Grid.ColumnDefinitions>
+            <!--  上层查询区域  -->
+            <StackPanel
+                Grid.Row="0"
+                Grid.ColumnSpan="3"
+                Margin="5"
+                Background="{Binding SearchBackground}"
+                Focusable="False"
+                Orientation="Horizontal">
+                <ComboBox
+                    Width="120"
+                    Margin="15,0"
+                    VerticalAlignment="Center"
+                    DisplayMemberPath="Value"
+                    ItemsSource="{Binding StatusOptions}"
+                    SelectedItem="{Binding SelectedStatus}"
+                    SelectedValuePath="Key" />
+                <TextBox
+                    Width="100"
+                    Margin="15,0"
+                    VerticalAlignment="Center"
+                    FontSize="8"
+                    Style="{DynamicResource DataGridEditingTextColumnStyle.Small}"
+                    Text="{Binding SearchKeyword}" />
+                <Button
+                    Margin="10,0"
+                    Command="{Binding SearchDeclarationCommand}"
+                    Content="查询"
+                    IsEnabled="{Binding IsSearchEnabled}"
+                    Style="{DynamicResource HomeEditButtonStyle}" />
+                <Button
+                    Width="40"
+                    Command="{Binding AddDeclarationCommand}"
+                    Content="新增申报"
+                    IsEnabled="{Binding IsAddEnabled}"
+                    Style="{DynamicResource HomeEditButtonStyle}"
+                    Visibility="{Binding IsAddButtonVisible, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                <Button
+                    Width="40"
+                    Margin="10,0"
+                    Command="{Binding ClearSelectionCommand}"
+                    Content="取消选择"
+                    Style="{DynamicResource HomeEditButtonStyle}"
+                    ToolTip="取消当前选中的申报项" />
+                <Button
+                    Width="40"
+                    Margin="10,0"
+                    Command="{Binding ViewLogCommand}"
+                    Content="查看日志"
+                    Style="{DynamicResource HomeEditButtonStyle}" />
+                <Button
+                    Margin="10,0"
+                    Command="{Binding ExportDataCommand}"
+                    Content="导出"
+                    Style="{DynamicResource HomeEditButtonStyle}" />
+                <Button
+                    Margin="10,0"
+                    Command="{Binding RefreshDataCommand}"
+                    Content="刷新"
+                    ToolTip="手动刷新数据"
+                    Style="{DynamicResource HomeEditButtonStyle}" />
+            </StackPanel>
+            <!--  中间层数据展示  -->
+            <Grid Grid.Row="1" Grid.Column="0">
+                <ListView
+                    BorderBrush="Transparent"
+                    BorderThickness="0"
+                    ItemsSource="{Binding ListViewDeclarations}"
+                    SelectedItem="{Binding SelectedDeclaration}"
+                    Style="{DynamicResource StackPanelVerticalListBox}">
+                    <ListView.ItemContainerStyle>
+                        <Style TargetType="ListViewItem">
+                            <Setter Property="BorderThickness" Value="0" />
+                            <Setter Property="BorderBrush" Value="Transparent" />
+                            <Setter Property="Height" Value="32" />
+                            <EventSetter Event="MouseDoubleClick" Handler="ListViewItem_MouseDoubleClick" />
+                        </Style>
+                    </ListView.ItemContainerStyle>
+                    <ListView.View>
+                        <GridView>
+                            <GridViewColumn
+                                Width="auto"
+                                DisplayMemberBinding="{Binding Award.AwardName}"
+                                Header="申报奖项" />
+                            <GridViewColumn
+                                Width="auto"
+                                DisplayMemberBinding="{Binding NominatedName}"
+                                Header="申报对象" />
+                            <GridViewColumn
+                                Width="auto"
+                                DisplayMemberBinding="{Binding Department.DepartmentName}"
+                                Header="所属部门" />
+                            <GridViewColumn
+                                Width="auto"
+                                DisplayMemberBinding="{Binding Introduction}"
+                                Header="一句话介绍" />
+                            <GridViewColumn
+                                Width="auto"
+                                DisplayMemberBinding="{Binding DeclarationReason}"
+                                Header="申报理由" />
+                            <GridViewColumn
+                                Width="auto"
+                                DisplayMemberBinding="{Binding DeclarationTime, StringFormat=\{0:yyyy-MM-dd HH:mm\}}"
+                                Header="申报时间" />
+                            <GridViewColumn
+                                Width="auto"
+                                DisplayMemberBinding="{Binding StatusText}"
+                                Header="状态" />
+                            <GridViewColumn
+                                Width="auto"
+                                DisplayMemberBinding="{Binding ReviewerName}"
+                                Header="审核人" />
+
+                            <GridViewColumn Width="60" Header="封面图片">
+                                <GridViewColumn.CellTemplate>
+                                    <DataTemplate>
+                                        <Grid>
+                                            <Image
+                                                Width="24"
+                                                Height="24"
+                                                Cursor="Hand"
+                                                Source="{Binding CoverImage, Converter={StaticResource ByteArrayToImageConverter}}"
+                                                Stretch="Uniform"
+                                                ToolTip="双击查看大图">
+                                                <Image.Style>
+                                                    <Style TargetType="Image">
+                                                        <Setter Property="Source" Value="{Binding CoverImage, Converter={StaticResource ByteArrayToImageConverter}}" />
+                                                        <Style.Triggers>
+                                                            <DataTrigger Binding="{Binding CoverImage}" Value="{x:Null}">
+                                                                <Setter Property="Source" Value="/2025毕业设计;component/Images/默认奖项.jpg" />
+                                                            </DataTrigger>
+                                                            <Trigger Property="IsMouseOver" Value="True">
+                                                                <Setter Property="Opacity" Value="0.8" />
+                                                            </Trigger>
+                                                        </Style.Triggers>
+                                                    </Style>
+                                                </Image.Style>
+                                            </Image>
+                                        </Grid>
+                                    </DataTemplate>
+                                </GridViewColumn.CellTemplate>
+                            </GridViewColumn>
+                        </GridView>
+                    </ListView.View>
+                </ListView>
+
+                <!--  加载指示器  -->
+                <Grid Visibility="{Binding IsLoading, Converter={StaticResource BooleanToVisibilityConverter}}">
+                    <Rectangle Fill="#80FFFFFF" />
+                    <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                        <hc:LoadingCircle
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            Foreground="#007ACC"
+                            IsRunning="{Binding IsLoading}" />
+                        <TextBlock
+                            Margin="0,10,0,0"
+                            HorizontalAlignment="Center"
+                            FontSize="14"
+                            Text="正在加载数据..." />
+                    </StackPanel>
+                </Grid>
+            </Grid>
+            <!--  操作列:审核,删除,修改  -->
+            <ListView
+                Grid.Row="1"
+                Grid.Column="1"
+                BorderBrush="Transparent"
+                BorderThickness="0"
+                ItemsSource="{Binding ListViewDeclarations}"
+                Style="{DynamicResource StackPanelVerticalListBox}">
+                <ListView.ItemContainerStyle>
+                    <Style TargetType="ListViewItem">
+                        <Setter Property="Height" Value="32" />
+                        <Setter Property="BorderThickness" Value="0" />
+                        <Setter Property="BorderBrush" Value="Transparent" />
+                    </Style>
+                </ListView.ItemContainerStyle>
+                <ListView.View>
+                    <GridView>
+                        <GridViewColumn Width="160" Header="操作">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <StackPanel Orientation="Horizontal">
+                                        <Button
+                                            Width="auto"
+                                            Margin="0,0,2,0"
+                                            Command="{Binding DataContext.ApproveCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
+                                            CommandParameter="{Binding}"
+                                            Content="通过"
+                                            Style="{DynamicResource HomeEditButtonStyle}"
+                                            Visibility="{Binding DataContext.IsReviewButtonVisible, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                        <Button
+                                            Width="auto"
+                                            Margin="0,0,2,0"
+                                            Command="{Binding DataContext.RejectCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
+                                            CommandParameter="{Binding}"
+                                            Content="拒绝"
+                                            Style="{DynamicResource HomeEditButtonStyle}"
+                                            Visibility="{Binding DataContext.IsReviewButtonVisible, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                        <Button
+                                            Width="auto"
+                                            Margin="0,0,2,0"
+                                            Command="{Binding DataContext.PromoteCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
+                                            CommandParameter="{Binding}"
+                                            Content="转为提名"
+                                            Style="{DynamicResource HomeEditButtonStyle}"
+                                            Visibility="{Binding DataContext.IsPromoteButtonVisible, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}, Converter={StaticResource BooleanToVisibilityConverter}}" />
+                                        <Button
+                                            Width="auto"
+                                            Margin="0,0,2,0"
+                                            Command="{Binding DataContext.EditDeclarationCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
+                                            CommandParameter="{Binding}"
+                                            Content="修改"
+                                            IsEnabled="{Binding DataContext.IsEditEnabled, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
+                                            Style="{DynamicResource HomeEditButtonStyle}" />
+                                        <Button
+                                            Width="auto"
+                                            Margin="0,0,2,0"
+                                            Command="{Binding DataContext.DeleteDeclarationCommand, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
+                                            CommandParameter="{Binding}"
+                                            Content="删除"
+                                            IsEnabled="{Binding DataContext.IsDeleteEnabled, RelativeSource={RelativeSource AncestorType={x:Type UserControl}}}"
+                                            Style="{DynamicResource HomeEditButtonStyle}" />
+                                    </StackPanel>
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
+                    </GridView>
+                </ListView.View>
+            </ListView>
+            <!--  右侧编辑区域  -->
+            <Grid
+                Grid.Row="1"
+                Grid.Column="2"
+                Width="auto">
+                <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+                    <StackPanel>
+                        <ContentControl prism:RegionManager.RegionName="NominationDeclarationEditRegion" />
+                    </StackPanel>
+                </ScrollViewer>
+            </Grid>
+            <!--  下层分页控件  -->
+            <DockPanel
+                Grid.Row="2"
+                Grid.ColumnSpan="2"
+                Margin="5,0"
+                HorizontalAlignment="Left"
+                VerticalAlignment="Center">
+                <Label Content="共" Style="{DynamicResource LabelBase}" />
+                <Label Content="{Binding TotalRecords}" Style="{DynamicResource LabelBase}" />
+                <Label Content="条" Style="{DynamicResource LabelBase}" />
+                <Label Content="每页显示" Style="{DynamicResource LabelBase}" />
+                <ComboBox
+                    Width="50"
+                    Height="20"
+                    ItemsSource="{Binding PageSizeOptions}"
+                    SelectedItem="{Binding PageSize}"
+                    Style="{DynamicResource ComboBox.Small}">
+                    <i:Interaction.Triggers>
+                        <i:EventTrigger EventName="SelectionChanged">
+                            <i:InvokeCommandAction Command="{Binding PageSizeChangedCommand}" CommandParameter="{Binding PageSize}" />
+                        </i:EventTrigger>
+                    </i:Interaction.Triggers>
+                </ComboBox>
+                <Label Content="条" Style="{DynamicResource LabelBase}" />
+                <TextBox
+                    Width="80"
+                    Height="20"
+                    Style="{DynamicResource TextBox.Small}"
+                    Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}">
+                    <i:Interaction.Triggers>
+                        <i:EventTrigger EventName="KeyUp">
+                            <i:InvokeCommandAction Command="{Binding PreviewTextInputCommand}" CommandParameter="{Binding SearchText}" />
+                        </i:EventTrigger>
+                    </i:Interaction.Triggers>
+                </TextBox>
+                <Button
+                    Width="50"
+                    Height="20"
+                    Margin="5,0"
+                    Command="{Binding JumpPageCommand}"
+                    Content="跳转"
+                    Style="{DynamicResource LoginButtonStyle}" />
+                <Button
+                    Width="50"
+                    Height="20"
+                    Command="{Binding PreviousPageCommand}"
+                    Content="上一页"
+                    Style="{DynamicResource LoginButtonStyle}" />
+                <Label
+                    VerticalAlignment="Center"
+                    Content="第"
+                    Style="{DynamicResource LabelBase}" />
+                <TextBlock VerticalAlignment="Center" Text="{Binding CurrentPage}" />
+                <Label
+                    VerticalAlignment="Center"
+                    Content="/"
+                    Style="{DynamicResource LabelBase}" />
+                <TextBlock VerticalAlignment="Center" Text="{Binding MaxPage}" />
+                <Label
+                    VerticalAlignment="Center"
+                    Content="页"
+                    Style="{DynamicResource LabelBase}" />
+                <Button
+                    Width="50"
+                    Height="20"
+                    Command="{Binding NextPageCommand}"
+                    Content="下一页"
+                    Style="{DynamicResource LoginButtonStyle}" />
+            </DockPanel>
+        </Grid>
+    </Grid>
+</UserControl>

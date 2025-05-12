@@ -1,0 +1,25 @@
+<prism:PrismApplication
+    x:Class="_2025毕业设计.App"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:local="clr-namespace:_2025毕业设计"
+    xmlns:prism="http://prismlibrary.com/"
+    xmlns:dryIoc="clr-namespace:Prism.DryIoc;assembly=Prism.DryIoc.Wpf">
+    <Application.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="Dict/ButtonStyles.xaml" />
+                <ResourceDictionary Source="Dict/LableStyles.xaml" />
+                <ResourceDictionary Source="Dict/ScrollBarStyles.xaml" />
+                <ResourceDictionary Source="Dict/ImageStyles.xaml" />
+                <ResourceDictionary Source="Dict/ComboBoxStyles.xaml" />
+                <ResourceDictionary Source="Dict/TextBoxStyles.xaml" />
+                <ResourceDictionary Source="Dict/ResourceDict.xaml" />
+                <ResourceDictionary Source="Dict/ConverterDict.xaml" />
+                <ResourceDictionary Source="Dict/ConverterDictionary.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/HandyControl;component/Themes/SkinDefault.xaml" />
+                <ResourceDictionary Source="pack://application:,,,/HandyControl;component/Themes/Theme.xaml" />
+            </ResourceDictionary.MergedDictionaries>
+        </ResourceDictionary>
+    </Application.Resources>
+</prism:PrismApplication>

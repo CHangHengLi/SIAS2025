@@ -1,0 +1,130 @@
+﻿<UserControl x:Class="_2025毕业设计.Views.EditMessage.EmployeeManager.AddEmployee"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:hc="https://handyorg.github.io/handycontrol"
+             xmlns:converter="clr-namespace:_2025毕业设计.Converter"
+             xmlns:prism="http://prismlibrary.com/"
+             prism:ViewModelLocator.AutoWireViewModel="True"
+             xmlns:local="clr-namespace:_2025毕业设计.Views.EditMessage.EmployeeManager" xmlns:vm="clr-namespace:_2025毕业设计.ViewModels.EditMessage.EmployeeManager" d:DataContext="{d:DesignInstance Type=vm:AddEmployeeViewModel}"
+             mc:Ignorable="d" 
+             d:DesignHeight="450" d:DesignWidth="800">
+    <UserControl.InputBindings>
+        <KeyBinding Key="Enter" Command="{Binding SubmitCommand}" />
+    </UserControl.InputBindings>
+    <UserControl.Resources>
+        <converter:BooleanToStatusConverter x:Key="BooleanToStatusConverter" />
+        <converter:NumberToRoleConverter x:Key="NumberToRoleConverter" />
+        <converter:NullOrEmptyToDepartmentNameDefaultConverter x:Key="NullOrEmptyToDepartmentNameDefaultConverter" />
+    </UserControl.Resources>
+    <Grid>
+        <ScrollViewer HorizontalAlignment="Right" VerticalScrollBarVisibility="Hidden">
+            <StackPanel VerticalAlignment="Top" hc:Growl.GrowlParent="True">
+                <!--  员工账号  -->
+                <WrapPanel>
+                    <Label Content="员工账号:" Style="{DynamicResource PageEditLabelBase}" />
+                    <!--  添加UpdateSourceTrigger=PropertyChanged可以让文本变化时实时更新数据库  -->
+                    <TextBox Style="{DynamicResource PageEditTextBoxBase}" Text="{Binding Account, UpdateSourceTrigger=PropertyChanged}" />
+                    <Label
+                     Content="(必填)"
+                     Foreground="Red"
+                     Style="{DynamicResource PageEditLabelBase}" />
+                </WrapPanel>
+                <!--  员工姓名  -->
+                <WrapPanel>
+                    <Label Content="员工姓名:" Style="{DynamicResource PageEditLabelBase}" />
+                    <!--  添加UpdateSourceTrigger=PropertyChanged可以让文本变化时实时更新数据库  -->
+                    <TextBox Style="{DynamicResource PageEditTextBoxBase}" Text="{Binding EmployeeName, UpdateSourceTrigger=PropertyChanged}" />
+                    <Label
+                     Content="(必填)"
+                     Foreground="Red"
+                     Style="{DynamicResource PageEditLabelBase}" />
+                </WrapPanel>
+                <!--  员工密码  -->
+                <WrapPanel>
+                    <Label Content="员工密码:" Style="{DynamicResource PageEditLabelBase}" />
+                    <TextBox Style="{DynamicResource PageEditTextBoxBase}" Text="{Binding EmployeePassword}" />
+                    <Label
+                     Content="(必填)"
+                     Foreground="Red"
+                     Style="{DynamicResource PageEditLabelBase}" />
+                </WrapPanel>
+                <!--  员工邮箱  -->
+                <WrapPanel>
+                    <Label Content="员工邮箱:" Style="{DynamicResource PageEditLabelBase}" />
+                    <TextBox Style="{DynamicResource PageEditTextBoxBase}" Text="{Binding Email}" />
+                    <Label Content="(选填)" Style="{DynamicResource PageEditLabelBase}" />
+                </WrapPanel>
+                <!--  员工部门  -->
+                <WrapPanel>
+                    <Label Content="员工部门:" Style="{DynamicResource PageEditLabelBase}" />
+                    <ComboBox
+                     Width="150"
+                     Height="20"
+                     FontSize="15"
+                     ItemsSource="{Binding DepartmentNames}"
+                     SelectedItem="{Binding DepartmentName}"
+                     Style="{DynamicResource ComboBoxExtend.Small}">
+                        <ComboBox.ItemTemplate>
+                            <DataTemplate>
+                                <TextBlock Text="{Binding}" />
+                            </DataTemplate>
+                        </ComboBox.ItemTemplate>
+                    </ComboBox>
+                    <Label Content="(选填)" Style="{DynamicResource PageEditLabelBase}" />
+                </WrapPanel>
+                <!--  入职日期  -->
+                <WrapPanel>
+                    <Label Content="入职日期:" Style="{DynamicResource PageEditLabelBase}" />
+
+                    <DatePicker
+                     Width="150"
+                     Height="20"
+                     SelectedDate="{Binding HireDate, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                     Style="{DynamicResource DatePickerExtend.Small}" />
+                    <Label Content="(选填)" Style="{DynamicResource PageEditLabelBase}" />
+                </WrapPanel>
+                <!--  是否在职  -->
+                <WrapPanel>
+                    <Label Content="是否在职:" Style="{DynamicResource PageEditLabelBase}" />
+                    <TextBox
+                     IsEnabled="False"
+                     Style="{DynamicResource PageEditTextBoxBase}"
+                     Text="{Binding IsActive, Converter={StaticResource BooleanToStatusConverter}}" />
+                </WrapPanel>
+                <!--  员工权限  -->
+                <WrapPanel>
+                    <Label Content="员工权限:" Style="{DynamicResource PageEditLabelBase}" />
+                    <TextBox
+                     IsEnabled="False"
+                     Style="{DynamicResource PageEditTextBoxBase}"
+                     Text="{Binding RoleId, Converter={StaticResource NumberToRoleConverter}}" />
+                </WrapPanel>
+                <!--  保存和取消按钮  -->
+                <StackPanel Orientation="Horizontal">
+                    <Button
+                     Width="60"
+                     Height="25"
+                     Margin="50,10,0,0"
+                     HorizontalAlignment="Left"
+                     Command="{Binding SaveCommand}"
+                     Content="保存"
+                     Style="{DynamicResource ButtonSuccess.Small}" />
+                    <Button
+                     Width="60"
+                     Height="25"
+                     Margin="50,10,0,0"
+                     HorizontalAlignment="Left"
+                     Command="{Binding CancelCommand}"
+                     Content="取消"
+                     Style="{DynamicResource ButtonSuccess.Small}" />
+                </StackPanel>
+                <ScrollViewer HorizontalAlignment="Right" VerticalScrollBarVisibility="Hidden">
+                    <StackPanel Margin="0,10,10,10" VerticalAlignment="Top" />
+                </ScrollViewer>
+            </StackPanel>
+        </ScrollViewer>
+
+    </Grid>
+</UserControl>

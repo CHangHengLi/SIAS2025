@@ -1,0 +1,533 @@
+﻿<ResourceDictionary
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:theme="clr-namespace:Microsoft.Windows.Themes;assembly=PresentationFramework.Aero2">
+
+
+    <Style x:Key="FocusVisual">
+        <!--  定义控件的焦点可视化样式  -->
+        <Setter Property="Control.Template">
+            <Setter.Value>
+                <ControlTemplate>
+                    <!--  定义一个矩形用于显示控件的焦点  -->
+                    <Rectangle
+                        Margin="2"
+                        SnapsToDevicePixels="true"
+                        Stroke="{DynamicResource {x:Static SystemColors.ControlTextBrushKey}}"
+                        StrokeDashArray="1 2"
+                        StrokeThickness="0" />
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <SolidColorBrush x:Key="TextBox.Static.Background" Color="#FFFFFFFF" />
+    <!--  定义TextBox的静态背景颜色为白色  -->
+
+    <Style x:Key="ComboBoxEditableTextBox" TargetType="{x:Type TextBox}">
+        <!--  定义ComboBox中可编辑TextBox的样式  -->
+        <Setter Property="OverridesDefaultStyle" Value="true" />
+        <!--  覆盖默认样式  -->
+        <Setter Property="AllowDrop" Value="true" />
+        <!--  允许拖放操作  -->
+        <Setter Property="MinWidth" Value="0" />
+        <!--  设置最小宽度为0  -->
+        <Setter Property="MinHeight" Value="0" />
+        <!--  设置最小高度为0  -->
+        <Setter Property="FocusVisualStyle" Value="{x:Null}" />
+        <!--  禁用焦点可视化样式  -->
+        <Setter Property="ScrollViewer.PanningMode" Value="VerticalFirst" />
+        <!--  设置滚动模式为优先垂直滚动  -->
+        <Setter Property="Stylus.IsFlicksEnabled" Value="False" />
+        <!--  禁用手写笔的快速滑动功能  -->
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type TextBox}">
+                    <!--  定义TextBox的控件模板  -->
+                    <ScrollViewer
+                        x:Name="PART_ContentHost"
+                        Background="Transparent"
+                        Focusable="false"
+                        HorizontalScrollBarVisibility="Hidden"
+                        VerticalScrollBarVisibility="Hidden" />
+                    <!--  使用ScrollViewer显示文本内容，隐藏滚动条  -->
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <LinearGradientBrush x:Key="ComboBox.Static.Background" StartPoint="0,0" EndPoint="0,1">
+        <!--  定义ComboBox静态背景的线性渐变颜色  -->
+        <GradientStop Offset="0.0" Color="#FFF0F0F0" />
+        <GradientStop Offset="1.0" Color="#FFE5E5E5" />
+    </LinearGradientBrush>
+    <SolidColorBrush x:Key="ComboBox.Static.Border" Color="#FFACACAC" />
+    <!--  定义ComboBox静态边框颜色  -->
+
+    <SolidColorBrush x:Key="ComboBox.Static.Glyph" Color="#FF606060" />
+    <!--  定义ComboBox静态图标颜色  -->
+
+    <SolidColorBrush x:Key="ComboBox.Static.Editable.Background" Color="#FFFFFFFF" />
+    <!--  定义ComboBox在可编辑状态下的背景颜色  -->
+
+    <SolidColorBrush x:Key="ComboBox.Static.Editable.Border" Color="#FFABADB3" />
+    <!--  定义ComboBox在可编辑状态下的边框颜色  -->
+
+    <SolidColorBrush x:Key="ComboBox.Static.Editable.Button.Background" Color="Transparent" />
+    <!--  定义ComboBox在可编辑状态下按钮的背景颜色  -->
+
+    <SolidColorBrush x:Key="ComboBox.Static.Editable.Button.Border" Color="Transparent" />
+    <!--  定义ComboBox在可编辑状态下按钮的边框颜色  -->
+
+    <LinearGradientBrush x:Key="ComboBox.MouseOver.Background" StartPoint="0,0" EndPoint="0,1">
+        <!--  定义ComboBox鼠标悬停时的背景线性渐变颜色  -->
+        <GradientStop Offset="0.0" Color="#FFECF4FC" />
+        <GradientStop Offset="1.0" Color="#FFDCECFC" />
+    </LinearGradientBrush>
+
+    <SolidColorBrush x:Key="ComboBox.MouseOver.Border" Color="#FF7EB4EA" />
+    <!--  定义ComboBox鼠标悬停时的边框颜色  -->
+
+    <SolidColorBrush x:Key="ComboBox.MouseOver.Glyph" Color="#FF000000" />
+    <!--  定义ComboBox鼠标悬停时的图标颜色  -->
+
+    <SolidColorBrush x:Key="ComboBox.MouseOver.Editable.Background" Color="#FFFFFFFF" />
+    <!--  定义ComboBox鼠标悬停时可编辑状态的背景颜色  -->
+
+    <SolidColorBrush x:Key="ComboBox.MouseOver.Editable.Border" Color="#FF7EB4EA" />
+    <!--  定义ComboBox鼠标悬停时可编辑状态的边框颜色  -->
+
+    <LinearGradientBrush x:Key="ComboBox.MouseOver.Editable.Button.Background" StartPoint="0,0" EndPoint="0,1">
+        <!--  定义ComboBox鼠标悬停时可编辑按钮的背景线性渐变颜色  -->
+        <GradientStop Offset="0.0" Color="#FFEBF4FC" />
+        <GradientStop Offset="1.0" Color="#FFDCECFC" />
+    </LinearGradientBrush>
+
+    <SolidColorBrush x:Key="ComboBox.MouseOver.Editable.Button.Border" Color="#FF7EB4EA" />
+    <!--  定义ComboBox鼠标悬停时可编辑按钮的边框颜色  -->
+
+    <LinearGradientBrush x:Key="ComboBox.Pressed.Background" StartPoint="0,0" EndPoint="0,1">
+        <!--  定义ComboBox按下时的背景线性渐变颜色  -->
+        <GradientStop Offset="0.0" Color="#FFDAECFC" />
+        <GradientStop Offset="1.0" Color="#FFC4E0FC" />
+    </LinearGradientBrush>
+
+    <SolidColorBrush x:Key="ComboBox.Pressed.Border" Color="#FF569DE5" />
+    <!--  定义ComboBox按下时的边框颜色  -->
+
+    <SolidColorBrush x:Key="ComboBox.Pressed.Glyph" Color="#FF000000" />
+    <!--  定义ComboBox按下时的图标颜色  -->
+
+    <SolidColorBrush x:Key="ComboBox.Pressed.Editable.Background" Color="#FFFFFFFF" />
+    <!--  定义ComboBox按下时可编辑状态的背景颜色  -->
+
+    <SolidColorBrush x:Key="ComboBox.Pressed.Editable.Border" Color="#FF569DE5" />
+    <!--  定义ComboBox按下时可编辑状态的边框颜色  -->
+
+    <LinearGradientBrush x:Key="ComboBox.Pressed.Editable.Button.Background" StartPoint="0,0" EndPoint="0,1">
+        <!--  定义ComboBox按下时可编辑按钮的背景线性渐变颜色  -->
+        <GradientStop Offset="0.0" Color="#FFDAEBFC" />
+        <GradientStop Offset="1.0" Color="#FFC4E0FC" />
+    </LinearGradientBrush>
+
+    <SolidColorBrush x:Key="ComboBox.Pressed.Editable.Button.Border" Color="#FF569DE5" />
+    <!--  定义ComboBox按下时可编辑按钮的边框颜色  -->
+
+    <SolidColorBrush x:Key="ComboBox.Disabled.Background" Color="#FFF0F0F0" />
+    <!--  定义ComboBox禁用状态下的背景颜色  -->
+
+    <SolidColorBrush x:Key="ComboBox.Disabled.Border" Color="#FFD9D9D9" />
+    <!--  定义ComboBox禁用状态下的边框颜色  -->
+
+    <SolidColorBrush x:Key="ComboBox.Disabled.Glyph" Color="#FFBFBFBF" />
+    <!--  定义ComboBox禁用状态下的图标颜色  -->
+
+    <SolidColorBrush x:Key="ComboBox.Disabled.Editable.Background" Color="#FFFFFFFF" />
+    <!--  定义ComboBox禁用状态下可编辑状态的背景颜色  -->
+
+    <SolidColorBrush x:Key="ComboBox.Disabled.Editable.Border" Color="#FFBFBFBF" />
+    <!--  定义ComboBox禁用状态下可编辑状态的边框颜色  -->
+
+    <SolidColorBrush x:Key="ComboBox.Disabled.Editable.Button.Background" Color="Transparent" />
+    <!--  定义ComboBox禁用下可编辑按钮的背景颜色  -->
+
+    <SolidColorBrush x:Key="ComboBox.Disabled.Editable.Button.Border" Color="Transparent" />
+    <!--  定义ComboBox禁用状态下可编辑按钮的边框颜色  -->
+    <Style x:Key="ComboBoxToggleButton" TargetType="{x:Type ToggleButton}">
+        <!--  设置控件的默认样式被覆盖  -->
+        <Setter Property="OverridesDefaultStyle" Value="true" />
+        <!--  禁用Tab键导航  -->
+        <Setter Property="IsTabStop" Value="false" />
+        <!--  禁用焦点  -->
+        <Setter Property="Focusable" Value="false" />
+        <!--  点击模式设置为按下时触发  -->
+        <Setter Property="ClickMode" Value="Press" />
+        <Setter Property="Template">
+            <Setter.Value>
+                <ControlTemplate TargetType="{x:Type ToggleButton}">
+                    <!--  定义控件的外观  -->
+                    <Border
+                        x:Name="templateRoot"
+                        Background="Transparent"
+                        BorderBrush="{StaticResource ComboBox.Static.Border}"
+                        BorderThickness="{TemplateBinding BorderThickness}"
+                        SnapsToDevicePixels="true">
+                        <Border
+                            x:Name="splitBorder"
+                            Width="{DynamicResource {x:Static SystemParameters.VerticalScrollBarWidthKey}}"
+                            Margin="0"
+                            HorizontalAlignment="Right"
+                            BorderBrush="Transparent"
+                            BorderThickness="1"
+                            SnapsToDevicePixels="true">
+                            <!--  箭头图标  -->
+                            <Path
+                                x:Name="arrow"
+                                Margin="0"
+                                HorizontalAlignment="Center"
+                                VerticalAlignment="Center"
+                                Data="F1 M 0,0 L 2.667,2.66665 L 5.3334,0 L 5.3334,-1.78168 L 2.6667,0.88501 L0,-1.78168 L0,0 Z"
+                                Fill="{StaticResource ComboBox.Static.Glyph}" />
+                        </Border>
+                    </Border>
+                    <ControlTemplate.Triggers>
+                        <!--  当ComboBox是可编辑并且鼠标不在按钮上时的样式  -->
+                        <MultiDataTrigger>
+                            <MultiDataTrigger.Conditions>
+                                <Condition Binding="{Binding IsEditable, RelativeSource={RelativeSource AncestorType={x:Type ComboBox}}}" Value="true" />
+                                <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource Mode=Self}}" Value="false" />
+                                <Condition Binding="{Binding IsPressed, RelativeSource={RelativeSource Mode=Self}}" Value="false" />
+                                <Condition Binding="{Binding IsEnabled, RelativeSource={RelativeSource Mode=Self}}" Value="true" />
+                            </MultiDataTrigger.Conditions>
+                            <Setter TargetName="templateRoot" Property="Background" Value="{StaticResource ComboBox.Static.Editable.Background}" />
+                            <Setter TargetName="templateRoot" Property="BorderBrush" Value="{StaticResource ComboBox.Static.Editable.Border}" />
+                            <Setter TargetName="splitBorder" Property="Background" Value="{StaticResource ComboBox.Static.Editable.Button.Background}" />
+                            <Setter TargetName="splitBorder" Property="BorderBrush" Value="{StaticResource ComboBox.Static.Editable.Button.Border}" />
+                        </MultiDataTrigger>
+                        <!--  鼠标悬停在按钮上时的样式  -->
+                        <Trigger Property="IsMouseOver" Value="true">
+                            <Setter TargetName="arrow" Property="Fill" Value="{StaticResource ComboBox.MouseOver.Glyph}" />
+                        </Trigger>
+                        <!--  鼠标悬停在不可编辑ComboBox按钮上时的样式  -->
+                        <MultiDataTrigger>
+                            <MultiDataTrigger.Conditions>
+                                <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource Mode=Self}}" Value="true" />
+                                <Condition Binding="{Binding IsEditable, RelativeSource={RelativeSource AncestorType={x:Type ComboBox}}}" Value="false" />
+                            </MultiDataTrigger.Conditions>
+                            <Setter TargetName="templateRoot" Property="Background" Value="{StaticResource ComboBox.MouseOver.Background}" />
+                            <Setter TargetName="templateRoot" Property="BorderBrush" Value="{StaticResource ComboBox.MouseOver.Border}" />
+                        </MultiDataTrigger>
+                        <!--  鼠标悬停在可编辑ComboBox按钮上时的样式  -->
+                        <MultiDataTrigger>
+                            <MultiDataTrigger.Conditions>
+                                <Condition Binding="{Binding IsMouseOver, RelativeSource={RelativeSource Mode=Self}}" Value="true" />
+                                <Condition Binding="{Binding IsEditable, RelativeSource={RelativeSource AncestorType={x:Type ComboBox}}}" Value="true" />
+                            </MultiDataTrigger.Conditions>
+                            <Setter TargetName="templateRoot" Property="Background" Value="{StaticResource ComboBox.MouseOver.Editable.Background}" />
+                            <Setter TargetName="templateRoot" Property="BorderBrush" Value="{StaticResource ComboBox.MouseOver.Editable.Border}" />
+                            <Setter TargetName="splitBorder" Property="Background" Value="{StaticResource ComboBox.MouseOver.Editable.Button.Background}" />
+                            <Setter TargetName="splitBorder" Property="BorderBrush" Value="{StaticResource ComboBox.MouseOver.Editable.Button.Border}" />
+                        </MultiDataTrigger>
+                        <!--  按钮被按下时的样式  -->
+                        <Trigger Property="IsPressed" Value="true">
+                            <Setter TargetName="arrow" Property="Fill" Value="{StaticResource ComboBox.Pressed.Glyph}" />
+                        </Trigger>
+                        <!--  按钮被按下且不可编辑时的样式  -->
+                        <MultiDataTrigger>
+                            <MultiDataTrigger.Conditions>
+                                <Condition Binding="{Binding IsPressed, RelativeSource={RelativeSource Mode=Self}}" Value="true" />
+                                <Condition Binding="{Binding IsEditable, RelativeSource={RelativeSource AncestorType={x:Type ComboBox}}}" Value="false" />
+                            </MultiDataTrigger.Conditions>
+                            <Setter TargetName="templateRoot" Property="Background" Value="{StaticResource ComboBox.Pressed.Background}" />
+                            <Setter TargetName="templateRoot" Property="BorderBrush" Value="{StaticResource ComboBox.Pressed.Border}" />
+                        </MultiDataTrigger>
+                        <!--  按钮被按下且可编辑时的样式  -->
+                        <MultiDataTrigger>
+                            <MultiDataTrigger.Conditions>
+                                <Condition Binding="{Binding IsPressed, RelativeSource={RelativeSource Mode=Self}}" Value="true" />
+                                <Condition Binding="{Binding IsEditable, RelativeSource={RelativeSource AncestorType={x:Type ComboBox}}}" Value="true" />
+                            </MultiDataTrigger.Conditions>
+                            <Setter TargetName="templateRoot" Property="Background" Value="{StaticResource ComboBox.Pressed.Editable.Background}" />
+                            <Setter TargetName="templateRoot" Property="BorderBrush" Value="{StaticResource ComboBox.Pressed.Editable.Border}" />
+                            <Setter TargetName="splitBorder" Property="Background" Value="{StaticResource ComboBox.Pressed.Editable.Button.Background}" />
+                            <Setter TargetName="splitBorder" Property="BorderBrush" Value="{StaticResource ComboBox.Pressed.Editable.Button.Border}" />
+                        </MultiDataTrigger>
+                        <!--  按钮被禁用时的样式  -->
+                        <Trigger Property="IsEnabled" Value="false">
+                            <Setter TargetName="arrow" Property="Fill" Value="{StaticResource ComboBox.Disabled.Glyph}" />
+                        </Trigger>
+                        <!--  按钮被禁用且不可编辑时的样式  -->
+                        <MultiDataTrigger>
+                            <MultiDataTrigger.Conditions>
+                                <Condition Binding="{Binding IsEnabled, RelativeSource={RelativeSource Mode=Self}}" Value="false" />
+                                <Condition Binding="{Binding IsEditable, RelativeSource={RelativeSource AncestorType={x:Type ComboBox}}}" Value="false" />
+                            </MultiDataTrigger.Conditions>
+                            <Setter TargetName="templateRoot" Property="Background" Value="{StaticResource ComboBox.Disabled.Background}" />
+                            <Setter TargetName="templateRoot" Property="BorderBrush" Value="{StaticResource ComboBox.Disabled.Border}" />
+                        </MultiDataTrigger>
+                        <!--  按钮被禁用且可编辑时的样式  -->
+                        <MultiDataTrigger>
+                            <MultiDataTrigger.Conditions>
+                                <Condition Binding="{Binding IsEnabled, RelativeSource={RelativeSource Mode=Self}}" Value="false" />
+                                <Condition Binding="{Binding IsEditable, RelativeSource={RelativeSource AncestorType={x:Type ComboBox}}}" Value="true" />
+                            </MultiDataTrigger.Conditions>
+                            <Setter TargetName="templateRoot" Property="Background" Value="{StaticResource ComboBox.Disabled.Editable.Background}" />
+                            <Setter TargetName="templateRoot" Property="BorderBrush" Value="{StaticResource ComboBox.Disabled.Editable.Border}" />
+                            <Setter TargetName="splitBorder" Property="Background" Value="{StaticResource ComboBox.Disabled.Editable.Button.Background}" />
+                            <Setter TargetName="splitBorder" Property="BorderBrush" Value="{StaticResource ComboBox.Disabled.Editable.Button.Border}" />
+                        </MultiDataTrigger>
+                    </ControlTemplate.Triggers>
+                </ControlTemplate>
+            </Setter.Value>
+        </Setter>
+    </Style>
+    <ControlTemplate x:Key="ComboBoxEditableTemplate" TargetType="{x:Type ComboBox}">
+        <Grid x:Name="templateRoot" SnapsToDevicePixels="true">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*" />
+                <ColumnDefinition Width="0" MinWidth="{DynamicResource {x:Static SystemParameters.VerticalScrollBarWidthKey}}" />
+            </Grid.ColumnDefinitions>
+            <Popup
+                x:Name="PART_Popup"
+                Grid.ColumnSpan="2"
+                AllowsTransparency="true"
+                IsOpen="{Binding IsDropDownOpen, RelativeSource={RelativeSource Mode=TemplatedParent}}"
+                Placement="Bottom"
+                PopupAnimation="{DynamicResource {x:Static SystemParameters.ComboBoxPopupAnimationKey}}">
+                <theme:SystemDropShadowChrome
+                    x:Name="shadow"
+                    MinWidth="{Binding ActualWidth, ElementName=templateRoot}"
+                    MaxHeight="{TemplateBinding MaxDropDownHeight}"
+                    Color="Transparent">
+                    <Border
+                        x:Name="dropDownBorder"
+                        Background="{DynamicResource {x:Static SystemColors.WindowBrushKey}}"
+                        BorderBrush="{DynamicResource {x:Static SystemColors.WindowFrameBrushKey}}"
+                        BorderThickness="1">
+                        <ScrollViewer x:Name="DropDownScrollViewer">
+                            <Grid x:Name="grid" RenderOptions.ClearTypeHint="Enabled">
+                                <Canvas
+                                    x:Name="canvas"
+                                    Width="0"
+                                    Height="0"
+                                    HorizontalAlignment="Left"
+                                    VerticalAlignment="Top">
+                                    <Rectangle
+                                        x:Name="opaqueRect"
+                                        Width="{Binding ActualWidth, ElementName=dropDownBorder}"
+                                        Height="{Binding ActualHeight, ElementName=dropDownBorder}"
+                                        Fill="{Binding Background, ElementName=dropDownBorder}" />
+                                </Canvas>
+                                <ItemsPresenter
+                                    x:Name="ItemsPresenter"
+                                    KeyboardNavigation.DirectionalNavigation="Contained"
+                                    SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
+                            </Grid>
+                        </ScrollViewer>
+                    </Border>
+                </theme:SystemDropShadowChrome>
+            </Popup>
+            <ToggleButton
+                x:Name="toggleButton"
+                Grid.ColumnSpan="2"
+                Background="{TemplateBinding Background}"
+                BorderBrush="{TemplateBinding BorderBrush}"
+                BorderThickness="{TemplateBinding BorderThickness}"
+                IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource Mode=TemplatedParent}}"
+                Style="{StaticResource ComboBoxToggleButton}" />
+            <Border
+                x:Name="border"
+                Margin="{TemplateBinding BorderThickness}"
+                Background="{StaticResource TextBox.Static.Background}">
+                <TextBox
+                    x:Name="PART_EditableTextBox"
+                    Margin="{TemplateBinding Padding}"
+                    HorizontalContentAlignment="{TemplateBinding HorizontalContentAlignment}"
+                    VerticalContentAlignment="{TemplateBinding VerticalContentAlignment}"
+                    IsReadOnly="{Binding IsReadOnly, RelativeSource={RelativeSource Mode=TemplatedParent}}"
+                    Style="{StaticResource ComboBoxEditableTextBox}" />
+            </Border>
+        </Grid>
+        <ControlTemplate.Triggers>
+            <Trigger Property="IsEnabled" Value="false">
+                <Setter TargetName="border" Property="Opacity" Value="0.56" />
+            </Trigger>
+            <Trigger Property="IsKeyboardFocusWithin" Value="true">
+                <Setter Property="Foreground" Value="Black" />
+            </Trigger>
+            <Trigger SourceName="PART_Popup" Property="HasDropShadow" Value="true">
+                <Setter TargetName="shadow" Property="Margin" Value="0,0,5,5" />
+                <Setter TargetName="shadow" Property="Color" Value="#71000000" />
+            </Trigger>
+            <Trigger Property="HasItems" Value="false">
+                <Setter TargetName="dropDownBorder" Property="Height" Value="95" />
+            </Trigger>
+            <MultiTrigger>
+                <MultiTrigger.Conditions>
+                    <Condition Property="IsGrouping" Value="true" />
+                    <Condition Property="VirtualizingPanel.IsVirtualizingWhenGrouping" Value="false" />
+                </MultiTrigger.Conditions>
+                <Setter Property="ScrollViewer.CanContentScroll" Value="false" />
+            </MultiTrigger>
+            <Trigger SourceName="DropDownScrollViewer" Property="ScrollViewer.CanContentScroll" Value="false">
+                <Setter TargetName="opaqueRect" Property="Canvas.Top" Value="{Binding VerticalOffset, ElementName=DropDownScrollViewer}" />
+                <Setter TargetName="opaqueRect" Property="Canvas.Left" Value="{Binding HorizontalOffset, ElementName=DropDownScrollViewer}" />
+            </Trigger>
+        </ControlTemplate.Triggers>
+    </ControlTemplate>
+    <ControlTemplate x:Key="ComboBoxTemplate" TargetType="{x:Type ComboBox}">
+        <!--  定义一个名为 templateRoot 的 Grid，用于布局控件  -->
+        <Grid x:Name="templateRoot" SnapsToDevicePixels="true">
+            <Grid.ColumnDefinitions>
+                <!--  定义第一列，占据剩余空间  -->
+                <ColumnDefinition Width="*" />
+                <!--  定义第二列，用于垂直滚动条，宽度为0，但最小宽度为系统参数定义的滚动条宽度  -->
+                <ColumnDefinition Width="0" MinWidth="{DynamicResource {x:Static SystemParameters.VerticalScrollBarWidthKey}}" />
+            </Grid.ColumnDefinitions>
+            <!--  定义一个 Popup 控件，用于显示下拉列表  -->
+            <Popup
+                x:Name="PART_Popup"
+                Grid.ColumnSpan="2"
+                Margin="1"
+                AllowsTransparency="true"
+                IsOpen="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource Mode=TemplatedParent}}"
+                Placement="Bottom"
+                PopupAnimation="{DynamicResource {x:Static SystemParameters.ComboBoxPopupAnimationKey}}">
+                <!--  使用 SystemDropShadowChrome 为 Popup 添加阴影效果  -->
+                <theme:SystemDropShadowChrome
+                    x:Name="shadow"
+                    MinWidth="{Binding ActualWidth, ElementName=templateRoot}"
+                    MaxHeight="{TemplateBinding MaxDropDownHeight}"
+                    Color="Transparent">
+                    <!--  边框控件，用于包裹下拉列表项  -->
+                    <Border
+                        x:Name="dropDownBorder"
+                        Background="{DynamicResource {x:Static SystemColors.WindowBrushKey}}"
+                        BorderBrush="{DynamicResource {x:Static SystemColors.WindowFrameBrushKey}}"
+                        BorderThickness="1">
+                        <!--  滚动视图控件，用于显示下拉列表的内容  -->
+                        <ScrollViewer x:Name="DropDownScrollViewer">
+                            <!--  用于渲染下拉列表项的 Grid  -->
+                            <Grid x:Name="grid" RenderOptions.ClearTypeHint="Enabled">
+                                <!--  Canvas 用于绘制不透明的背景矩形  -->
+                                <Canvas
+                                    x:Name="canvas"
+                                    Width="0"
+                                    Height="0"
+                                    HorizontalAlignment="Left"
+                                    VerticalAlignment="Top">
+                                    <Rectangle
+                                        x:Name="opaqueRect"
+                                        Width="{Binding ActualWidth, ElementName=dropDownBorder}"
+                                        Height="{Binding ActualHeight, ElementName=dropDownBorder}"
+                                        Fill="{Binding Background, ElementName=dropDownBorder}" />
+                                </Canvas>
+                                <!--  ItemsPresenter 用于显示 ComboBox 的项  -->
+                                <ItemsPresenter
+                                    x:Name="ItemsPresenter"
+                                    KeyboardNavigation.DirectionalNavigation="Contained"
+                                    SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
+                            </Grid>
+                        </ScrollViewer>
+                    </Border>
+                </theme:SystemDropShadowChrome>
+            </Popup>
+            <!--  ToggleButton 用于控制下拉列表的打开和关闭  -->
+            <ToggleButton
+                x:Name="toggleButton"
+                Grid.ColumnSpan="2"
+                Background="{TemplateBinding Background}"
+                BorderBrush="{TemplateBinding BorderBrush}"
+                BorderThickness="{TemplateBinding BorderThickness}"
+                IsChecked="{Binding IsDropDownOpen, Mode=TwoWay, RelativeSource={RelativeSource Mode=TemplatedParent}}"
+                Style="{StaticResource ComboBoxToggleButton}" />
+            <!--  ContentPresenter 用于显示当前选择的项  -->
+            <ContentPresenter
+                x:Name="contentPresenter"
+                Margin="{TemplateBinding Padding}"
+                HorizontalAlignment="{TemplateBinding HorizontalContentAlignment}"
+                VerticalAlignment="{TemplateBinding VerticalContentAlignment}"
+                Content="{TemplateBinding SelectionBoxItem}"
+                ContentStringFormat="{TemplateBinding SelectionBoxItemStringFormat}"
+                ContentTemplate="{TemplateBinding SelectionBoxItemTemplate}"
+                ContentTemplateSelector="{TemplateBinding ItemTemplateSelector}"
+                IsHitTestVisible="false"
+                SnapsToDevicePixels="{TemplateBinding SnapsToDevicePixels}" />
+        </Grid>
+        <!--  控件模板触发器，用于响应不同的状态变化  -->
+        <ControlTemplate.Triggers>
+            <!--  当 Popup 有阴影时，设置阴影的边距和颜色  -->
+            <Trigger SourceName="PART_Popup" Property="HasDropShadow" Value="true">
+                <Setter TargetName="shadow" Property="Margin" Value="0,0,5,5" />
+                <Setter TargetName="shadow" Property="Color" Value="#71000000" />
+            </Trigger>
+            <!--  当没有项时，设置下拉边框的高度  -->
+            <Trigger Property="HasItems" Value="false">
+                <Setter TargetName="dropDownBorder" Property="Height" Value="95" />
+            </Trigger>
+            <!--  多条件触发器，当分组和不虚拟化时，禁用内容滚动  -->
+            <MultiTrigger>
+                <MultiTrigger.Conditions>
+                    <Condition Property="IsGrouping" Value="true" />
+                    <Condition Property="VirtualizingPanel.IsVirtualizingWhenGrouping" Value="false" />
+                </MultiTrigger.Conditions>
+                <Setter Property="ScrollViewer.CanContentScroll" Value="false" />
+            </MultiTrigger>
+            <!--  当 ScrollViewer 的 CanContentScroll 为 false 时，调整不透明矩形的位置  -->
+            <Trigger SourceName="DropDownScrollViewer" Property="ScrollViewer.CanContentScroll" Value="false">
+                <Setter TargetName="opaqueRect" Property="Canvas.Top" Value="{Binding VerticalOffset, ElementName=DropDownScrollViewer}" />
+                <Setter TargetName="opaqueRect" Property="Canvas.Left" Value="{Binding HorizontalOffset, ElementName=DropDownScrollViewer}" />
+            </Trigger>
+        </ControlTemplate.Triggers>
+    </ControlTemplate>
+    <Style x:Key="PageComboBoxStyle" TargetType="{x:Type ComboBox}">
+        <!--  设置在获得焦点时的视觉样式  -->
+        <Setter Property="FocusVisualStyle" Value="{StaticResource FocusVisual}" />
+
+        <!--  设置 ComboBox 的背景颜色  -->
+        <Setter Property="Background" Value="Chocolate" />
+
+        <!--  设置 ComboBox 的边框颜色  -->
+        <Setter Property="BorderBrush" Value="Transparent" />
+
+        <!--  设置 ComboBox 的前景色（文本颜色）  -->
+        <Setter Property="Foreground" Value="Blue" />
+
+        <!--  设置 ComboBox 的边框厚度  -->
+        <Setter Property="BorderThickness" Value="0" />
+
+        <!--  设置水平滚动条的可见性为自动  -->
+        <Setter Property="ScrollViewer.HorizontalScrollBarVisibility" Value="Auto" />
+
+        <!--  设置垂直滚动条的可见性为自动  -->
+        <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Hidden" />
+
+        <!--  设置 ComboBox 的内边距  -->
+        <Setter Property="Padding" Value="3" />
+
+        <!--  允许 ScrollViewer 的内容滚动  -->
+        <Setter Property="ScrollViewer.CanContentScroll" Value="true" />
+
+        <!--  设置触控板滚动模式为水平和垂直  -->
+        <Setter Property="ScrollViewer.PanningMode" Value="Both" />
+
+        <!--  禁用手写笔的快速滑动功能  -->
+        <Setter Property="Stylus.IsFlicksEnabled" Value="False" />
+
+        <!--  设置 ComboBox 的模板  -->
+        <Setter Property="Template" Value="{StaticResource ComboBoxTemplate}" />
+
+        <!--  定义样式触发器  -->
+        <Style.Triggers>
+            <!--  当 ComboBox 可编辑时的触发器  -->
+            <Trigger Property="IsEditable" Value="true">
+                <!--  禁用可编辑 ComboBox 的 Tab 键停留  -->
+                <Setter Property="IsTabStop" Value="false" />
+
+                <!--  调整可编辑 ComboBox 的内边距  -->
+                <Setter Property="Padding" Value="2" />
+
+                <!--  使用可编辑 ComboBox 的模板  -->
+                <Setter Property="Template" Value="{StaticResource ComboBoxEditableTemplate}" />
+            </Trigger>
+        </Style.Triggers>
+    </Style>
+</ResourceDictionary>

@@ -1,0 +1,36 @@
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
+using System.Windows;
+using System.Windows.Controls;
+using System.Windows.Data;
+using System.Windows.Documents;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Media.Imaging;
+using System.Windows.Navigation;
+using System.Windows.Shapes;
+
+namespace _2025毕业设计.Views.EditMessage.AwardNominateManager
+{
+    /// <summary>
+    /// EditAwardNominate.xaml 的交互逻辑
+    /// </summary>
+    public partial class EditAwardNominate : UserControl
+    {
+        public EditAwardNominate()
+        {
+            InitializeComponent();
+        }
+
+        private void ComboBox_TextChanged(object sender, TextChangedEventArgs e)
+        {
+            if (sender is ComboBox comboBox)
+            {
+                comboBox.IsDropDownOpen = true;
+            }
+        }
+    }
+}

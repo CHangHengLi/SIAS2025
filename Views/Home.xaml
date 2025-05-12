@@ -1,0 +1,577 @@
+<Window
+    x:Class="_2025毕业设计.Views.Home"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:hc="https://handyorg.github.io/handycontrol"
+    xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
+    xmlns:lvc="clr-namespace:LiveCharts.Wpf;assembly=LiveCharts.Wpf"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+    xmlns:prism="http://prismlibrary.com/"
+    xmlns:vm="clr-namespace:_2025毕业设计.ViewModels"
+    xmlns:converter="clr-namespace:_2025毕业设计.Converter"
+    x:Name="MainWindow"
+    Title="Home"
+    Width="800"
+    Height="500"
+    prism:ViewModelLocator.AutoWireViewModel="True"
+    d:DesignHeight="1300"
+    AllowsTransparency="True"
+    Icon="/Views/主页.png"
+    ResizeMode="CanResize"
+    WindowStartupLocation="CenterScreen"
+    WindowStyle="None"
+    mc:Ignorable="d">
+    
+    <Window.Resources>
+        <!-- 数学计算转换器，用于绑定表达式中的数学运算 -->
+        <converter:MathConverter x:Key="MathConverter"/>
+    </Window.Resources>
+    
+    <!--  加载时触发  -->
+    <i:Interaction.Triggers>
+        <i:EventTrigger EventName="Loaded">
+            <i:InvokeCommandAction Command="{Binding LoadedCommand}" />
+        </i:EventTrigger>
+        <i:EventTrigger EventName="MouseLeftButtonDown">
+            <i:InvokeCommandAction Command="{Binding WindowDragCommand}" />
+        </i:EventTrigger>
+        <i:EventTrigger EventName="PreviewMouseWheel">
+            <i:InvokeCommandAction Command="{Binding MouseWheelCommand}" PassEventArgsToCommand="True" />
+        </i:EventTrigger>
+    </i:Interaction.Triggers>
+    <Grid x:Name="MainGrid" hc:Growl.GrowlParent="True">
+        <!--  Grid网格布局  -->
+        <Grid.RowDefinitions>
+            <RowDefinition Height="auto" />
+            <RowDefinition Height="*" />
+            <RowDefinition Height="auto" />
+        </Grid.RowDefinitions>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto" />
+            <ColumnDefinition Width="*" />
+        </Grid.ColumnDefinitions>
+        <!--  首页顶层显示内容  -->
+        <WrapPanel Grid.Row="0" Grid.ColumnSpan="3">
+            <WrapPanel.Background>
+                <LinearGradientBrush StartPoint="0,0" EndPoint="1,1">
+                    <GradientStop Offset="0.0" Color="#7FFF0000" />
+                    <GradientStop Offset="0.545" Color="#7FFFA500" />
+                    <GradientStop Offset="0.75" Color="#7F008000" />
+                    <GradientStop Offset="1.0" Color="#7F0000FF" />
+                </LinearGradientBrush>
+            </WrapPanel.Background>
+            <!--  首页线性渐变背景  -->
+            <!--  首页欢迎语  -->
+            <TextBlock
+                VerticalAlignment="Center"
+                FontFamily="Comic Sans MS"
+                FontSize="25"
+                Foreground="#7F0000FF ">
+                <TextBlock.Text>
+                    <MultiBinding StringFormat="欢迎你 {0}, 现在的时间是 {1}">
+                        <Binding Path="DisplayName" />
+                        <Binding Path="CurrentTime" />
+                    </MultiBinding>
+                </TextBlock.Text>
+            </TextBlock>
+
+        </WrapPanel>
+        <!--  退出登录按钮  -->
+        <StackPanel
+            Grid.Row="0"
+            Grid.Column="1"
+            HorizontalAlignment="Right"
+            Orientation="Horizontal">
+            
+            <!--  最小化按钮  -->
+            <Button
+                Margin="0,0,10,0"
+                Background="Transparent"
+                BorderThickness="0"
+                Command="{Binding MinimizeWindowCommand}"
+                ToolTip="最小化"
+                FontFamily="Segoe MDL2 Assets"
+                Content="&#xE921;"
+                FontSize="20"
+                Foreground="White" />
+                
+            <!--  最大化按钮  -->
+            <Button
+                Margin="0,0,10,0"
+                Background="Transparent"
+                BorderThickness="0"
+                Command="{Binding MaximizeWindowCommand}"
+                ToolTip="最大化"
+                FontFamily="Segoe MDL2 Assets"
+                FontSize="20"
+                Foreground="White">
+                <Button.Style>
+                    <Style TargetType="Button" BasedOn="{StaticResource {x:Type Button}}">
+                        <Setter Property="Content" Value="&#xE922;" />
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding ElementName=MainWindow, Path=WindowState}" Value="Maximized">
+                                <Setter Property="Content" Value="&#xE923;" />
+                                <Setter Property="ToolTip" Value="还原" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </Button.Style>
+            </Button>
+                
+            <!--  退出登录按钮  -->
+            <Button
+                Background="Transparent"
+                BorderThickness="0"
+                Command="{Binding ReStartCommand}"
+                Content="退出登录"
+                FontFamily="仿宋"
+                FontSize="25"
+                Foreground="Yellow"
+                Style="{DynamicResource ButtonCustom}" />
+        </StackPanel>
+        <!--  左侧菜单栏  -->
+        <ScrollViewer
+            Grid.Row="1"
+            Grid.Column="0"
+            Width="auto"
+            VerticalScrollBarVisibility="Hidden">
+            <StackPanel>
+                <!--  背景颜色  -->
+                <StackPanel.Background>
+                    <LinearGradientBrush StartPoint="0.5,0" EndPoint="0.5,1">
+                        <GradientStop Color="#7FFF0000" />
+                        <GradientStop Offset="0.494" Color="#7FFFA500" />
+                        <GradientStop Offset="0.764" Color="#7F008000" />
+                        <GradientStop Offset="0.978" Color="#7F0000FF" />
+                    </LinearGradientBrush>
+                </StackPanel.Background>
+                <Button
+                    HorizontalAlignment="Center"
+                    Command="{Binding BackHomeCommand}"
+                    Content="首页"
+                    FontSize="20"
+                    Style="{StaticResource HomeMenuButtonStyle}" />
+                <!--  功能菜单  -->
+                <Expander
+                    HorizontalAlignment="Left"
+                    VerticalAlignment="Top"
+                    Cursor="Hand"
+                    Foreground="Black"
+                    Header="功能菜单"
+                    Style="{DynamicResource BaseStyle}"
+                    Template="{StaticResource ExpanderDownTemplate}">
+
+                    <StackPanel>
+                        <Button
+                            Margin="10,0,10,5"
+                            Command="{Binding PersonalInformationManagementCommand}"
+                            Content="个人信息管理"
+                            Style="{DynamicResource HomeMenuButtonStyle}" />
+                        <Button
+                            Margin="10,0,10,5"
+                            Command="{Binding DepartmentManagerCommand}"
+                            Content="部门管理"
+                            IsEnabled="{Binding EmployeeManagerButtonIsEnableCopy}"
+                            Style="{DynamicResource HomeMenuButtonStyle}"
+                            Visibility="{Binding IsButtonVisibleCopy}" />
+                        <Button
+                            Margin="10,0,10,5"
+                            Command="{Binding AdminManagerCommand}"
+                            Content="管理员管理"
+                            IsEnabled="{Binding EmployeeManagerButtonIsEnableCopy}"
+                            Style="{DynamicResource HomeMenuButtonStyle}"
+                            Visibility="{Binding IsButtonVisibleCopy}" />
+                        <Button
+                            Margin="10,5"
+                            Command="{Binding EmployeeManagerCommand}"
+                            Content="员工管理"
+                            IsEnabled="{Binding EmployeeManagerButtonIsEnable}"
+                            Style="{DynamicResource HomeMenuButtonStyle}"
+                            Visibility="{Binding EmployeeManagerButtonVisible}" />
+                        <Button
+                            Margin="10,5"
+                            Command="{Binding AwardSettingCommand}"
+                            Content="奖项设置"
+                            IsEnabled="{Binding EmployeeManagerButtonIsEnable}"
+                            Style="{DynamicResource HomeMenuButtonStyle}"
+                            Visibility="{Binding AwardSettingButtonVisible}" />
+                        <Button
+                            Margin="10,5"
+                            Command="{Binding AwardNominateCommand}"
+                            Content="奖项提名"
+                            IsEnabled="{Binding EmployeeManagerButtonIsEnable}"
+                            Style="{DynamicResource HomeMenuButtonStyle}"
+                            Visibility="{Binding AwardNominateButtonVisible}" />
+                        <Button
+                            Margin="10,5"
+                            Command="{Binding NominationDeclarationCommand}"
+                            Content="提名申报"
+                            IsEnabled="{Binding EmployeeManagerButtonIsEnable}"
+                            Style="{StaticResource HomeMenuButtonStyle}"
+                            Visibility="{Binding NominationDeclarationButtonVisible}" />
+                        <Button
+                            Margin="10,5"
+                            Command="{Binding VoteEntranceCommand}"
+                            Content="投票入口"
+                            Style="{StaticResource HomeMenuButtonStyle}" />
+                        <Button
+                            Margin="10,5"
+                            Command="{Binding VoteResultCommand}"
+                            Content="投票结果"
+                            Style="{StaticResource HomeMenuButtonStyle}" />
+
+                    </StackPanel>
+                </Expander>
+                <!--  3D奖杯动画  -->
+                <Grid Height="200">
+                    <!--<hx:HelixViewport3D
+                        x:Name="helixViewport"
+                        IsEnabled="False"
+                        ShowViewCube="False">
+                        <hx:HelixViewport3D.Camera>
+                            <PerspectiveCamera
+                                LookDirection="0, 0, -1"
+                                Position="0, 0, 15"
+                                UpDirection="0, 1, 0" />
+                        </hx:HelixViewport3D.Camera>
+                        <hx:DefaultLights />
+                        <ModelVisual3D Content="{Binding Model3D}" />
+                    </hx:HelixViewport3D>-->
+                    <!--  添加徽章  -->
+                    <hc:Shield
+                        Margin="10,10,10,20"
+                        VerticalAlignment="Top"
+                        Command="hc:ControlCommands.OpenLink"
+                        CommandParameter="https://gitee.com/LiChangHeng5424/SIAS2025"
+                        Status="SIAS"
+                        Subject="李长恒"
+                        Color="#1182c3" />
+                </Grid>
+            </StackPanel>
+        </ScrollViewer>
+        <!--  右侧包含滚动条视图  -->
+        <ScrollViewer
+            Grid.Row="1"
+            Grid.Column="1"
+            PanningMode="Both"
+            VerticalScrollBarVisibility="Auto">
+            <Grid x:Name="ContentGrid">
+                <!-- 内容区域大小调整策略 -->
+                <Grid.LayoutTransform>
+                    <ScaleTransform x:Name="ApplicationScaleTransform"
+                                  CenterX="0"
+                                  CenterY="0"
+                                  ScaleX="1"
+                                  ScaleY="1" />
+                </Grid.LayoutTransform>
+                
+                <!--  包含导航在内的五行排列  -->
+                <Grid.RowDefinitions>
+                    <RowDefinition x:Name="Row1" Height="{Binding Row1Visible}" />
+                    <RowDefinition x:Name="Row2" Height="{Binding Row2Visible}" />
+                    <RowDefinition x:Name="Row3" Height="{Binding Row3Visible}" />
+                    <RowDefinition x:Name="Row4" Height="{Binding Row4Visible}" />
+                    <RowDefinition x:Name="Row5" Height="{Binding Row5Visible}" />
+                </Grid.RowDefinitions>
+                
+                <!--  第一行:导航页面  -->
+                <Grid Grid.Row="0">
+                    <UserControl x:Name="HomeFrame" prism:RegionManager.RegionName="Row1Region" />
+                </Grid>
+                <!--  第二行:快捷入口  -->
+                <StackPanel Grid.Row="1">
+                    <Label Content="快捷入口:" Style="{DynamicResource HomeLable}" />
+                    <ScrollViewer
+                        x:Name="ShortcutScrollViewer"
+                        HorizontalScrollBarVisibility="Visible"
+                        PreviewMouseWheel="ShortcutScrollViewer_PreviewMouseWheel"
+                        Template="{DynamicResource HomeScrollViewerTemplate}"
+                        VerticalScrollBarVisibility="Hidden">
+
+                        <WrapPanel Orientation="Horizontal">
+
+                            <Button Command="{Binding PersonalInformationManagementCommand}" Style="{DynamicResource HomeButtonStyle}">
+                                <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                                    <Image Source="/2025毕业设计;component/Images/个人信息管理.png" Style="{DynamicResource HomeImageStyle}" />
+                                    <TextBlock VerticalAlignment="Center" Text="个人信息管理" />
+                                </StackPanel>
+                            </Button>
+                            <Button
+                                Command="{Binding DepartmentManagerCommand}"
+                                IsEnabled="{Binding EmployeeManagerButtonIsEnableCopy}"
+                                Style="{DynamicResource HomeButtonStyle}"
+                                Visibility="{Binding IsButtonVisibleCopy}">
+                                <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                                    <Image Source="/2025毕业设计;component/Images/部门管理.png" Style="{DynamicResource HomeImageStyle}" />
+                                    <TextBlock VerticalAlignment="Center" Text="部门管理" />
+                                </StackPanel>
+                            </Button>
+                            <Button
+                                Command="{Binding AdminManagerCommand}"
+                                IsEnabled="{Binding EmployeeManagerButtonIsEnableCopy}"
+                                Style="{DynamicResource HomeButtonStyle}"
+                                Visibility="{Binding IsButtonVisibleCopy}">
+                                <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                                    <Image Source="/2025毕业设计;component/Images/管理员管理.png" Style="{DynamicResource HomeImageStyle}" />
+                                    <TextBlock VerticalAlignment="Center" Text="管理员管理" />
+                                </StackPanel>
+                            </Button>
+                            <Button
+                                Command="{Binding EmployeeManagerCommand}"
+                                IsEnabled="{Binding EmployeeManagerButtonIsEnable}"
+                                Style="{DynamicResource HomeButtonStyle}"
+                                Visibility="{Binding EmployeeManagerButtonVisible}">
+                                <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                                    <Image Source="/2025毕业设计;component/Images/员工管理.png" Style="{DynamicResource HomeImageStyle}" />
+                                    <TextBlock VerticalAlignment="Center" Text="员工管理" />
+                                </StackPanel>
+                            </Button>
+                            <Button
+                                Command="{Binding AwardSettingCommand}"
+                                IsEnabled="{Binding EmployeeManagerButtonIsEnable}"
+                                Style="{DynamicResource HomeButtonStyle}"
+                                Visibility="{Binding AwardSettingButtonVisible}">
+                                <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                                    <Image Source="/2025毕业设计;component/Images/奖项设计.png" Style="{DynamicResource HomeImageStyle}" />
+                                    <TextBlock VerticalAlignment="Center" Text="奖项设置" />
+                                </StackPanel>
+                            </Button>
+                            <Button
+                                Command="{Binding AwardNominateCommand}"
+                                IsEnabled="{Binding EmployeeManagerButtonIsEnable}"
+                                Style="{DynamicResource HomeButtonStyle}"
+                                Visibility="{Binding AwardNominateButtonVisible}">
+                                <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                                    <Image Source="/2025毕业设计;component/Images/奖项提名.png" Style="{DynamicResource HomeImageStyle}" />
+                                    <TextBlock VerticalAlignment="Center" Text="奖项提名" />
+                                </StackPanel>
+                            </Button>
+                            <Button
+                                Command="{Binding NominationDeclarationCommand}"
+                                IsEnabled="{Binding EmployeeManagerButtonIsEnable}"
+                                Style="{DynamicResource HomeButtonStyle}"
+                                Visibility="{Binding NominationDeclarationButtonVisible}">
+                                <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                                    <Image Source="/2025毕业设计;component/Images/提名申报.png" Style="{DynamicResource HomeImageStyle}" />
+                                    <TextBlock VerticalAlignment="Center" Text="提名申报" />
+                                </StackPanel>
+                            </Button>
+                            <Button Command="{Binding VoteEntranceCommand}" Style="{DynamicResource HomeButtonStyle}">
+                                <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                                    <Image Source="/2025毕业设计;component/Images/投票入口.png" Style="{DynamicResource HomeImageStyle}" />
+                                    <TextBlock VerticalAlignment="Center" Text="投票入口" />
+                                </StackPanel>
+                            </Button>
+                            <Button Command="{Binding VoteResultCommand}" Style="{DynamicResource HomeButtonStyle}">
+                                <StackPanel VerticalAlignment="Center" Orientation="Horizontal">
+                                    <Image Source="/2025毕业设计;component/Images/投票结果.png" Style="{DynamicResource HomeImageStyle}" />
+                                    <TextBlock VerticalAlignment="Center" Text="投票结果" />
+                                </StackPanel>
+                            </Button>
+                        </WrapPanel>
+                    </ScrollViewer>
+                </StackPanel>
+                <!--  第三行:奖项提名占比和奖项得票总数图表  -->
+                <Grid Grid.Row="2">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*" />
+                        <ColumnDefinition Width="*" />
+                    </Grid.ColumnDefinitions>
+                    <!--  各奖项提名占比饼图  -->
+                    <Border
+                        Grid.Column="0"
+                        Margin="10"
+                        Padding="10"
+                        BorderBrush="#DDDDDD"
+                        BorderThickness="1">
+                        <StackPanel>
+                            <TextBlock
+                                Margin="0,0,0,10"
+                                FontSize="16"
+                                FontWeight="Bold"
+                                Text="各奖项提名占比" />
+                            <lvc:PieChart
+                                Height="{Binding RelativeSource={RelativeSource AncestorType=Border}, Path=ActualWidth, Converter={StaticResource MathConverter}, ConverterParameter=x*0.7}"
+                                Margin="10"
+                                Hoverable="True"
+                                LegendLocation="Right"
+                                Series="{Binding SeriesCollection}">
+                                <i:Interaction.Triggers>
+                                    <i:EventTrigger EventName="DataClick">
+                                        <i:InvokeCommandAction Command="{Binding PieChartDataClickCommand}" PassEventArgsToCommand="True" />
+                                    </i:EventTrigger>
+                                </i:Interaction.Triggers>
+                                <lvc:PieChart.DataTooltip>
+                                    <lvc:DefaultTooltip
+                                        Background="White"
+                                        Foreground="Black"
+                                        SelectionMode="OnlySender">
+                                        <lvc:DefaultTooltip.ContentTemplate>
+                                            <DataTemplate>
+                                                <StackPanel>
+                                                    <TextBlock>
+                                                        <Run Text="{Binding SeriesView.Title}" />
+                                                        <Run Text=" " />
+                                                        <Run Text="{Binding ChartPoint.Y, StringFormat=0}" />
+                                                        <Run Text="个 (" />
+                                                        <Run Text="{Binding ChartPoint.Participation, StringFormat=P1}" />
+                                                        <Run Text=")" />
+                                                    </TextBlock>
+                                                </StackPanel>
+                                            </DataTemplate>
+                                        </lvc:DefaultTooltip.ContentTemplate>
+                                    </lvc:DefaultTooltip>
+                                </lvc:PieChart.DataTooltip>
+                            </lvc:PieChart>
+                        </StackPanel>
+                    </Border>
+
+                    <!--  各奖项得票总数条形图  -->
+                    <Border
+                        Grid.Column="1"
+                        Margin="10"
+                        Padding="10"
+                        BorderBrush="#DDDDDD"
+                        BorderThickness="1">
+                        <StackPanel>
+                            <TextBlock
+                                Margin="0,0,0,10"
+                                FontSize="16"
+                                FontWeight="Bold"
+                                Text="各奖项得票总数" />
+                            <lvc:CartesianChart
+                                Height="{Binding RelativeSource={RelativeSource AncestorType=Border}, Path=ActualWidth, Converter={StaticResource MathConverter}, ConverterParameter=x*0.7}"
+                                Margin="10"
+                                AxisX="{Binding RankingAxisX}"
+                                AxisY="{Binding RankingAxisY}"
+                                Series="{Binding RankingSeriesCollection}" />
+                        </StackPanel>
+                    </Border>
+                </Grid>
+                <!--  第四行:投票排名图表  -->
+                <StackPanel Grid.Row="3">
+                    <Label Content="投票排名:" Style="{DynamicResource HomeLable}" />
+                    <Border
+                        Margin="10"
+                        Padding="10"
+                        BorderBrush="#DDDDDD"
+                        BorderThickness="1">
+                        <lvc:CartesianChart
+                            Height="{Binding RelativeSource={RelativeSource AncestorType=Border}, Path=ActualWidth, Converter={StaticResource MathConverter}, ConverterParameter=x*0.4}"
+                            AxisX="{Binding NomineeRankingAxisX}"
+                            AxisY="{Binding NomineeRankingAxisY}"
+                            Series="{Binding NomineeRankingSeriesCollection}" />
+                    </Border>
+                </StackPanel>
+                <!--  第五行:投票详情表格  -->
+                <Grid Grid.Row="4">
+                    <StackPanel>
+                        <!--  添加标题和筛选奖项的Grid布局  -->
+                        <Grid Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="Auto" />
+                                <ColumnDefinition Width="250" />
+                                <ColumnDefinition Width="*" />
+                            </Grid.ColumnDefinitions>
+
+                            <!--  标题  -->
+                            <Label
+                                Grid.Column="0"
+                                Content="投票详情:"
+                                Style="{DynamicResource HomeLable}" />
+
+                            <!--  筛选奖项文本  -->
+                            <TextBlock
+                                Grid.Column="1"
+                                Margin="20,0,10,0"
+                                VerticalAlignment="Center"
+                                FontSize="14"
+                                Text="筛选奖项:" />
+
+                            <!--  奖项下拉框  -->
+                            <ComboBox
+                                Grid.Column="2"
+                                Height="30"
+                                Margin="0,5"
+                                hc:InfoElement.Placeholder="选择奖项筛选..."
+                                DisplayMemberPath="AwardName"
+                                IsEditable="True"
+                                IsTextSearchCaseSensitive="False"
+                                IsTextSearchEnabled="True"
+                                ItemsSource="{Binding Awards}"
+                                SelectedItem="{Binding SelectedAward}"
+                                StaysOpenOnEdit="True"
+                                TextSearch.TextPath="AwardName">
+                                <i:Interaction.Triggers>
+                                    <i:EventTrigger EventName="SelectionChanged">
+                                        <i:InvokeCommandAction Command="{Binding FilterVoteDetailsCommand}" />
+                                    </i:EventTrigger>
+                                </i:Interaction.Triggers>
+                            </ComboBox>
+                        </Grid>
+
+                        <!--  投票详情表格 - 添加数据绑定  -->
+                        <DataGrid
+                            MaxHeight="300"
+                            AutoGenerateColumns="False"
+                            BorderBrush="#DDDDDD"
+                            BorderThickness="1"
+                            CanUserResizeColumns="False"
+                            CanUserSortColumns="True"
+                            HeadersVisibility="Column"
+                            IsReadOnly="True"
+                            ItemsSource="{Binding VoteDetails}"
+                            VerticalScrollBarVisibility="Auto">
+                            <DataGrid.Columns>
+                                <DataGridTextColumn
+                                    Width="Auto"
+                                    Binding="{Binding NomineeName}"
+                                    Header="提报对象" />
+                                <DataGridTextColumn
+                                    Width="80"
+                                    Binding="{Binding AwardId}"
+                                    Header="奖项编号" />
+                                <DataGridTextColumn
+                                    Width="80"
+                                    Binding="{Binding AwardName}"
+                                    Header="提报奖项" />
+                                <DataGridTextColumn
+                                    Width="80"
+                                    Binding="{Binding DepartmentName}"
+                                    Header="所属部门" />
+                                <DataGridTextColumn
+                                    Width="*"
+                                    Binding="{Binding Introduction}"
+                                    Header="一句话介绍" />
+                                <DataGridTextColumn
+                                    Width="*"
+                                    Binding="{Binding NominateReason}"
+                                    Header="提名理由" />
+                                <DataGridTextColumn
+                                    Width="80"
+                                    Binding="{Binding VoteCount}"
+                                    Header="得票数" />
+                                <DataGridTemplateColumn Width="80" Header="详情">
+                                    <DataGridTemplateColumn.CellTemplate>
+                                        <DataTemplate>
+                                            <Button
+                                                Margin="2"
+                                                Background="#2196F3"
+                                                BorderThickness="0"
+                                                Command="{Binding DataContext.ViewNominationDetailsCommand, RelativeSource={RelativeSource AncestorType=DataGrid}}"
+                                                CommandParameter="{Binding}"
+                                                Content="查看"
+                                                Foreground="White" />
+                                        </DataTemplate>
+                                    </DataGridTemplateColumn.CellTemplate>
+                                </DataGridTemplateColumn>
+                            </DataGrid.Columns>
+                        </DataGrid>
+                    </StackPanel>
+                </Grid>
+            </Grid>
+        </ScrollViewer>
+    </Grid>
+</Window>

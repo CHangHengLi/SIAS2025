@@ -1,0 +1,49 @@
+# .editorconfig
+# 全局设置
+root = true
+
+# 所有文件
+[*]
+charset = utf-8
+end_of_line = crlf
+indent_style = space
+indent_size = 4
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+# C# 文件
+[*.cs]
+# 命名规则
+dotnet_naming_rule.private_fields_should_be_camel_case.severity = suggestion
+dotnet_naming_rule.private_fields_should_be_camel_case.symbols = private_fields
+dotnet_naming_rule.private_fields_should_be_camel_case.style = camel_case_style
+
+dotnet_naming_symbols.private_fields.applicable_kinds = field
+dotnet_naming_symbols.private_fields.applicable_accessibilities = private
+
+dotnet_naming_style.camel_case_style.capitalization = camel_case
+
+# XAML 文件
+[*.xaml]
+indent_size = 4
+
+# 项目文件
+[*.{csproj,vbproj,vcxproj,vcxproj.filters,proj,projitems,shproj}]
+indent_size = 2
+
+# XML配置文件
+[*.{xml,config,props,targets,nuspec,resx,ruleset,vsixmanifest,vsct}]
+indent_size = 2
+
+# JSON文件
+[*.json]
+indent_size = 2
+
+# 批处理文件
+[*.{cmd,bat}]
+end_of_line = crlf
+
+# 忽略某些警告
+[*.{cs,vb}]
+# 忽略过时框架目标的包引用警告
+dotnet_diagnostic.NU1701.severity = none 

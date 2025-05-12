@@ -1,0 +1,308 @@
+﻿<UserControl
+    x:Class="_2025毕业设计.Views.Pages.VoteResult"
+    xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+    xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+    xmlns:local="clr-namespace:_2025毕业设计.Views.Pages"
+    xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+    xmlns:prism="http://prismlibrary.com/"
+    xmlns:converter="clr-namespace:_2025毕业设计.Converter"
+    xmlns:viewmodels="clr-namespace:_2025毕业设计.ViewModels"
+    d:DesignHeight="680"
+    d:DesignWidth="980"
+    prism:ViewModelLocator.AutoWireViewModel="True"
+    mc:Ignorable="d"
+    xmlns:i="http://schemas.microsoft.com/xaml/behaviors"
+    xmlns:behaviors="clr-namespace:_2025毕业设计.Behaviors"
+    Background="White">
+    <UserControl.Resources>
+        <ResourceDictionary>
+            <ResourceDictionary.MergedDictionaries>
+                <ResourceDictionary Source="/Dict/ConverterDict.xaml"/>
+            </ResourceDictionary.MergedDictionaries>
+            <converter:BooleanInvertConverter x:Key="BooleanInvertConverter"/>
+            <BooleanToVisibilityConverter x:Key="BoolToVisConverter"/>
+            <!-- 数据行表头样式 -->
+            <Style x:Key="HeaderStyle" TargetType="DataGridColumnHeader">
+                <Setter Property="Background" Value="#2196F3"/>
+                <Setter Property="Foreground" Value="White"/>
+                <Setter Property="FontWeight" Value="Bold"/>
+                <Setter Property="Padding" Value="10,8"/>
+                <Setter Property="HorizontalContentAlignment" Value="Center"/>
+            </Style>
+        </ResourceDictionary>
+    </UserControl.Resources>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        
+        <!-- 页面标题区域 -->
+        <Border Grid.Row="0" Background="#2196F3" Padding="15,12" Margin="0,0,0,15">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <TextBlock Text="投票结果列表" FontSize="22" Foreground="White" FontWeight="Bold" VerticalAlignment="Center"/>
+                    <TextBlock Text="  |  " FontSize="22" Foreground="White" Opacity="0.8" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding NominationsCount, StringFormat=共 {0} 条提名记录}" FontSize="16" Foreground="White" Opacity="0.9" VerticalAlignment="Center"/>
+                </StackPanel>
+                
+                <StackPanel Grid.Column="1" Orientation="Horizontal" HorizontalAlignment="Right">
+                    <Button Content="导出报表" Padding="8,3" Background="#4CAF50" Foreground="White" BorderThickness="0" Command="{Binding ExportResultCommand}">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="4"/>
+                            </Style>
+                        </Button.Resources>
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+        
+        <!-- 搜索区域 -->
+        <Border Grid.Row="1" Background="#F5F5F5" Padding="15,10" Margin="0,0,0,15" BorderBrush="#E0E0E0" BorderThickness="1">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <TextBlock Grid.Column="0" Text="搜索：" FontSize="14" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                
+                <TextBox Grid.Column="1" Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}" 
+                         FontSize="14" Padding="8,5" BorderBrush="#BDBDBD" BorderThickness="1">
+                    <TextBox.Resources>
+                        <Style TargetType="Border">
+                            <Setter Property="CornerRadius" Value="4"/>
+                        </Style>
+                    </TextBox.Resources>
+                </TextBox>
+                
+                <Button Grid.Column="2" Content="查询" Margin="10,0,0,0" Padding="15,5" 
+                        Background="#2196F3" Foreground="White" BorderThickness="0"
+                        Command="{Binding SearchCommand}">
+                    <Button.Resources>
+                        <Style TargetType="Border">
+                            <Setter Property="CornerRadius" Value="4"/>
+                        </Style>
+                    </Button.Resources>
+                </Button>
+            </Grid>
+        </Border>
+        
+        <!-- 数据表格 - 性能优化 -->
+        <DataGrid Grid.Row="2" 
+                  Name="nominationDataGrid"
+                  ItemsSource="{Binding Nominations}" 
+                  AutoGenerateColumns="False" 
+                  IsReadOnly="True"
+                  BorderThickness="1"
+                  BorderBrush="#E0E0E0"
+                  Background="White"
+                  HeadersVisibility="Column"
+                  GridLinesVisibility="Horizontal"
+                  HorizontalGridLinesBrush="#E0E0E0"
+                  AlternatingRowBackground="#F5F5F5"
+                  RowHeaderWidth="0"
+                  CanUserAddRows="False"
+                  CanUserDeleteRows="False"
+                  CanUserResizeRows="False"
+                  SelectionMode="Single"
+                  SelectionUnit="FullRow"
+                  AlternationCount="2"
+                  ScrollViewer.CanContentScroll="True"
+                  ScrollViewer.VerticalScrollBarVisibility="Auto"
+                  VirtualizingPanel.IsVirtualizing="True"
+                  VirtualizingPanel.VirtualizationMode="Recycling"
+                  VirtualizingPanel.ScrollUnit="Pixel"
+                  VirtualizingPanel.CacheLengthUnit="Page"
+                  VirtualizingPanel.CacheLength="1,1"
+                  EnableColumnVirtualization="True"
+                  EnableRowVirtualization="True"
+                  PreviewMouseWheel="DataGrid_PreviewMouseWheel"
+                  LoadingRow="DataGrid_LoadingRow"
+                  UnloadingRow="DataGrid_UnloadingRow">
+            <i:Interaction.Triggers>
+                <i:EventTrigger EventName="MouseDoubleClick">
+                    <i:InvokeCommandAction Command="{Binding ViewNominationDetailsCommand}" 
+                                         CommandParameter="{Binding ElementName=nominationDataGrid, Path=SelectedItem}"/>
+                </i:EventTrigger>
+                <i:EventTrigger EventName="Loaded">
+                    <i:InvokeCommandAction Command="{Binding PageLoadedCommand}"/>
+                </i:EventTrigger>
+            </i:Interaction.Triggers>
+            <DataGrid.Resources>
+                <Style TargetType="DataGridRow">
+                    <Setter Property="Height" Value="45"/>
+                    <Setter Property="VerticalContentAlignment" Value="Center"/>
+                    <Style.Triggers>
+                        <!-- 普通选中行样式 -->
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter Property="Background" Value="#2196F3"/>
+                            <Setter Property="Foreground" Value="White"/>
+                            <Setter Property="FontWeight" Value="SemiBold"/>
+                        </Trigger>
+                        
+                        <!-- 偶数行选中时保持黑色字体 -->
+                        <MultiTrigger>
+                            <MultiTrigger.Conditions>
+                                <Condition Property="AlternationIndex" Value="1"/>
+                                <Condition Property="IsSelected" Value="True"/>
+                            </MultiTrigger.Conditions>
+                            <Setter Property="Foreground" Value="Black"/>
+                            <Setter Property="Background" Value="#90CAF9"/>
+                        </MultiTrigger>
+                    </Style.Triggers>
+                </Style>
+                
+                <!-- 确保DataGridCell中的文本颜色与行颜色一致 -->
+                <Style TargetType="DataGridCell">
+                    <Style.Triggers>
+                        <Trigger Property="IsSelected" Value="True">
+                            <Setter Property="Foreground" Value="{Binding RelativeSource={RelativeSource AncestorType=DataGridRow}, Path=Foreground}"/>
+                        </Trigger>
+                    </Style.Triggers>
+                </Style>
+                
+                <Style TargetType="DataGridColumnHeader">
+                    <Setter Property="Background" Value="#2196F3"/>
+                    <Setter Property="Foreground" Value="White"/>
+                    <Setter Property="FontWeight" Value="Bold"/>
+                    <Setter Property="Padding" Value="10"/>
+                    <Setter Property="HorizontalContentAlignment" Value="Center"/>
+                </Style>
+            </DataGrid.Resources>
+            
+            <DataGrid.Columns>
+                <!-- 提报对象列 -->
+                <DataGridTemplateColumn Header="提报对象" Width="100">
+                    <DataGridTemplateColumn.CellTemplate>
+                        <DataTemplate>
+                            <TextBlock TextAlignment="Center" 
+                                     VerticalAlignment="Center" 
+                                     Padding="5" 
+                                     FontWeight="Bold">
+                                <TextBlock.Style>
+                                    <Style TargetType="{x:Type TextBlock}">
+                                        <Setter Property="Text" Value="{Binding NominatedEmployee.EmployeeName}" />
+                                        <Style.Triggers>
+                                            <!-- 如果员工为空，显示管理员名称 -->
+                                            <DataTrigger Binding="{Binding NominatedEmployee}" Value="{x:Null}">
+                                                <Setter Property="Text" Value="{Binding NominatedAdmin.AdminName}" />
+                                            </DataTrigger>
+                                            <!-- 如果是选中行，保持行的前景色 -->
+                                            <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=DataGridRow}, Path=IsSelected}" Value="True">
+                                                <Setter Property="Foreground" Value="{Binding RelativeSource={RelativeSource AncestorType=DataGridRow}, Path=Foreground}"/>
+                                            </DataTrigger>
+                                        </Style.Triggers>
+                                    </Style>
+                                </TextBlock.Style>
+                            </TextBlock>
+                        </DataTemplate>
+                    </DataGridTemplateColumn.CellTemplate>
+                </DataGridTemplateColumn>
+                
+                <!-- 提报奖项列 -->
+                <DataGridTextColumn Header="提报奖项" Binding="{Binding Award.AwardName}" Width="120">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="TextAlignment" Value="Center"/>
+                            <Setter Property="VerticalAlignment" Value="Center"/>
+                            <Setter Property="Padding" Value="5"/>
+                            <Setter Property="TextWrapping" Value="Wrap"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=DataGridRow}, Path=IsSelected}" Value="True">
+                                    <Setter Property="Foreground" Value="{Binding RelativeSource={RelativeSource AncestorType=DataGridRow}, Path=Foreground}"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                
+                <!-- 所属部门列 -->
+                <DataGridTextColumn Header="所属部门" Binding="{Binding Department.DepartmentName}" Width="100">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="TextAlignment" Value="Center"/>
+                            <Setter Property="VerticalAlignment" Value="Center"/>
+                            <Setter Property="Padding" Value="5"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=DataGridRow}, Path=IsSelected}" Value="True">
+                                    <Setter Property="Foreground" Value="{Binding RelativeSource={RelativeSource AncestorType=DataGridRow}, Path=Foreground}"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                
+                <!-- 一句话介绍列 -->
+                <DataGridTextColumn Header="一句话介绍" Binding="{Binding Introduction}" Width="150">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="TextWrapping" Value="Wrap"/>
+                            <Setter Property="VerticalAlignment" Value="Center"/>
+                            <Setter Property="Padding" Value="5"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=DataGridRow}, Path=IsSelected}" Value="True">
+                                    <Setter Property="Foreground" Value="{Binding RelativeSource={RelativeSource AncestorType=DataGridRow}, Path=Foreground}"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                
+                <!-- 提名理由列 -->
+                <DataGridTextColumn Header="提名理由" Binding="{Binding NominateReason}" Width="*">
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="TextWrapping" Value="Wrap"/>
+                            <Setter Property="VerticalAlignment" Value="Center"/>
+                            <Setter Property="Padding" Value="5"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=DataGridRow}, Path=IsSelected}" Value="True">
+                                    <Setter Property="Foreground" Value="{Binding RelativeSource={RelativeSource AncestorType=DataGridRow}, Path=Foreground}"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+                
+                <!-- 得票数列 -->
+                <DataGridTextColumn Header="得票数" Width="80">
+                    <DataGridTextColumn.Binding>
+                        <Binding Path="VoteRecords.Count"/>
+                    </DataGridTextColumn.Binding>
+                    <DataGridTextColumn.ElementStyle>
+                        <Style TargetType="TextBlock">
+                            <Setter Property="TextAlignment" Value="Center"/>
+                            <Setter Property="VerticalAlignment" Value="Center"/>
+                            <Setter Property="FontWeight" Value="Bold"/>
+                            <Setter Property="Foreground" Value="#E91E63"/>
+                            <Setter Property="Padding" Value="5"/>
+                            <Style.Triggers>
+                                <DataTrigger Binding="{Binding RelativeSource={RelativeSource AncestorType=DataGridRow}, Path=IsSelected}" Value="True">
+                                    <Setter Property="Foreground" Value="{Binding RelativeSource={RelativeSource AncestorType=DataGridRow}, Path=Foreground}"/>
+                                </DataTrigger>
+                            </Style.Triggers>
+                        </Style>
+                    </DataGridTextColumn.ElementStyle>
+                </DataGridTextColumn>
+            </DataGrid.Columns>
+        </DataGrid>
+        
+        <!-- 加载指示器 -->
+        <Border Grid.Row="1" Grid.RowSpan="2" Background="#80FFFFFF" Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisConverter}}">
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center">
+                <TextBlock Text="正在加载数据..." FontSize="16" Margin="0,0,0,10" HorizontalAlignment="Center"/>
+                <ProgressBar Width="200" Height="5" IsIndeterminate="True"/>
+            </StackPanel>
+        </Border>
+    </Grid>
+</UserControl>
