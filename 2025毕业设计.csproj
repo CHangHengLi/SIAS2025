@@ -113,6 +113,7 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Folder Include="publish\" />
     <Folder Include="ViewModels\EditMessage\NominationDeclarationManager\" />
     <Folder Include="ViewModels\EditMessage\NominationDetailsWindows\" />
     <Folder Include="Views\EditMessage\NominationDeclarationManager\" />
