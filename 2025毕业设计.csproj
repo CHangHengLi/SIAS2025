@@ -19,6 +19,13 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="publish\publish\**" />
+    <EmbeddedResource Remove="publish\publish\**" />
+    <None Remove="publish\publish\**" />
+    <Page Remove="publish\publish\**" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Remove="Images\个人信息管理.png" />
     <None Remove="Images\员工管理.png" />
     <None Remove="Images\奖杯背景.png" />
@@ -110,6 +117,7 @@
     <Folder Include="ViewModels\EditMessage\NominationDetailsWindows\" />
     <Folder Include="Views\EditMessage\NominationDeclarationManager\" />
     <Folder Include="Views\EditMessage\NominationDetailsWindows\" />
+    <Folder Include="publish\" />
   </ItemGroup>
   
   <!-- ClickOnce 引导程序文件 -->
