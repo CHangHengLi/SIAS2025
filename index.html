@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SIAS2025 - 员工奖项线上评选系统</title>
+    <link rel="stylesheet" href="styles.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body>
+    <header class="hero">
+        <div class="container">
+            <h1>SIAS2025</h1>
+            <p class="subtitle">员工奖项线上评选系统</p>
+            <p class="description">提升企业奖项评选的透明度与效率</p>
+            <div class="cta-buttons">
+                <a href="#overview" class="btn btn-primary">了解更多</a>
+                <a href="#features" class="btn btn-secondary">系统功能</a>
+            </div>
+        </div>
+    </header>
+    
+    <nav id="main-nav">
+        <div class="container">
+            <div class="logo">SIAS2025</div>
+            <ul>
+                <li><a href="#overview">项目概述</a></li>
+                <li><a href="#features">主要功能</a></li>
+                <li><a href="#tech">技术栈</a></li>
+                <li><a href="#architecture">系统架构</a></li>
+                <li><a href="#security">数据安全</a></li>
+                <li><a href="#screenshots">系统截图</a></li>
+            </ul>
+        </div>
+    </nav>
+    
+    <main>
+        <section id="overview" class="section">
+            <div class="container">
+                <h2 class="section-title">项目概述</h2>
+                <div class="section-content">
+                    <div class="text-content">
+                        <p>SIAS2025（Staff Incentive and Award System 2025）是一个企业内部员工奖项提名与投票系统，旨在促进企业内部优秀员工的发现与激励。系统支持员工提名、奖项管理、投票统计等功能，为企业提供一个公开、透明的员工表彰平台。</p>
+                        <p>本系统解决了传统评选方式（纸质、线下）存在的流程繁琐、效率低、人力物力消耗大、数据管理难、透明度低、参与度不高等问题，有效防止了黑箱操作和刷票现象。</p>
+                    </div>
+                    <div class="image-content">
+                        <i class="fa-solid fa-award icon-large"></i>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <section id="features" class="section section-alt">
+            <div class="container">
+                <h2 class="section-title">主要功能</h2>
+                
+                <div class="feature-grid">
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-users"></i>
+                        </div>
+                        <h3>用户管理</h3>
+                        <ul>
+                            <li>超级管理员管理</li>
+                            <li>管理员管理</li>
+                            <li>员工管理</li>
+                            <li>部门管理</li>
+                            <li>个人信息管理</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-trophy"></i>
+                        </div>
+                        <h3>奖项管理</h3>
+                        <ul>
+                            <li>奖项设置</li>
+                            <li>奖项提名</li>
+                            <li>自定义奖项名称</li>
+                            <li>投票数量配置</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-file-signature"></i>
+                        </div>
+                        <h3>提名申报</h3>
+                        <ul>
+                            <li>提名申报创建与管理</li>
+                            <li>提名审核流程</li>
+                            <li>上级提名下级</li>
+                            <li>员工自我提名</li>
+                            <li>提名日志记录</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="feature-card">
+                        <div class="feature-icon">
+                            <i class="fas fa-vote-yea"></i>
+                        </div>
+                        <h3>投票系统</h3>
+                        <ul>
+                            <li>投票入口</li>
+                            <li>投票记录</li>
+                            <li>评论功能</li>
+                            <li>投票防刷机制</li>
+                            <li>投票结果统计与展示</li>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <section id="tech" class="section">
+            <div class="container">
+                <h2 class="section-title">技术栈</h2>
+                <div class="tech-stack">
+                    <div class="tech-item">
+                        <div class="tech-icon">
+                            <i class="fab fa-microsoft"></i>
+                        </div>
+                        <h3>C# / .NET 8.0</h3>
+                        <p>核心开发语言</p>
+                    </div>
+                    
+                    <div class="tech-item">
+                        <div class="tech-icon">
+                            <i class="fas fa-desktop"></i>
+                        </div>
+                        <h3>WPF</h3>
+                        <p>Windows Presentation Foundation</p>
+                    </div>
+                    
+                    <div class="tech-item">
+                        <div class="tech-icon">
+                            <i class="fas fa-layer-group"></i>
+                        </div>
+                        <h3>MVVM</h3>
+                        <p>Model-View-ViewModel 设计模式</p>
+                    </div>
+                    
+                    <div class="tech-item">
+                        <div class="tech-icon">
+                            <i class="fas fa-puzzle-piece"></i>
+                        </div>
+                        <h3>Prism</h3>
+                        <p>模块化与依赖注入框架</p>
+                    </div>
+                    
+                    <div class="tech-item">
+                        <div class="tech-icon">
+                            <i class="fas fa-database"></i>
+                        </div>
+                        <h3>EF Core</h3>
+                        <p>Entity Framework Core ORM</p>
+                    </div>
+                    
+                    <div class="tech-item">
+                        <div class="tech-icon">
+                            <i class="fas fa-paint-brush"></i>
+                        </div>
+                        <h3>HandyControl</h3>
+                        <p>UI组件库</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <section id="architecture" class="section section-alt">
+            <div class="container">
+                <h2 class="section-title">系统架构</h2>
+                <div class="architecture-diagram">
+                    <div class="arch-layer">
+                        <h3>表示层 (Presentation Layer)</h3>
+                        <div class="arch-components">
+                            <div class="arch-component">Views<br>用户界面</div>
+                            <div class="arch-component">ViewModels<br>视图模型</div>
+                            <div class="arch-component">Commands<br>命令绑定</div>
+                        </div>
+                    </div>
+                    <div class="layer-arrow">↓↑</div>
+                    <div class="arch-layer">
+                        <h3>业务逻辑层 (Business Logic Layer)</h3>
+                        <div class="arch-components">
+                            <div class="arch-component">Services<br>业务服务</div>
+                            <div class="arch-component">Event Aggregator<br>事件聚合器</div>
+                            <div class="arch-component">Validators<br>验证器</div>
+                        </div>
+                    </div>
+                    <div class="layer-arrow">↓↑</div>
+                    <div class="arch-layer">
+                        <h3>数据访问层 (Data Access Layer)</h3>
+                        <div class="arch-components">
+                            <div class="arch-component">Database Context<br>数据库上下文</div>
+                            <div class="arch-component">Repositories<br>数据仓储</div>
+                        </div>
+                    </div>
+                    <div class="layer-arrow">↓↑</div>
+                    <div class="arch-layer">
+                        <h3>数据层 (Data Layer)</h3>
+                        <div class="arch-components">
+                            <div class="arch-component">SQL Server<br>数据库</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <section id="security" class="section">
+            <div class="container">
+                <h2 class="section-title">数据安全</h2>
+                <div class="security-features">
+                    <div class="security-item">
+                        <div class="security-icon">
+                            <i class="fas fa-lock"></i>
+                        </div>
+                        <h3>数据库连接字符串加密</h3>
+                        <p>使用AES加密保护数据库连接信息，防止未授权访问</p>
+                    </div>
+                    
+                    <div class="security-item">
+                        <div class="security-icon">
+                            <i class="fas fa-user-shield"></i>
+                        </div>
+                        <h3>用户密码安全存储</h3>
+                        <p>密码使用哈希算法存储，不存储明文密码</p>
+                    </div>
+                    
+                    <div class="security-item">
+                        <div class="security-icon">
+                            <i class="fas fa-users-cog"></i>
+                        </div>
+                        <h3>权限分级管理</h3>
+                        <p>基于RBAC模型的权限控制，确保用户只能访问被授权的功能</p>
+                    </div>
+                </div>
+            </div>
+        </section>
+        
+        <section id="screenshots" class="section section-alt">
+            <div class="container">
+                <h2 class="section-title">系统截图</h2>
+                <div class="screenshots-gallery">
+                    <div class="screenshot">
+                        <div class="screenshot-placeholder">
+                            <div class="placeholder-text">登录界面</div>
+                        </div>
+                        <div class="screenshot-caption">系统登录界面</div>
+                    </div>
+                    <div class="screenshot">
+                        <div class="screenshot-placeholder">
+                            <div class="placeholder-text">主界面</div>
+                        </div>
+                        <div class="screenshot-caption">系统主界面</div>
+                    </div>
+                    <div class="screenshot">
+                        <div class="screenshot-placeholder">
+                            <div class="placeholder-text">奖项管理</div>
+                        </div>
+                        <div class="screenshot-caption">奖项管理界面</div>
+                    </div>
+                    <div class="screenshot">
+                        <div class="screenshot-placeholder">
+                            <div class="placeholder-text">投票界面</div>
+                        </div>
+                        <div class="screenshot-caption">投票界面</div>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+    
+    <footer>
+        <div class="container">
+            <div class="footer-content">
+                <div class="footer-logo">
+                    <h3>SIAS2025</h3>
+                    <p>员工奖项线上评选系统</p>
+                </div>
+                <div class="footer-links">
+                    <h4>快速链接</h4>
+                    <ul>
+                        <li><a href="#overview">项目概述</a></li>
+                        <li><a href="#features">主要功能</a></li>
+                        <li><a href="#tech">技术栈</a></li>
+                        <li><a href="#architecture">系统架构</a></li>
+                    </ul>
+                </div>
+                <div class="footer-contact">
+                    <h4>联系我们</h4>
+                    <p><i class="fas fa-envelope"></i> contact@sias2025.example.com</p>
+                    <p><i class="fas fa-phone"></i> +86 123 4567 8901</p>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>&copy; 2024 SIAS2025 团队. 保留所有权利.</p>
+            </div>
+        </div>
+    </footer>
+    
+    <script src="script.js"></script>
+</body>
+</html>
