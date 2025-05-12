@@ -9,8 +9,8 @@
     --text-light: #f8f9fa;
     --shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
     --transition: all 0.3s ease;
-    --wave-color-1: rgba(173, 216, 230, 0.3); /* 浅蓝色 */
-    --wave-color-2: rgba(245, 245, 245, 0.5); /* 乳白色 */
+    --wave-color-1: rgba(135, 206, 250, 0.6); /* 增强浅蓝色透明度 */
+    --wave-color-2: rgba(240, 248, 255, 0.7); /* 增强乳白色透明度 */
 }
 
 /* 动态背景样式 */
@@ -21,7 +21,7 @@
     width: 100%;
     height: 100%;
     z-index: -1;
-    background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+    background: linear-gradient(135deg, #e0f7fa 0%, #b3e5fc 100%); /* 更浅的背景色，让波浪更明显 */
 }
 
 * {
@@ -155,12 +155,31 @@ ul {
 
 /* 英雄区样式 */
 .hero {
-    background: rgba(44, 62, 80, 0.7);
+    background: linear-gradient(135deg, 
+                rgba(44, 62, 80, 0.7), 
+                rgba(52, 152, 219, 0.6), 
+                rgba(44, 62, 80, 0.7));
+    background-size: 200% 200%;
+    animation: gradientMove 15s ease infinite;
     color: white;
     padding: 5rem 0;
     text-align: center;
     position: relative;
     margin-top: 0;
+    overflow: hidden;
+    z-index: 1; /* 确保hero层级高于背景canvas */
+}
+
+@keyframes gradientMove {
+    0% {
+        background-position: 0% 50%;
+    }
+    50% {
+        background-position: 100% 50%;
+    }
+    100% {
+        background-position: 0% 50%;
+    }
 }
 
 .hero::before {
@@ -172,6 +191,32 @@ ul {
     height: 100%;
     background: radial-gradient(circle, rgba(0,0,0,0) 0%, rgba(0,0,0,0.3) 100%);
     z-index: -1;
+}
+
+/* 添加动态粒子背景 */
+.hero::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image: 
+        radial-gradient(rgba(255, 255, 255, 0.1) 2px, transparent 2px),
+        radial-gradient(rgba(255, 255, 255, 0.15) 1px, transparent 1px);
+    background-size: 50px 50px, 25px 25px;
+    background-position: 0 0, 15px 15px;
+    animation: moveParticles 20s linear infinite;
+    z-index: -1;
+}
+
+@keyframes moveParticles {
+    0% {
+        background-position: 0 0, 15px 15px;
+    }
+    100% {
+        background-position: 100px 100px, 115px 115px;
+    }
 }
 
 .hero h1 {
@@ -207,13 +252,13 @@ ul {
 .section {
     padding: 5rem 0;
     position: relative;
-    background-color: rgba(255, 255, 255, 0.7);
-    backdrop-filter: blur(5px);
-    -webkit-backdrop-filter: blur(5px);
+    background-color: rgba(255, 255, 255, 0.6); /* 更透明 */
+    backdrop-filter: blur(3px); /* 减轻模糊效果 */
+    -webkit-backdrop-filter: blur(3px);
 }
 
 .section-alt {
-    background-color: rgba(241, 245, 249, 0.8);
+    background-color: rgba(241, 245, 249, 0.6);
 }
 
 .section-title {
@@ -620,4 +665,40 @@ footer {
     .btn-secondary {
         margin-left: 0;
     }
+}
+
+/* 添加hero区域光点样式 */
+.hero-light {
+    position: absolute;
+    background-color: rgba(255, 255, 255, 0.4);
+    border-radius: 50%;
+    pointer-events: none;
+    animation: pulse 5s ease-in-out infinite;
+    z-index: 0;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        opacity: 0;
+    }
+    50% {
+        transform: scale(2);
+        opacity: 0.3;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 0;
+    }
+}
+
+.hero .container {
+    position: relative;
+    z-index: 1;
+}
+
+.hero h1 {
+    font-size: 3.5rem;
+    margin-bottom: 0.5rem;
+    letter-spacing: 2px;
 }

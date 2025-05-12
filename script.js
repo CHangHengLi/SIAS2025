@@ -20,12 +20,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // 监听窗口大小变化
     window.addEventListener('resize', resizeCanvas);
     
-    // 波浪参数
+    // 波浪参数 - 增加振幅和降低波浪位置使其更加可见
     const waves = [
-        { y: height * 0.65, length: 0.01, amplitude: 20, speed: 0.004, color: getComputedStyle(document.documentElement).getPropertyValue('--wave-color-1') },
-        { y: height * 0.60, length: 0.012, amplitude: 15, speed: 0.003, color: getComputedStyle(document.documentElement).getPropertyValue('--wave-color-2') },
-        { y: height * 0.70, length: 0.014, amplitude: 25, speed: 0.002, color: getComputedStyle(document.documentElement).getPropertyValue('--wave-color-1') },
-        { y: height * 0.75, length: 0.016, amplitude: 10, speed: 0.001, color: getComputedStyle(document.documentElement).getPropertyValue('--wave-color-2') }
+        { y: height * 0.5, length: 0.008, amplitude: 30, speed: 0.005, color: getComputedStyle(document.documentElement).getPropertyValue('--wave-color-1') },
+        { y: height * 0.45, length: 0.01, amplitude: 25, speed: 0.003, color: getComputedStyle(document.documentElement).getPropertyValue('--wave-color-2') },
+        { y: height * 0.55, length: 0.012, amplitude: 35, speed: 0.002, color: getComputedStyle(document.documentElement).getPropertyValue('--wave-color-1') },
+        { y: height * 0.6, length: 0.014, amplitude: 20, speed: 0.004, color: getComputedStyle(document.documentElement).getPropertyValue('--wave-color-2') }
     ];
     
     // 动画状态
@@ -38,8 +38,8 @@ document.addEventListener('DOMContentLoaded', function() {
         waves.forEach(wave => {
             ctx.beginPath();
             
-            // 绘制波浪路径
-            for (let x = 0; x <= width; x += 1) {
+            // 绘制波浪路径 - 使用更小的步长使波浪更平滑
+            for (let x = 0; x <= width; x += 0.5) {
                 const dx = x * wave.length;
                 const y = wave.y + Math.sin(dx + animationTime * wave.speed) * wave.amplitude;
                 
@@ -69,6 +69,29 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 开始绘制
     drawWaves();
+    
+    // Hero区域动态光效果
+    const hero = document.querySelector('.hero');
+    if (hero) {
+        // 创建闪光点元素
+        for (let i = 0; i < 20; i++) {
+            const light = document.createElement('div');
+            light.classList.add('hero-light');
+            
+            // 随机定位
+            const size = Math.random() * 8 + 2; // 2-10px
+            light.style.width = `${size}px`;
+            light.style.height = `${size}px`;
+            light.style.left = `${Math.random() * 100}%`;
+            light.style.top = `${Math.random() * 100}%`;
+            
+            // 随机动画延迟
+            light.style.animationDelay = `${Math.random() * 5}s`;
+            light.style.animationDuration = `${Math.random() * 5 + 5}s`; // 5-10s
+            
+            hero.appendChild(light);
+        }
+    }
     
     // 平滑滚动效果
     const navLinks = document.querySelectorAll('#main-nav a, .cta-buttons a');
