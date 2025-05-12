@@ -1,7 +1,7 @@
 // 等待DOM加载完成
 document.addEventListener('DOMContentLoaded', function() {
     // 检测安装包下载按钮点击
-    const downloadButtons = document.querySelectorAll('a[href="publish/SIASGraduate.application"]');
+    const downloadButtons = document.querySelectorAll('a[href="SIAS2025/publish/SIASGraduate.application"]');
     downloadButtons.forEach(button => {
         button.addEventListener('click', function(e) {
             // 此处可以添加检测文件是否存在的逻辑
