@@ -1751,7 +1751,7 @@ namespace _2025毕业设计.ViewModels.Pages
         }
         #endregion
 
-        0#region 事件处理
+        #region 事件处理
         private async void OnDeclarationAdded()
         {
             if (IsLoading) return;
