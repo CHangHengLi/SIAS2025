@@ -70,8 +70,57 @@ document.addEventListener('DOMContentLoaded', function() {
     // 开始绘制
     drawWaves();
     
-    // Hero区域动态光效果
+    // 添加鼠标跟踪聚焦背景效果
     const hero = document.querySelector('.hero');
+    if (hero) {
+        // 创建聚焦背景层
+        const spotlightEffect = document.createElement('div');
+        spotlightEffect.classList.add('spotlight-effect');
+        hero.appendChild(spotlightEffect);
+        
+        // 初始化聚焦点位置（默认中心点）
+        let spotlightX = hero.offsetWidth / 2;
+        let spotlightY = hero.offsetHeight / 2;
+        
+        // 更新聚焦点位置和效果
+        function updateSpotlight(x, y) {
+            spotlightEffect.style.background = `radial-gradient(
+                circle at ${x}px ${y}px,
+                rgba(255, 255, 255, 0.8) 0%,
+                rgba(176, 224, 255, 0.6) 20%,
+                rgba(135, 206, 250, 0.4) 40%,
+                rgba(52, 152, 219, 0.2) 60%,
+                rgba(44, 62, 80, 0.2) 100%
+            )`;
+        }
+        
+        // 鼠标移动事件
+        hero.addEventListener('mousemove', function(e) {
+            // 获取相对于hero元素的鼠标位置
+            const rect = hero.getBoundingClientRect();
+            spotlightX = e.clientX - rect.left;
+            spotlightY = e.clientY - rect.top;
+            
+            // 更新聚焦点
+            updateSpotlight(spotlightX, spotlightY);
+        });
+        
+        // 初始化聚焦效果
+        updateSpotlight(spotlightX, spotlightY);
+        
+        // 触摸设备支持
+        hero.addEventListener('touchmove', function(e) {
+            e.preventDefault();
+            const touch = e.touches[0];
+            const rect = hero.getBoundingClientRect();
+            spotlightX = touch.clientX - rect.left;
+            spotlightY = touch.clientY - rect.top;
+            
+            updateSpotlight(spotlightX, spotlightY);
+        });
+    }
+    
+    // Hero区域动态光效果
     if (hero) {
         // 创建闪光点元素
         for (let i = 0; i < 20; i++) {
