@@ -1,7 +1,7 @@
-using _2025毕业设计.Common;
-using _2025毕业设计.Context;
-using _2025毕业设计.Event;
-using _2025毕业设计.Models;
+using SIASGraduate.Common;
+using SIASGraduate.Context;
+using SIASGraduate.Event;
+using SIASGraduate.Models;
 using HandyControl.Controls;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Win32;
@@ -10,9 +10,9 @@ using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
-using ConverterImage = _2025毕业设计.Converter.ConVerterImage;
+using ConverterImage = SIASGraduate.Converter.ConVerterImage;
 
-namespace _2025毕业设计.ViewModels.EditMessage.NominationDeclarationManager
+namespace SIASGraduate.ViewModels.EditMessage.NominationDeclarationManager
 {
     public class AddNominationDeclarationViewModel : INotifyPropertyChanged, INavigationAware
     {

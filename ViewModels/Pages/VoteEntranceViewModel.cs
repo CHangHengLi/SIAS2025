@@ -1,7 +1,7 @@
-using _2025毕业设计.Common;
-using _2025毕业设计.Context;
-using _2025毕业设计.Event;
-using _2025毕业设计.Models;
+using SIASGraduate.Common;
+using SIASGraduate.Context;
+using SIASGraduate.Event;
+using SIASGraduate.Models;
 using HandyControl.Controls;
 using Microsoft.EntityFrameworkCore;
 using Prism.Commands;
@@ -18,10 +18,10 @@ using System.Windows.Controls;
 using System.Windows.Media;
 using System.Windows.Input;
 using System.Windows.Threading;
-using _2025毕业设计.ViewModels.EditMessage.NominationDetailsWindows;
-using _2025毕业设计.Views.EditMessage.NominationDetailsWindows;
+using SIASGraduate.ViewModels.EditMessage.NominationDetailsWindows;
+using SIASGraduate.Views.EditMessage.NominationDetailsWindows;
 
-namespace _2025毕业设计.ViewModels.Pages
+namespace SIASGraduate.ViewModels.Pages
 {
     /// <summary>
     /// 投票入口视图模型

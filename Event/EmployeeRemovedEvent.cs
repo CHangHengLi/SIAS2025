@@ -1,6 +1,6 @@
 using Prism.Events;
 
-namespace _2025毕业设计.Event
+namespace SIASGraduate.Event
 {
     /// <summary>
     /// 员工被删除或转换为管理员时的事件通知

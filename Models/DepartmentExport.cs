@@ -1,6 +1,6 @@
 using CsvHelper.Configuration.Attributes;
 
-namespace _2025毕业设计.Models
+namespace SIASGraduate.Models
 {
     /// <summary>
     /// 用于导出的部门数据模型

@@ -1,7 +1,7 @@
-using _2025毕业设计.Context;
-using _2025毕业设计.Models;
-using _2025毕业设计.ViewModels.EditMessage.NominationDetailsWindows;
-using _2025毕业设计.Views.EditMessage.NominationDetailsWindows;
+using SIASGraduate.Context;
+using SIASGraduate.Models;
+using SIASGraduate.ViewModels.EditMessage.NominationDetailsWindows;
+using SIASGraduate.Views.EditMessage.NominationDetailsWindows;
 using HandyControl.Controls;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Win32;
@@ -12,7 +12,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 
-namespace _2025毕业设计.ViewModels.Pages
+namespace SIASGraduate.ViewModels.Pages
 {
     public class VoteResultViewModel : BindableBase
     {

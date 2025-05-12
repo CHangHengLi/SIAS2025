@@ -1,10 +1,10 @@
-﻿using _2025毕业设计.Models;
-using _2025毕业设计.Services;
+using SIASGraduate.Models;
+using SIASGraduate.Services;
 using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Input;
 
-namespace _2025毕业设计.ViewModels
+namespace SIASGraduate.ViewModels
 {
     public class LoginViewModel : BindableBase, IDialogAware
     {

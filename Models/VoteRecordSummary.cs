@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace _2025毕业设计.Models
+namespace SIASGraduate.Models
 {
     /// <summary>
     /// 投票记录汇总类，用于显示同一用户对同一提名的所有投票

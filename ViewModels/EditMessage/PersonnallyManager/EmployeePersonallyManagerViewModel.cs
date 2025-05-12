@@ -1,16 +1,16 @@
-﻿using _2025毕业设计.Common;
-using _2025毕业设计.Context;
-using _2025毕业设计.Models;
-using _2025毕业设计.Services;
-using _2025毕业设计.Converter;
+using SIASGraduate.Common;
+using SIASGraduate.Context;
+using SIASGraduate.Models;
+using SIASGraduate.Services;
+using SIASGraduate.Converter;
 using HandyControl.Controls;
 using Microsoft.IdentityModel.Tokens;
 using System.IO;
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
-using ConverterImage = _2025毕业设计.Converter.ConVerterImage;
+using ConverterImage = SIASGraduate.Converter.ConVerterImage;
 
-namespace _2025毕业设计.ViewModels.EditMessage.PersonnallyManager
+namespace SIASGraduate.ViewModels.EditMessage.PersonnallyManager
 {
     public class EmployeePersonallyManagerViewModel : BindableBase, INavigationAware
     {

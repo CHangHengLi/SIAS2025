@@ -1,6 +1,6 @@
-using _2025毕业设计.Models;
+using SIASGraduate.Models;
 
-namespace _2025毕业设计.Event
+namespace SIASGraduate.Event
 {
     /// <summary>
     /// 申报提名添加事件

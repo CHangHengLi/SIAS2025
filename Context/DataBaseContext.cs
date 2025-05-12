@@ -1,9 +1,9 @@
-﻿using _2025毕业设计.Models;
+using SIASGraduate.Models;
 using Microsoft.EntityFrameworkCore;
 using System.Configuration;
 using System;
 
-namespace _2025毕业设计.Context
+namespace SIASGraduate.Context
 {
     public class DataBaseContext : DbContext
     {

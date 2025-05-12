@@ -2,7 +2,7 @@ using System;
 using System.Globalization;
 using System.Windows.Data;
 
-namespace _2025毕业设计.Converter
+namespace SIASGraduate.Converter
 {
     /// <summary>
     /// 整数转换器，用于在不同格式的整数之间进行转换

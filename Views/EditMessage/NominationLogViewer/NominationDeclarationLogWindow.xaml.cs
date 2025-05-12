@@ -1,7 +1,7 @@
 using System.Windows;
-using _2025毕业设计.ViewModels.EditMessage.NominationLogViewer;
+using SIASGraduate.ViewModels.EditMessage.NominationLogViewer;
 
-namespace _2025毕业设计.Views.EditMessage.NominationLogViewer
+namespace SIASGraduate.Views.EditMessage.NominationLogViewer
 {
     /// <summary>
     /// NominationDeclarationLogWindow.xaml 的交互逻辑

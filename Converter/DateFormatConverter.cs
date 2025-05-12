@@ -2,7 +2,7 @@ using System;
 using System.Globalization;
 using System.Windows.Data;
 
-namespace _2025毕业设计.Converter
+namespace SIASGraduate.Converter
 {
     /// <summary>
     /// 将日期转换为"xxxx年-xx月-xx日"格式的转换器

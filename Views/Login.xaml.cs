@@ -1,6 +1,6 @@
-﻿using System.Windows.Controls;
+using System.Windows.Controls;
 
-namespace _2025毕业设计.Views
+namespace SIASGraduate.Views
 {
     /// <summary>
     /// Login.xaml 的交互逻辑

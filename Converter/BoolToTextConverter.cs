@@ -2,7 +2,7 @@ using System;
 using System.Globalization;
 using System.Windows.Data;
 
-namespace _2025毕业设计.Converter
+namespace SIASGraduate.Converter
 {
     /// <summary>
     /// 布尔值转文本转换器

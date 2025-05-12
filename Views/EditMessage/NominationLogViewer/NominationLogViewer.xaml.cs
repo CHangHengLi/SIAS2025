@@ -1,6 +1,6 @@
 using System.Windows.Controls;
 
-namespace _2025毕业设计.Views.EditMessage.NominationLogViewer
+namespace SIASGraduate.Views.EditMessage.NominationLogViewer
 {
     /// <summary>
     /// NominationLogViewer.xaml 的交互逻辑

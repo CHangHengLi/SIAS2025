@@ -2,7 +2,7 @@ using System;
 using System.Globalization;
 using System.Windows.Data;
 
-namespace _2025毕业设计.Converter
+namespace SIASGraduate.Converter
 {
     /// <summary>
     /// 简单的对象到布尔值转换器，用于判断对象是否为null

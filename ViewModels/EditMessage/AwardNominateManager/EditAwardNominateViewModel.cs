@@ -1,9 +1,9 @@
-using _2025毕业设计.Common;
-using _2025毕业设计.Converter;
-using _2025毕业设计.Context;
-using _2025毕业设计.Event;
-using _2025毕业设计.Models;
-using ConverterImage = _2025毕业设计.Converter.ConVerterImage;
+using SIASGraduate.Common;
+using SIASGraduate.Converter;
+using SIASGraduate.Context;
+using SIASGraduate.Event;
+using SIASGraduate.Models;
+using ConverterImage = SIASGraduate.Converter.ConVerterImage;
 using HandyControl.Controls;
 using Microsoft.Win32;
 using System.Collections.ObjectModel;
@@ -12,7 +12,7 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
 
-namespace _2025毕业设计.ViewModels.EditMessage.AwardNominateManager
+namespace SIASGraduate.ViewModels.EditMessage.AwardNominateManager
 {
     public class EditAwardNominateViewModel : BindableBase, INavigationAware
     {

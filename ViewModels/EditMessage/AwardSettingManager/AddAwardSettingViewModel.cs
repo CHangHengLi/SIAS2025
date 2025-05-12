@@ -1,11 +1,11 @@
-﻿using _2025毕业设计.Context;
-using _2025毕业设计.Event;
-using _2025毕业设计.Models;
+using SIASGraduate.Context;
+using SIASGraduate.Event;
+using SIASGraduate.Models;
 using HandyControl.Controls;
 using Microsoft.IdentityModel.Tokens;
 using System.Windows.Input;
 
-namespace _2025毕业设计.ViewModels.EditMessage.AwardSettingManager
+namespace SIASGraduate.ViewModels.EditMessage.AwardSettingManager
 {
     public class AddAwardSettingViewModel : BindableBase
     {

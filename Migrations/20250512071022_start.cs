@@ -1,9 +1,9 @@
-﻿using System;
+using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
 #nullable disable
 
-namespace _2025毕业设计.Migrations
+namespace SIASGraduate.Migrations
 {
     /// <inheritdoc />
     public partial class start : Migration

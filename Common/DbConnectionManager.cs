@@ -5,7 +5,7 @@ using System.Text;
 using System.IO;
 using System.Windows;
 
-namespace _2025毕业设计.Common
+namespace SIASGraduate.Common
 {
     /// <summary>
     /// 数据库连接字符串管理工具类

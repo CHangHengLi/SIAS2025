@@ -1,7 +1,7 @@
-﻿using _2025毕业设计.Context;
-using _2025毕业设计.Event;
-using _2025毕业设计.Models;
-using _2025毕业设计.Services;
+using SIASGraduate.Context;
+using SIASGraduate.Event;
+using SIASGraduate.Models;
+using SIASGraduate.Services;
 using CsvHelper;
 using CsvHelper.Configuration;
 using HandyControl.Controls;
@@ -15,7 +15,7 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
 
-namespace _2025毕业设计.ViewModels.Pages
+namespace SIASGraduate.ViewModels.Pages
 {
     public class DepartmentManagerViewModel : BindableBase
 

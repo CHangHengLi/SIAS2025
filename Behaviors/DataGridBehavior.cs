@@ -3,7 +3,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using Microsoft.Xaml.Behaviors;
 
-namespace _2025毕业设计.Behaviors
+namespace SIASGraduate.Behaviors
 {
     /// <summary>
     /// DataGrid的行为类，用于处理DataGrid的各种事件

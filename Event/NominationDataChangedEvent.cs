@@ -1,6 +1,6 @@
 using Prism.Events;
 
-namespace _2025毕业设计.Event
+namespace SIASGraduate.Event
 {
     /// <summary>
     /// 提名数据变更事件

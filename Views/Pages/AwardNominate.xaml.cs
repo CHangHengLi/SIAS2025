@@ -1,8 +1,8 @@
-using _2025毕业设计.Models;
-using _2025毕业设计.ViewModels.Pages;
+using SIASGraduate.Models;
+using SIASGraduate.ViewModels.Pages;
 using System.Windows.Controls;
 
-namespace _2025毕业设计.Views.Pages
+namespace SIASGraduate.Views.Pages
 {
     /// <summary>
     /// AwardNominate.xaml 的交互逻辑

@@ -2,9 +2,9 @@ using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
-using _2025毕业设计.ViewModels.Pages;
+using SIASGraduate.ViewModels.Pages;
 
-namespace _2025毕业设计.Views.Pages
+namespace SIASGraduate.Views.Pages
 {
     /// <summary>
     /// VoteEntrance.xaml 的交互逻辑

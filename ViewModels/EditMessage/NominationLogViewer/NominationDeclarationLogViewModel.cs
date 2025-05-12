@@ -1,26 +1,19 @@
-using _2025毕业设计.Context;
-using _2025毕业设计.Models;
-using CsvHelper;
-using HandyControl.Controls;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.EntityFrameworkCore.Query;
-using Microsoft.Win32;
-using Prism.Commands;
-using Prism.Mvvm;
-using System;
-using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.IO;
-using System.Linq;
 using System.Text;
-using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Input;
+using CsvHelper;
+using HandyControl.Controls;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Win32;
+using SIASGraduate.Context;
+using SIASGraduate.Models;
 // 添加别名以解决Window类型不明确的问题
 using SysWindow = System.Windows.Window;
 
-namespace _2025毕业设计.ViewModels.EditMessage.NominationLogViewer
+namespace SIASGraduate.ViewModels.EditMessage.NominationLogViewer
 {
     /// <summary>
     /// 申报日志查看器ViewModel

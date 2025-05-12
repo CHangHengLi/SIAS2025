@@ -1,10 +1,10 @@
-﻿using _2025毕业设计.Event;
-using _2025毕业设计.Models;
-using _2025毕业设计.Services;
 using HandyControl.Controls;
 using Microsoft.IdentityModel.Tokens;
+using SIASGraduate.Event;
+using SIASGraduate.Models;
+using SIASGraduate.Services;
 
-namespace _2025毕业设计.ViewModels.EditMessage.DepartmentManager
+namespace SIASGraduate.ViewModels.EditMessage.DepartmentManager
 {
     public class AddDepartmentViewModel : BindableBase
     {

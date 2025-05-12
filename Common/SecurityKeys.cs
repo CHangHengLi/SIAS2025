@@ -4,7 +4,7 @@ using System.Security.Cryptography;
 using System.Text;
 using System.Windows;
 
-namespace _2025毕业设计.Common
+namespace SIASGraduate.Common
 {
     /// <summary>
     /// 安全密钥管理类，负责AES加密密钥和向量的生成与存储

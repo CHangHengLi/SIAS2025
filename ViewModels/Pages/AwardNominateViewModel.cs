@@ -1,6 +1,6 @@
-using _2025毕业设计.Context;
-using _2025毕业设计.Event;
-using _2025毕业设计.Models;
+using SIASGraduate.Context;
+using SIASGraduate.Event;
+using SIASGraduate.Models;
 using HandyControl.Controls;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Win32;
@@ -16,7 +16,7 @@ using System.IO;
 using System.Globalization;
 using CsvHelper;
 
-namespace _2025毕业设计.ViewModels.Pages
+namespace SIASGraduate.ViewModels.Pages
 {
     public class AwardNominateViewModel : BindableBase
     {

@@ -1,7 +1,7 @@
 using System.Windows.Controls;
-using _2025毕业设计.ViewModels.EditMessage.NominationDeclarationManager;
+using SIASGraduate.ViewModels.EditMessage.NominationDeclarationManager;
 
-namespace _2025毕业设计.Views.EditMessage.NominationDeclarationManager
+namespace SIASGraduate.Views.EditMessage.NominationDeclarationManager
 {
     /// <summary>
     /// EditNominationDeclaration.xaml 的交互逻辑

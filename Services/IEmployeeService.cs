@@ -1,6 +1,6 @@
-﻿using _2025毕业设计.Models;
+using SIASGraduate.Models;
 
-namespace _2025毕业设计.Services
+namespace SIASGraduate.Services
 {
     public interface IEmployeeService
     {

@@ -1,6 +1,6 @@
-﻿using System.Windows.Controls;
+using System.Windows.Controls;
 
-namespace _2025毕业设计.Views.EditMessage.AdminManager
+namespace SIASGraduate.Views.EditMessage.AdminManager
 {
     /// <summary>
     /// AddAdmin.xaml 的交互逻辑

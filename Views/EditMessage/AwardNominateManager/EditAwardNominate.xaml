@@ -1,10 +1,10 @@
-﻿<UserControl
-    x:Class="_2025毕业设计.Views.EditMessage.AwardNominateManager.EditAwardNominate"
+<UserControl
+    x:Class="SIASGraduate.Views.EditMessage.AwardNominateManager.EditAwardNominate"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:hc="https://handyorg.github.io/handycontrol"
-    xmlns:local="clr-namespace:_2025毕业设计.Views.EditMessage.AwardNominateManager"
+    xmlns:local="clr-namespace:SIASGraduate.Views.EditMessage.AwardNominateManager"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     d:DesignHeight="600"
     d:DesignWidth="800"
@@ -12,7 +12,7 @@
     <UserControl.Resources>
         <ResourceDictionary>
             <ResourceDictionary.MergedDictionaries>
-                <ResourceDictionary Source="/2025毕业设计;component/Dict/ConverterDict.xaml" />
+                <ResourceDictionary Source="/SIASGraduate;component/Dict/ConverterDict.xaml" />
             </ResourceDictionary.MergedDictionaries>
         </ResourceDictionary>
     </UserControl.Resources>

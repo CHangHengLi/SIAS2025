@@ -4,7 +4,7 @@ using System.IO;
 using System.Windows.Data;
 using System.Windows.Media.Imaging;
 
-namespace _2025毕业设计.Converter
+namespace SIASGraduate.Converter
 {
     /// <summary>
     /// 图像转换器，将图像路径转换为BitmapImage对象

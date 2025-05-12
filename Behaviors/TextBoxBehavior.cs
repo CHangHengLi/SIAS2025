@@ -1,8 +1,8 @@
-﻿using Microsoft.Xaml.Behaviors;
+using Microsoft.Xaml.Behaviors;
 using System.Windows;
 using System.Windows.Controls;
 
-namespace _2025毕业设计.Behaviors
+namespace SIASGraduate.Behaviors
 {
     public class TextBoxBehavior : Behavior<TextBox>
     {

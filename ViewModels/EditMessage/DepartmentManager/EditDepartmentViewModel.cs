@@ -1,10 +1,10 @@
-﻿using _2025毕业设计.Context;
-using _2025毕业设计.Event;
-using _2025毕业设计.Models;
-using _2025毕业设计.Services;
+using SIASGraduate.Context;
+using SIASGraduate.Event;
+using SIASGraduate.Models;
+using SIASGraduate.Services;
 using HandyControl.Controls;
 
-namespace _2025毕业设计.ViewModels.EditMessage.DepartmentManager
+namespace SIASGraduate.ViewModels.EditMessage.DepartmentManager
 {
     public class EditDepartmentViewModel : BindableBase, INavigationAware
     {

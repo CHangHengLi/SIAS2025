@@ -1,21 +1,15 @@
-using System;
-using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
-using System.Linq;
 using System.Runtime.CompilerServices;
-using System.Threading.Tasks;
+using System.Windows;
 using System.Windows.Input;
-using _2025毕业设计.Context;
-using _2025毕业设计.Event;
 using _2025毕业设计.Models;
 using Microsoft.EntityFrameworkCore;
-using Prism.Commands;
-using Prism.Events;
-using Prism.Mvvm;
-using System.Windows;
-using System.Collections.ObjectModel;
+using SIASGraduate.Context;
+using SIASGraduate.Event;
+using SIASGraduate.Models;
 
-namespace _2025毕业设计.ViewModels.EditMessage.NominationDetailsWindows
+namespace SIASGraduate.ViewModels.EditMessage.NominationDetailsWindows
 {
     /// <summary>
     /// 提名详情窗口的视图模型
@@ -190,7 +184,7 @@ namespace _2025毕业设计.ViewModels.EditMessage.NominationDetailsWindows
         private bool CanExecuteVoteCommand()
         {
             // 超级管理员不能投票
-            if (_2025毕业设计.Common.CurrentUser.RoleId == 1)
+            if (SIASGraduate.Common.CurrentUser.RoleId == 1)
                 return false;
                 
             return CanVote && !HasVoted && Nomination != null;
@@ -199,7 +193,7 @@ namespace _2025毕业设计.ViewModels.EditMessage.NominationDetailsWindows
         private void ExecuteVoteCommand(object parameter)
         {
             // 超级管理员不能投票
-            if (_2025毕业设计.Common.CurrentUser.RoleId == 1)
+            if (SIASGraduate.Common.CurrentUser.RoleId == 1)
             {
                 MessageBox.Show("超级管理员不能参与投票，仅可查看", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
                 return;
@@ -221,14 +215,14 @@ namespace _2025毕业设计.ViewModels.EditMessage.NominationDetailsWindows
                     int? userId = null;
                     bool isEmployee = false;
                     
-                    if (_2025毕业设计.Common.CurrentUser.RoleId == 2) // 管理员
+                    if (SIASGraduate.Common.CurrentUser.RoleId == 2) // 管理员
                     {
-                        userId = _2025毕业设计.Common.CurrentUser.AdminId;
+                        userId = SIASGraduate.Common.CurrentUser.AdminId;
                         isEmployee = false;
                     }
-                    else if (_2025毕业设计.Common.CurrentUser.RoleId == 3) // 普通员工
+                    else if (SIASGraduate.Common.CurrentUser.RoleId == 3) // 普通员工
                     {
-                        userId = _2025毕业设计.Common.CurrentUser.EmployeeId;
+                        userId = SIASGraduate.Common.CurrentUser.EmployeeId;
                         isEmployee = true;
                     }
                     
@@ -413,7 +407,7 @@ namespace _2025毕业设计.ViewModels.EditMessage.NominationDetailsWindows
                 CheckIfUserHasVoted();
                 
                 // 检查是否为超级管理员 - RoleId=1表示超级管理员
-                IsSuperAdmin = _2025毕业设计.Common.CurrentUser.RoleId == 1;
+                IsSuperAdmin = SIASGraduate.Common.CurrentUser.RoleId == 1;
                 
                 // 超级管理员不能投票但可以管理投票记录
                 if (IsSuperAdmin)
@@ -458,10 +452,10 @@ namespace _2025毕业设计.ViewModels.EditMessage.NominationDetailsWindows
                 VoteCount = voteDetail.VoteCount;
                 
                 // 检查当前用户是否为超级管理员
-                IsSuperAdmin = _2025毕业设计.Common.CurrentUser.RoleId == 1;
+                IsSuperAdmin = SIASGraduate.Common.CurrentUser.RoleId == 1;
                 
                 // 超级管理员不能投票
-                if (_2025毕业设计.Common.CurrentUser.RoleId == 1)
+                if (SIASGraduate.Common.CurrentUser.RoleId == 1)
                 {
                     CanVote = false;
                 }
@@ -547,14 +541,14 @@ namespace _2025毕业设计.ViewModels.EditMessage.NominationDetailsWindows
                 int userId = 0;
                 bool isEmployee = false;
                 
-                if (_2025毕业设计.Common.CurrentUser.EmployeeId.HasValue)
+                if (SIASGraduate.Common.CurrentUser.EmployeeId.HasValue)
                 {
-                    userId = _2025毕业设计.Common.CurrentUser.EmployeeId.Value;
+                    userId = SIASGraduate.Common.CurrentUser.EmployeeId.Value;
                     isEmployee = true;
                 }
-                else if (_2025毕业设计.Common.CurrentUser.AdminId.HasValue)
+                else if (SIASGraduate.Common.CurrentUser.AdminId.HasValue)
                 {
-                    userId = _2025毕业设计.Common.CurrentUser.AdminId.Value;
+                    userId = SIASGraduate.Common.CurrentUser.AdminId.Value;
                     isEmployee = false;
                 }
                 

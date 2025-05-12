@@ -5,7 +5,7 @@ using System.Windows.Data;
 using System.Windows.Media.Imaging;
 using System.Linq;
 
-namespace _2025毕业设计.Converter
+namespace SIASGraduate.Converter
 {
     /// <summary>
     /// 投票入口转换器

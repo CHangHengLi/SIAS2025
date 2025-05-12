@@ -1,14 +1,14 @@
-﻿using _2025毕业设计.Context;
-using _2025毕业设计.Event;
-using _2025毕业设计.Models;
-using _2025毕业设计.Services;
+using SIASGraduate.Context;
+using SIASGraduate.Event;
+using SIASGraduate.Models;
+using SIASGraduate.Services;
 using HandyControl.Controls;
 using Microsoft.IdentityModel.Tokens;
 using System.Collections.ObjectModel;
 using System.Linq;
 using System.Threading.Tasks;
 
-namespace _2025毕业设计.ViewModels.EditMessage.AdminManager
+namespace SIASGraduate.ViewModels.EditMessage.AdminManager
 {
     public class AddAdminViewModel : BindableBase, INavigationAware
     {

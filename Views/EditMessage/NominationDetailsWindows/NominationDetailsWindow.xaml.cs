@@ -1,13 +1,15 @@
-using _2025毕业设计.Context;
-using _2025毕业设计.Models;
-using _2025毕业设计.ViewModels.EditMessage.NominationDetailsWindows;
-using _2025毕业设计.Common;
+using SIASGraduate.Context;
+using SIASGraduate.Models;
+using SIASGraduate.ViewModels.EditMessage.NominationDetailsWindows;
+using SIASGraduate.Common;
 using Microsoft.EntityFrameworkCore;
 using System.Windows;
 using System.Linq;
 using System.Reflection;
+using SIASGraduate.Models;
+using _2025毕业设计.Models;
 
-namespace _2025毕业设计.Views.EditMessage.NominationDetailsWindows
+namespace SIASGraduate.Views.EditMessage.NominationDetailsWindows
 {
     /// <summary>
     /// NominationDetailsWindow.xaml 的交互逻辑

@@ -1,4 +1,4 @@
-﻿namespace _2025毕业设计.Common
+namespace SIASGraduate.Common
 {
     public static class CurrentUser
     {

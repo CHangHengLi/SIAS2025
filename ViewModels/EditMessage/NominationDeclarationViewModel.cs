@@ -1,15 +1,7 @@
-using System;
-using System.Linq;
-using System.Windows;
-using System.Windows.Threading;
 using Microsoft.EntityFrameworkCore;
-using _2025毕业设计.Context;
-using _2025毕业设计.Models;
-using _2025毕业设计.Views.EditMessage.NominationLogViewer;
-using _2025毕业设计.ViewModels.EditMessage.NominationLogViewer;
-using Prism.Mvvm;
+using SIASGraduate.Context;
 
-namespace _2025毕业设计.ViewModels.EditMessage
+namespace SIASGraduate.ViewModels.EditMessage
 {
     /// <summary>
     /// 提名申报ViewModel

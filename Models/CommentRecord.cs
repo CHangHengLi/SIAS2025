@@ -1,7 +1,7 @@
-﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations;
 using System;
 
-namespace _2025毕业设计.Models
+namespace SIASGraduate.Models
 {
     public class CommentRecord
     {

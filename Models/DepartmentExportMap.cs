@@ -1,6 +1,6 @@
 using CsvHelper.Configuration;
 
-namespace _2025毕业设计.Models
+namespace SIASGraduate.Models
 {
     /// <summary>
     /// 部门导出数据的映射类

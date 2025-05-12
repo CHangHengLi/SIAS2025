@@ -1,7 +1,7 @@
 using System.Windows.Controls;
 using System.Windows.Input;
 
-namespace _2025毕业设计.Views.Pages
+namespace SIASGraduate.Views.Pages
 {
     /// <summary>
     /// NominationDeclaration.xaml 的交互逻辑

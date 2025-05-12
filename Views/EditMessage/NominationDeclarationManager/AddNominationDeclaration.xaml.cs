@@ -1,9 +1,9 @@
 using System.Windows.Controls;
-using _2025毕业设计.ViewModels.EditMessage.NominationDeclarationManager;
+using SIASGraduate.ViewModels.EditMessage.NominationDeclarationManager;
 using HandyControl.Controls;
 using HandyControl.Data;
 
-namespace _2025毕业设计.Views.EditMessage.NominationDeclarationManager
+namespace SIASGraduate.Views.EditMessage.NominationDeclarationManager
 {
     /// <summary>
     /// AddNominationDeclaration.xaml 的交互逻辑

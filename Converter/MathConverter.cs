@@ -3,7 +3,7 @@ using System.Globalization;
 using System.Windows.Data;
 using System.Data;
 
-namespace _2025毕业设计.Converter
+namespace SIASGraduate.Converter
 {
     /// <summary>
     /// 数学表达式计算转换器

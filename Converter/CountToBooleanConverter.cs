@@ -3,7 +3,7 @@ using System.Globalization;
 using System.Windows.Data;
 using System.Collections;
 
-namespace _2025毕业设计.Converter
+namespace SIASGraduate.Converter
 {
     /// <summary>
     /// 集合数量转换为布尔值的转换器

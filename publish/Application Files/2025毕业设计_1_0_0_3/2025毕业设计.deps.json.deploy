@@ -6,7 +6,7 @@
   "compilationOptions": {},
   "targets": {
     ".NETCoreApp,Version=v8.0": {
-      "2025毕业设计/1.0.0": {
+      "SIASGraduate/1.0.0": {
         "dependencies": {
           "AssimpNet": "4.1.0",
           "CsvHelper": "33.0.1",
@@ -23,7 +23,7 @@
           "System.Configuration.ConfigurationManager": "9.0.0"
         },
         "runtime": {
-          "2025毕业设计.dll": {}
+          "SIASGraduate.dll": {}
         }
       },
       "AssimpNet/4.1.0": {
@@ -1461,7 +1461,7 @@
     }
   },
   "libraries": {
-    "2025毕业设计/1.0.0": {
+    "SIASGraduate/1.0.0": {
       "type": "project",
       "serviceable": false,
       "sha512": ""

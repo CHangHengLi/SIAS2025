@@ -1,12 +1,12 @@
 <Window
-    x:Class="_2025毕业设计.Views.EditMessage.NominationLogViewer.NominationDeclarationLogWindow"
+    x:Class="SIASGraduate.Views.EditMessage.NominationLogViewer.NominationDeclarationLogWindow"
     xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-    xmlns:local="clr-namespace:_2025毕业设计.Views.EditMessage.NominationLogViewer"
+    xmlns:local="clr-namespace:SIASGraduate.Views.EditMessage.NominationLogViewer"
     xmlns:hc="https://handyorg.github.io/handycontrol"
-    xmlns:converter="clr-namespace:_2025毕业设计.Converter"
+    xmlns:converter="clr-namespace:SIASGraduate.Converter"
     mc:Ignorable="d"
     Title="申报日志" Height="600" Width="800"
     WindowStartupLocation="CenterScreen">

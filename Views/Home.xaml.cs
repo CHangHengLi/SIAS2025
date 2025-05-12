@@ -2,7 +2,7 @@ using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 
-namespace _2025毕业设计.Views
+namespace SIASGraduate.Views
 {
     /// <summary>
     /// Home.xaml 的交互逻辑

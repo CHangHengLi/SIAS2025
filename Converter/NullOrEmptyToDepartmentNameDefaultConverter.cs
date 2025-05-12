@@ -1,9 +1,9 @@
-﻿using _2025毕业设计.Context;
-using _2025毕业设计.Models;
+using SIASGraduate.Context;
+using SIASGraduate.Models;
 using System.Globalization;
 using System.Windows.Data;
 
-namespace _2025毕业设计.Converter
+namespace SIASGraduate.Converter
 {
     public class NullOrEmptyToDepartmentNameDefaultConverter : IValueConverter
     {

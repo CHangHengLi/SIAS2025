@@ -1,6 +1,6 @@
 using System.Windows;
 
-namespace _2025毕业设计.Common
+namespace SIASGraduate.Common
 {
     /// <summary>
     /// 安全管理类，提供加密相关的管理功能

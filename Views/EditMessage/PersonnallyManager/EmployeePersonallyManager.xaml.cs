@@ -1,6 +1,6 @@
-﻿using System.Windows.Controls;
+using System.Windows.Controls;
 
-namespace _2025毕业设计.Views.EditMessage.PersonnallyManager
+namespace SIASGraduate.Views.EditMessage.PersonnallyManager
 {
     /// <summary>
     /// EmployeePersonallyManager.xaml 的交互逻辑

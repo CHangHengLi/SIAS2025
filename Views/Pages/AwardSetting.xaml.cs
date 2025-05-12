@@ -1,6 +1,6 @@
-﻿using System.Windows.Controls;
+using System.Windows.Controls;
 
-namespace _2025毕业设计.Views.Pages
+namespace SIASGraduate.Views.Pages
 {
     /// <summary>
     /// AwardSetting.xaml 的交互逻辑

@@ -3,7 +3,7 @@ using System.Windows.Controls;
 using System.Windows.Input;
 using Microsoft.Xaml.Behaviors;
 
-namespace _2025毕业设计.Behaviors
+namespace SIASGraduate.Behaviors
 {
     /// <summary>
     /// 滚动视图行为类，用于处理滚动相关的UI交互

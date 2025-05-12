@@ -1,7 +1,7 @@
-using _2025毕业设计.Context;
-using _2025毕业设计.Event;
-using _2025毕业设计.Models;
-using _2025毕业设计.Services;
+using SIASGraduate.Context;
+using SIASGraduate.Event;
+using SIASGraduate.Models;
+using SIASGraduate.Services;
 using HandyControl.Controls;
 using Microsoft.Win32;
 using NLog;
@@ -17,7 +17,7 @@ using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using System;
 
-namespace _2025毕业设计.ViewModels.Pages
+namespace SIASGraduate.ViewModels.Pages
 {
     public class EmployeeManagerViewModel : BindableBase
     {

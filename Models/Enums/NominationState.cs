@@ -1,4 +1,4 @@
-namespace _2025毕业设计.Models.Enums
+namespace SIASGraduate.Models.Enums
 {
     /// <summary>
     /// 提名状态枚举

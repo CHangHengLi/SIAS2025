@@ -1,13 +1,13 @@
-using _2025毕业设计.Context;
-using _2025毕业设计.Event;
-using _2025毕业设计.Models;
-using _2025毕业设计.Services;
+using SIASGraduate.Context;
+using SIASGraduate.Event;
+using SIASGraduate.Models;
+using SIASGraduate.Services;
 using HandyControl.Controls;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Collections.ObjectModel;
 
-namespace _2025毕业设计.ViewModels.EditMessage.EmployeeManager
+namespace SIASGraduate.ViewModels.EditMessage.EmployeeManager
 {
     public class EditEmployeeViewModel : BindableBase, INavigationAware
     {

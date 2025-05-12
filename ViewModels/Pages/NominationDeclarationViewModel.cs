@@ -1,9 +1,9 @@
-using _2025毕业设计.Common;
-using _2025毕业设计.Context;
-using _2025毕业设计.Event;
-using _2025毕业设计.Models;
-using _2025毕业设计.Views.EditMessage.NominationLogViewer;
-using _2025毕业设计.ViewModels.EditMessage.NominationLogViewer;
+using SIASGraduate.Common;
+using SIASGraduate.Context;
+using SIASGraduate.Event;
+using SIASGraduate.Models;
+using SIASGraduate.Views.EditMessage.NominationLogViewer;
+using SIASGraduate.ViewModels.EditMessage.NominationLogViewer;
 using HandyControl.Controls;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Win32;
@@ -21,7 +21,7 @@ using SolidColorBrush = System.Windows.Media.SolidColorBrush; // 明确指定Sol
 using WindowNS = System.Windows.Window;
 using System.Windows.Media;
 
-namespace _2025毕业设计.ViewModels.Pages
+namespace SIASGraduate.ViewModels.Pages
 {
     public class NominationDeclarationViewModel : INotifyPropertyChanged
     {

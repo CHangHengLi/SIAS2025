@@ -1,9 +1,3 @@
-using _2025毕业设计.Common;
-using _2025毕业设计.Context;
-using _2025毕业设计.Models;
-using LiveCharts;
-using LiveCharts.Wpf;
-using Microsoft.EntityFrameworkCore;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.Runtime.InteropServices;
@@ -12,8 +6,15 @@ using System.Windows.Input;
 using System.Windows.Interop;
 using System.Windows.Media;
 using System.Windows.Threading;
+using _2025毕业设计.Models;
+using LiveCharts;
+using LiveCharts.Wpf;
+using Microsoft.EntityFrameworkCore;
+using SIASGraduate.Common;
+using SIASGraduate.Context;
+using SIASGraduate.Models;
 
-namespace _2025毕业设计.ViewModels
+namespace SIASGraduate.ViewModels
 {
     public class HomeViewModel : BindableBase
     {
@@ -1350,7 +1351,7 @@ namespace _2025毕业设计.ViewModels
             try
             {
                 // 创建并显示提名详情窗口，使用完整类型名以避免歧义
-                var detailsWindow = new _2025毕业设计.Views.EditMessage.NominationDetailsWindows.NominationDetailsWindow();
+                var detailsWindow = new SIASGraduate.Views.EditMessage.NominationDetailsWindows.NominationDetailsWindow();
                 // 直接加载提名详情，不需要手动创建ViewModel
                 detailsWindow.LoadNominationDetails(voteDetail);
                 detailsWindow.ShowDialog(); // 使用模态窗口显示

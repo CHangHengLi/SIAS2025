@@ -1,17 +1,11 @@
-using _2025毕业设计.Context;
-using _2025毕业设计.Models;
+using System.Collections.ObjectModel;
+using System.Windows;
 using HandyControl.Controls;
 using Microsoft.EntityFrameworkCore;
-using Prism.Commands;
-using Prism.Mvvm;
-using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Windows;
+using SIASGraduate.Context;
+using SIASGraduate.Models;
 
-namespace _2025毕业设计.ViewModels.EditMessage.NominationLogViewer
+namespace SIASGraduate.ViewModels.EditMessage.NominationLogViewer
 {
     /// <summary>
     /// 申报日志查看器ViewModel
