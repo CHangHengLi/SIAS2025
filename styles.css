@@ -9,8 +9,8 @@
     --text-light: #f8f9fa;
     --shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
     --transition: all 0.3s ease;
-    --wave-color-1: rgba(135, 206, 250, 0.6); /* 增强浅蓝色透明度 */
-    --wave-color-2: rgba(240, 248, 255, 0.7); /* 增强乳白色透明度 */
+    --wave-color-1: rgba(52, 152, 219, 0.8); /* 更深的蓝色，更高的不透明度 */
+    --wave-color-2: rgba(187, 222, 251, 0.9); /* 更亮的蓝色，更高的不透明度 */
 }
 
 /* 动态背景样式 */
@@ -21,7 +21,7 @@
     width: 100%;
     height: 100%;
     z-index: -1;
-    background: linear-gradient(135deg, #e0f7fa 0%, #b3e5fc 100%); /* 更浅的背景色，让波浪更明显 */
+    background: linear-gradient(135deg, #cbe8f9 0%, #a1d8f8 100%); /* 更明显的背景色对比 */
 }
 
 * {

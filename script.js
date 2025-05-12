@@ -31,12 +31,12 @@ document.addEventListener('DOMContentLoaded', function() {
     // 监听窗口大小变化
     window.addEventListener('resize', resizeCanvas);
     
-    // 波浪参数 - 增加振幅和降低波浪位置使其更加可见
+    // 波浪参数 - 明显增加振幅和调整波浪位置使其更加可见
     const waves = [
-        { y: height * 0.5, length: 0.008, amplitude: 30, speed: 0.005, color: getComputedStyle(document.documentElement).getPropertyValue('--wave-color-1') },
-        { y: height * 0.45, length: 0.01, amplitude: 25, speed: 0.003, color: getComputedStyle(document.documentElement).getPropertyValue('--wave-color-2') },
-        { y: height * 0.55, length: 0.012, amplitude: 35, speed: 0.002, color: getComputedStyle(document.documentElement).getPropertyValue('--wave-color-1') },
-        { y: height * 0.6, length: 0.014, amplitude: 20, speed: 0.004, color: getComputedStyle(document.documentElement).getPropertyValue('--wave-color-2') }
+        { y: height * 0.6, length: 0.008, amplitude: 60, speed: 0.005, color: getComputedStyle(document.documentElement).getPropertyValue('--wave-color-1') },
+        { y: height * 0.55, length: 0.01, amplitude: 50, speed: 0.003, color: getComputedStyle(document.documentElement).getPropertyValue('--wave-color-2') },
+        { y: height * 0.65, length: 0.012, amplitude: 70, speed: 0.002, color: getComputedStyle(document.documentElement).getPropertyValue('--wave-color-1') },
+        { y: height * 0.7, length: 0.014, amplitude: 40, speed: 0.004, color: getComputedStyle(document.documentElement).getPropertyValue('--wave-color-2') }
     ];
     
     // 动画状态
