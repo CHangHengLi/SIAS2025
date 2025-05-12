@@ -111,6 +111,27 @@ namespace _2025毕业设计.ViewModels.EditMessage.NominationDeclarationManager
                     return;
                 }
                 
+                // 验证一句话介绍长度
+                if (Introduction.Length > 100)
+                {
+                    Growl.WarningGlobal("一句话介绍请控制在100字以内");
+                    return;
+                }
+                
+                // 验证申报理由长度
+                if (DeclarationReason.Length > 500)
+                {
+                    Growl.WarningGlobal("申报理由请控制在500字以内");
+                    return;
+                }
+                
+                // 验证申报对象是否被正确设置
+                if (Declaration.NominatedEmployeeId == null && Declaration.NominatedAdminId == null)
+                {
+                    Growl.WarningGlobal("未设置申报对象，无法保存");
+                    return;
+                }
+                
                 // 更新申报记录
                 using (var context = new DataBaseContext())
                 {

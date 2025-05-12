@@ -143,6 +143,10 @@
                                 Header="申报对象" />
                             <GridViewColumn
                                 Width="auto"
+                                DisplayMemberBinding="{Binding DeclarerName}"
+                                Header="提名人" />
+                            <GridViewColumn
+                                Width="auto"
                                 DisplayMemberBinding="{Binding Department.DepartmentName}"
                                 Header="所属部门" />
                             <GridViewColumn

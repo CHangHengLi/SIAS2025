@@ -85,8 +85,28 @@ namespace _2025毕业设计.Services
         #region 新增一个部门
         public void AddDepartment(Department addDepartment)
         {
-            context.Departments.Add(addDepartment);
-            context.SaveChanges();
+            try
+            {
+                // 检查是否有同名部门
+                if (context.Departments.Any(d => d.DepartmentName == addDepartment.DepartmentName))
+                {
+                    throw new Exception("部门名称已存在");
+                }
+                context.Departments.Add(addDepartment);
+                context.SaveChanges();
+            }
+            catch (Microsoft.EntityFrameworkCore.DbUpdateConcurrencyException ex)
+            {
+                // 记录并抛出友好异常
+                System.Diagnostics.Debug.WriteLine($"并发冲突: {ex.Message}");
+                throw new Exception("添加部门时发生并发冲突，请刷新后重试。", ex);
+            }
+            catch (Exception ex)
+            {
+                // 记录并抛出其他异常
+                System.Diagnostics.Debug.WriteLine($"添加部门异常: {ex.Message}");
+                throw;
+            }
         }
         #endregion
 

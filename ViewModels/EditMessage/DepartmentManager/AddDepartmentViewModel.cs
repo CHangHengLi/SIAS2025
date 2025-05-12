@@ -78,7 +78,7 @@ namespace _2025毕业设计.ViewModels.EditMessage.DepartmentManager
 
             bool nameExists = await Task.Run(() =>
             {
-                return departmentService.DepartmentNameExists(DepartmentName); ;
+                return departmentService.DepartmentNameExists(DepartmentName);
             });
             if (nameExists)
             {
@@ -86,18 +86,22 @@ namespace _2025毕业设计.ViewModels.EditMessage.DepartmentManager
                 return;
             }
 
-
-
             var AddDepartment = new Department()
             {
                 DepartmentName = DepartmentName
-
             };
-            departmentService.AddDepartment(AddDepartment);
-            // 发布事件通知左侧视图更新
-            eventAggregator.GetEvent<DepartmentAddEvent>().Publish();
-            Growl.SuccessGlobal("部门添加成功");
-            OnCancel();
+            try
+            {
+                departmentService.AddDepartment(AddDepartment);
+                // 发布事件通知左侧视图更新
+                eventAggregator.GetEvent<DepartmentAddEvent>().Publish();
+                Growl.SuccessGlobal("部门添加成功");
+                OnCancel();
+            }
+            catch (Exception ex)
+            {
+                Growl.Error($"添加部门失败: {ex.Message}");
+            }
         }
         private void OnCancel()
         {

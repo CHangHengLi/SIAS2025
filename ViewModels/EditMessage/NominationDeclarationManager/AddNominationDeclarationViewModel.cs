@@ -408,6 +408,9 @@ namespace _2025毕业设计.ViewModels.EditMessage.NominationDeclarationManager
             
             try
             {
+                // 清空当前选择的提名对象
+                SelectedNominee = null;
+                
                 // 确保Nominees已初始化
                 if (Nominees == null)
                 {
@@ -443,6 +446,9 @@ namespace _2025毕业设计.ViewModels.EditMessage.NominationDeclarationManager
                                     else
                                     {
                                         Growl.WarningGlobal("系统中没有可提名的员工");
+                                        // 如果没有员工，自动切换回管理员类型
+                                        SelectedNomineeType = NomineeTypes.FirstOrDefault(t => t.Value == "管理员");
+                                        return;
                                     }
                                     break;
                                     
@@ -461,6 +467,9 @@ namespace _2025毕业设计.ViewModels.EditMessage.NominationDeclarationManager
                                     else
                                     {
                                         Growl.WarningGlobal("系统中没有可提名的管理员");
+                                        // 如果没有管理员，自动切换回员工类型
+                                        SelectedNomineeType = NomineeTypes.FirstOrDefault(t => t.Value == "员工");
+                                        return;
                                     }
                                     break;
                             }
@@ -486,14 +495,14 @@ namespace _2025毕业设计.ViewModels.EditMessage.NominationDeclarationManager
                                         else
                                         {
                                             // 管理员没有有效的员工身份，静默切换到管理员类型
-                                            SelectedNomineeType = new KeyValuePair<int, string>(2, "管理员");
+                                            SelectedNomineeType = NomineeTypes.FirstOrDefault(t => t.Value == "管理员");
                                             return; // 退出当前方法，让切换事件重新触发LoadNominees
                                         }
                                     }
                                     else
                                     {
                                         // 管理员没有关联员工身份，静默切换到管理员类型
-                                        SelectedNomineeType = new KeyValuePair<int, string>(2, "管理员");
+                                        SelectedNomineeType = NomineeTypes.FirstOrDefault(t => t.Value == "管理员");
                                         return; // 退出当前方法，让切换事件重新触发LoadNominees
                                     }
                                     break;
@@ -516,6 +525,7 @@ namespace _2025毕业设计.ViewModels.EditMessage.NominationDeclarationManager
                                         {
                                             // 管理员记录不存在时，提供更友好的提示
                                             Growl.WarningGlobal("管理员信息不完整，请联系系统管理员");
+                                            return;
                                         }
                                     }
                                     else
@@ -523,6 +533,7 @@ namespace _2025毕业设计.ViewModels.EditMessage.NominationDeclarationManager
                                         // 这种情况几乎不应该发生，因为管理员应该有AdminId
                                         // 提供一个更简洁的消息
                                         Growl.WarningGlobal("管理员身份验证失败");
+                                        return;
                                     }
                                     break;
                             }
@@ -549,36 +560,41 @@ namespace _2025毕业设计.ViewModels.EditMessage.NominationDeclarationManager
                                     else
                                     {
                                         Growl.WarningGlobal($"未找到ID为{CurrentUser.EmployeeId}的员工记录");
+                                        return;
                                     }
                                 }
                                 else
                                 {
                                     Growl.ErrorGlobal("当前登录用户没有关联的员工ID，无法进行申报");
+                                    return;
                                 }
                             }
                             else
                             {
                                 Growl.WarningGlobal("员工只能以员工身份进行提名");
+                                // 自动切换回员工类型
+                                SelectedNomineeType = NomineeTypes.FirstOrDefault(t => t.Value == "员工");
+                                return;
                             }
                             break;
                             
                         default:
                             Growl.ErrorGlobal("未知的用户角色，无法加载申报对象");
-                            break;
+                            return;
                     }
                     
                     // 只有当Nominees集合不为空时才设置SelectedNominee
                     if (Nominees.Count > 0)
                     {
                         SelectedNominee = Nominees.FirstOrDefault();
-                        OnPropertyChanged(nameof(IsNomineeVisible));
                     }
                     else
                     {
-                        // 没有可用的提名对象，重置相关属性
-                        SelectedNominee = null;
-                        OnPropertyChanged(nameof(IsNomineeVisible));
+                        // 没有可用的提名对象时，显示警告
+                        Growl.WarningGlobal("没有找到符合条件的提名对象");
                     }
+                    
+                    OnPropertyChanged(nameof(IsNomineeVisible));
                 }
             }
             catch (Exception ex)
@@ -643,31 +659,35 @@ namespace _2025毕业设计.ViewModels.EditMessage.NominationDeclarationManager
         {
             try
             {
-                // 数据验证：确保已选择奖项
-                if (SelectedAward == null)
+                // 基本数据验证
+                if (!CanSubmit())
                 {
-                    Growl.WarningGlobal("请选择申报奖项");
                     return;
                 }
 
-                // 数据验证：确保已选择提名对象类型
-                if (SelectedNomineeType.Key == 0 && string.IsNullOrEmpty(SelectedNomineeType.Value))
-                {
-                    Growl.WarningGlobal("请选择申报对象类型");
-                    return;
-                }
-
-                // 数据验证：确保已选择申报对象
+                // 严格验证提名对象
                 if (SelectedNominee == null)
                 {
                     Growl.WarningGlobal("请选择申报对象");
                     return;
                 }
 
-                // 数据验证：确保已填写申报理由
-                if (string.IsNullOrWhiteSpace(DeclarationReason))
+                // 严格验证提名对象类型与选择匹配
+                bool isValidNominee = false;
+                if (SelectedNomineeType.Key == 1 && SelectedNominee is Employee)
                 {
-                    Growl.WarningGlobal("请填写申报理由");
+                    isValidNominee = true;
+                }
+                else if (SelectedNomineeType.Key == 2 && SelectedNominee is Admin)
+                {
+                    isValidNominee = true;
+                }
+
+                if (!isValidNominee)
+                {
+                    Growl.WarningGlobal("提名对象类型与选择不匹配，请重新选择");
+                    // 尝试重新加载提名对象
+                    LoadNominees();
                     return;
                 }
 
@@ -719,10 +739,12 @@ namespace _2025毕业设计.ViewModels.EditMessage.NominationDeclarationManager
                     if (SelectedNominee is Employee employee)
                     {
                         newDeclaration.NominatedEmployeeId = employee.EmployeeId;
+                        newDeclaration.NominatedAdminId = null;
                     }
                     else if (SelectedNominee is Admin admin)
                     {
                         newDeclaration.NominatedAdminId = admin.AdminId;
+                        newDeclaration.NominatedEmployeeId = null;
                     }
                     else
                     {
@@ -967,8 +989,42 @@ namespace _2025毕业设计.ViewModels.EditMessage.NominationDeclarationManager
 
         private bool CanSubmit()
         {
-            // 实现CanSubmit方法的逻辑
-            return true; // 临时返回，需要根据实际逻辑实现
+            // 数据验证：确保已选择奖项
+            if (SelectedAward == null)
+            {
+                Growl.WarningGlobal("请选择申报奖项");
+                return false;
+            }
+
+            // 数据验证：确保已选择提名对象类型
+            if (SelectedNomineeType.Key == 0 && string.IsNullOrEmpty(SelectedNomineeType.Value))
+            {
+                Growl.WarningGlobal("请选择申报对象类型");
+                return false;
+            }
+
+            // 数据验证：确保已填写申报理由
+            if (string.IsNullOrWhiteSpace(DeclarationReason))
+            {
+                Growl.WarningGlobal("请填写申报理由");
+                return false;
+            }
+
+            // 验证一句话介绍长度
+            if (!string.IsNullOrEmpty(Introduction) && Introduction.Length > 100)
+            {
+                Growl.WarningGlobal("一句话介绍请控制在100字以内");
+                return false;
+            }
+
+            // 验证申报理由长度
+            if (DeclarationReason.Length > 500)
+            {
+                Growl.WarningGlobal("申报理由请控制在500字以内");
+                return false;
+            }
+
+            return true;
         }
     }
 } 

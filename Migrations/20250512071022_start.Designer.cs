@@ -12,8 +12,8 @@ using _2025毕业设计.Context;
 namespace _2025毕业设计.Migrations
 {
     [DbContext(typeof(DataBaseContext))]
-    [Migration("20250416030634_Create")]
-    partial class Create
+    [Migration("20250512071022_start")]
+    partial class start
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
