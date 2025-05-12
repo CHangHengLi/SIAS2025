@@ -1,5 +1,75 @@
 // 等待DOM加载完成
 document.addEventListener('DOMContentLoaded', function() {
+    // 水波纹背景效果
+    const canvas = document.getElementById('background-canvas');
+    const ctx = canvas.getContext('2d');
+    let width = window.innerWidth;
+    let height = window.innerHeight;
+    
+    // 调整画布大小以适应窗口
+    function resizeCanvas() {
+        width = window.innerWidth;
+        height = window.innerHeight;
+        canvas.width = width;
+        canvas.height = height;
+    }
+    
+    // 初始化调整画布大小
+    resizeCanvas();
+    
+    // 监听窗口大小变化
+    window.addEventListener('resize', resizeCanvas);
+    
+    // 波浪参数
+    const waves = [
+        { y: height * 0.65, length: 0.01, amplitude: 20, speed: 0.004, color: getComputedStyle(document.documentElement).getPropertyValue('--wave-color-1') },
+        { y: height * 0.60, length: 0.012, amplitude: 15, speed: 0.003, color: getComputedStyle(document.documentElement).getPropertyValue('--wave-color-2') },
+        { y: height * 0.70, length: 0.014, amplitude: 25, speed: 0.002, color: getComputedStyle(document.documentElement).getPropertyValue('--wave-color-1') },
+        { y: height * 0.75, length: 0.016, amplitude: 10, speed: 0.001, color: getComputedStyle(document.documentElement).getPropertyValue('--wave-color-2') }
+    ];
+    
+    // 动画状态
+    let animationTime = 0;
+    
+    // 绘制波浪
+    function drawWaves() {
+        ctx.clearRect(0, 0, width, height);
+        
+        waves.forEach(wave => {
+            ctx.beginPath();
+            
+            // 绘制波浪路径
+            for (let x = 0; x <= width; x += 1) {
+                const dx = x * wave.length;
+                const y = wave.y + Math.sin(dx + animationTime * wave.speed) * wave.amplitude;
+                
+                if (x === 0) {
+                    ctx.moveTo(x, y);
+                } else {
+                    ctx.lineTo(x, y);
+                }
+            }
+            
+            // 完成波浪路径
+            ctx.lineTo(width, height);
+            ctx.lineTo(0, height);
+            ctx.closePath();
+            
+            // 填充波浪
+            ctx.fillStyle = wave.color;
+            ctx.fill();
+        });
+        
+        // 更新动画时间
+        animationTime += 1;
+        
+        // 重绘下一帧
+        requestAnimationFrame(drawWaves);
+    }
+    
+    // 开始绘制
+    drawWaves();
+    
     // 平滑滚动效果
     const navLinks = document.querySelectorAll('#main-nav a, .cta-buttons a');
     
@@ -120,6 +190,8 @@ document.addEventListener('DOMContentLoaded', function() {
         #main-nav.scrolled {
             background-color: rgba(44, 62, 80, 0.95);
             box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(15px);
+            -webkit-backdrop-filter: blur(15px);
         }
         
         #main-nav a.active {
