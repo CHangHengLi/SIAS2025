@@ -408,13 +408,18 @@ ul {
     display: grid;
     grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
     gap: 30px;
+    align-items: start;
 }
 
 .screenshot {
+    background-color: white;
     border-radius: 10px;
     overflow: hidden;
     box-shadow: var(--shadow);
     transition: var(--transition);
+    height: 100%;
+    display: flex;
+    flex-direction: column;
 }
 
 .screenshot:hover {
@@ -422,19 +427,14 @@ ul {
     box-shadow: 0 15px 30px rgba(0, 0, 0, 0.15);
 }
 
-.screenshot-placeholder {
-    background-color: rgba(52, 152, 219, 0.1);
-    height: 200px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
+.screenshot-img {
+    width: 100%;
+    height: auto;
+    display: block;
+    object-fit: cover;
+    max-height: 220px;
+    border-radius: 10px 10px 0 0;
     border-bottom: 2px solid #e0e0e0;
-}
-
-.placeholder-text {
-    color: var(--primary-color);
-    font-weight: bold;
-    font-size: 1.2rem;
 }
 
 .screenshot-caption {
