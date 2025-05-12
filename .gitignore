@@ -28,6 +28,11 @@ x86/
 [Aa][Rr][Mm]64/
 bld/
 [Bb]in/
+# 允许ClickOnce发布文件例外
+!bin/Release/
+!bin/Release/net8.0-windows/
+!bin/Release/net8.0-windows/app.publish/
+!bin/Release/net8.0-windows/app.publish/**
 [Oo]bj/
 [Oo]ut/
 [Ll]og/

@@ -111,5 +111,19 @@
     <Folder Include="Views\EditMessage\NominationDeclarationManager\" />
     <Folder Include="Views\EditMessage\NominationDetailsWindows\" />
   </ItemGroup>
+  
+  <!-- ClickOnce 引导程序文件 -->
+  <ItemGroup>
+    <BootstrapperPackage Include=".NETFramework,Version=v4.7.2">
+      <Visible>False</Visible>
+      <ProductName>Microsoft .NET Framework 4.7.2 %28x86 和 x64%29</ProductName>
+      <Install>true</Install>
+    </BootstrapperPackage>
+    <BootstrapperPackage Include="Microsoft.NetCore.DesktopRuntime.8.0.x64">
+      <Visible>False</Visible>
+      <ProductName>.NET Desktop Runtime 8.0.4 (x64)</ProductName>
+      <Install>true</Install>
+    </BootstrapperPackage>
+  </ItemGroup>
 
 </Project>
