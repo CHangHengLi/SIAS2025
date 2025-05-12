@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<configuration>
+  <connectionStrings>
+    <!--<add name="CoonStr" connectionString="Data Source =rm-bp1xxd7jx67393y066o.sqlserver.rds.aliyuncs.com, 3433; Initial Catalog = SIAS2025; User ID = LiChangHeng; Password =Ali6432521; TrustServerCertificate=True; Connect Timeout=30;Pooling=true;Max Pool Size=100;" providerName="System.Data.SqlClient"/>-->
+    <!--<add name="CoonStr" connectionString="Data Source =.; Initial Catalog = SIAS2025; User ID = sa; Password =123456; TrustServerCertificate=True; Connect Timeout=30;Pooling=true;Max Pool Size=100;" providerName="System.Data.SqlClient"/>-->
+    <!--<add name="CoonStr" connectionString="Data Source =rm-bp1i09m1tjnugkvipbo.sqlserver.rds.aliyuncs.com, 3433; Initial Catalog = SIAS2025; User ID = LiChangHeng; Password =Ali6432521; TrustServerCertificate=True; Connect Timeout=30;Pooling=true;Max Pool Size=100;" providerName="System.Data.SqlClient"/>-->
+    <add name="CoonStr" connectionString="Data Source =rm-bp1p87n538f37n7ji4o.sqlserver.rds.aliyuncs.com, 3433; Initial Catalog = SIAS2025; User ID = sa; Password =Ali6432521; TrustServerCertificate=True; Connect Timeout=30;Pooling=true;Max Pool Size=100;" providerName="System.Data.SqlClient"/>
+  </connectionStrings>
+</configuration>
