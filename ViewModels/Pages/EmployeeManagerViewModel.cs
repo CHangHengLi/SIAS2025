@@ -564,12 +564,12 @@ namespace SIASGraduate.ViewModels.Pages
                 
                 // 创建导航参数
                 var parameters = new NavigationParameters
-            {
-                { "Employee", employee }
-            };
+                {
+                    { "Employee", employee }
+                };
                 
                 // 导航到编辑页面
-            regionManager.RequestNavigate("EmployeeEditRegion", "EditEmployee", parameters);
+                regionManager.RequestNavigate("EmployeeEditRegion", "EditEmployee", parameters);
                 
                 logger.Debug($"已导航到员工编辑页面，员工ID: {employee.EmployeeId}, 姓名: {employee.EmployeeName}");
             }
@@ -582,229 +582,295 @@ namespace SIASGraduate.ViewModels.Pages
         #endregion
 
         #region 删除员工时
-
-/// <summary>
-/// 删除员工及其关联记录
-/// </summary>
-private async Task DeleteEmployeeWithRelatedRecords(Employee employee)
-{
-    logger.Info($"开始删除员工及关联记录：ID={employee.EmployeeId}，姓名={employee.EmployeeName}");
-    
-    // 显示加载中状态
-    IsLoading = true;
-    
-    // 异步执行删除操作
-    await Task.Run(() =>
-    {
-        try
-        {
-            using (var context = new DataBaseContext())
-            {
-                // 查找员工
-                var dbEmployee = context.Employees.Find(employee.EmployeeId);
-                if (dbEmployee == null)
-                    return false;
-                    
-                // 删除员工作为被提名者的提名记录
-                var nominations = context.Nominations.Where(n => n.NominatedEmployeeId == employee.EmployeeId).ToList();
-                foreach (var nomination in nominations)
-                {
-                    // 删除提名关联的投票记录
-                    var voteRecords = context.VoteRecords.Where(v => v.NominationId == nomination.NominationId).ToList();
-                    if (voteRecords.Any())
-                        context.VoteRecords.RemoveRange(voteRecords);
-                    
-                    // 删除提名关联的评论记录
-                    var commentRecords = context.CommentRecords.Where(c => c.NominationId == nomination.NominationId).ToList();
-                    if (commentRecords.Any())
-                        context.CommentRecords.RemoveRange(commentRecords);
-                }
-                if (nominations.Any())
-                    context.Nominations.RemoveRange(nominations);
-                
-                // 删除员工作为提议人的提名记录
-                var proposedNominations = context.Nominations.Where(n => n.ProposerEmployeeId == employee.EmployeeId).ToList();
-                foreach (var nomination in proposedNominations)
-                {
-                    // 删除提名关联的投票记录
-                    var voteRecords = context.VoteRecords.Where(v => v.NominationId == nomination.NominationId).ToList();
-                    if (voteRecords.Any())
-                        context.VoteRecords.RemoveRange(voteRecords);
-                    
-                    // 删除提名关联的评论记录
-                    var commentRecords = context.CommentRecords.Where(c => c.NominationId == nomination.NominationId).ToList();
-                    if (commentRecords.Any())
-                        context.CommentRecords.RemoveRange(commentRecords);
-                }
-                if (proposedNominations.Any())
-                    context.Nominations.RemoveRange(proposedNominations);
-                
-                // 删除员工作为被提名者的申报记录
-                var declarations = context.NominationDeclarations.Where(n => n.NominatedEmployeeId == employee.EmployeeId).ToList();
-                if (declarations.Any())
-                    context.NominationDeclarations.RemoveRange(declarations);
-                
-                // 删除员工作为申报人的申报记录
-                var declaredDeclarations = context.NominationDeclarations.Where(n => n.DeclarerEmployeeId == employee.EmployeeId).ToList();
-                if (declaredDeclarations.Any())
-                    context.NominationDeclarations.RemoveRange(declaredDeclarations);
-                
-                // 删除员工本身
-                context.Employees.Remove(dbEmployee);
-                            context.SaveChanges();
-                
-                return true;
-            }
-        }
-        catch (Exception ex)
-        {
-            logger.Error(ex, $"删除员工及关联记录时发生错误: {ex.Message}");
-            return false;
-        }
-    }).ContinueWith(task =>
-    {
-        // 在UI线程上更新界面
-        App.Current.Dispatcher.Invoke(() =>
-        {
-            if (task.Result)
-            {
-                // 从本地集合中移除员工
-                if (Employees.Contains(employee))
-                    Employees.Remove(employee);
-                
-                if (TempEmployees.Contains(employee))
-                    TempEmployees.Remove(employee);
-                
-                if (ListViewEmployees.Contains(employee))
-                    ListViewEmployees.Remove(employee);
-                
-                if (_allEmployeesCache != null)
-                    _allEmployeesCache.Remove(employee);
-                
-                // 更新计数和分页
-                TotalRecords = TempEmployees.Count;
-                MaxPage = TotalRecords == 0 ? 1 : 
-                        (TotalRecords % PageSize == 0 ? 
-                        TotalRecords / PageSize : (TotalRecords / PageSize) + 1);
-                
-                // 如果当前页超出范围，修正为最大页
-                if (CurrentPage > MaxPage)
-                    CurrentPage = MaxPage > 0 ? MaxPage : 1;
-                
-                // 刷新当前页数据
-                UpdateListViewData();
-                
-                // 通知用户
-                Growl.SuccessGlobal($"已成功删除员工 {employee.EmployeeName} 及其关联记录");
-                logger.Info($"成功删除员工及关联记录：ID={employee.EmployeeId}，姓名={employee.EmployeeName}");
-                
-                // 发布员工删除事件，通知其他组件
-                eventAggregator.GetEvent<EmployeeRemovedEvent>().Publish();
-            }
-            else
-            {
-                Growl.ErrorGlobal("删除员工失败，可能是数据库错误或权限问题");
-            }
-            
-            // 隐藏加载状态
-            IsLoading = false;
-        });
-    });
-}
-
         private async void OnDeleteEmployee(Employee employee)
         {
             try
             {
-               if (employee == null)
-        {
-            Growl.WarningGlobal("请选择要删除的员工");
-            return;
-        }
+                if (employee == null)
+                {
+                    Growl.WarningGlobal("请选择要删除的员工");
+                    return;
+                }
 
-        // 检查员工是否有关联记录
-        using (var context = new DataBaseContext())
-        {
-            // 查询员工作为被提名者的提名记录
-            int nominatedCount = context.Nominations.Count(n => n.NominatedEmployeeId == employee.EmployeeId);
-            // 查询员工作为提议人的提名记录
-            int proposerCount = context.Nominations.Count(n => n.ProposerEmployeeId == employee.EmployeeId);
-            // 查询员工作为被提名者的申报记录
-            int declaredCount = context.NominationDeclarations.Count(n => n.NominatedEmployeeId == employee.EmployeeId);
-            // 查询员工作为申报人的申报记录
-            int declarerCount = context.NominationDeclarations.Count(n => n.DeclarerEmployeeId == employee.EmployeeId);
-            
-            int nominationCount = nominatedCount + proposerCount;
-            int declarationCount = declaredCount + declarerCount;
-            
-            // 如果有关联记录，显示特殊的确认对话框
-            if (nominationCount > 0 || declarationCount > 0)
-            {
-                // 构建提示消息
-                string message = "";
-                if (nominationCount > 0 && declarationCount > 0)
-                {
-                    message = $"当前员工有关联的奖项提名({nominationCount}条)和提名申报({declarationCount}条)，是否删除该员工及其所有关联记录？";
-                }
-                else if (nominationCount > 0)
-                {
-                    message = $"当前员工有关联的奖项提名({nominationCount}条)，是否删除该员工及其所有关联记录？";
-                }
-                else
-                {
-                    message = $"当前员工有关联的提名申报({declarationCount}条)，是否删除该员工及其所有关联记录？";
-                }
+                // 显示加载中状态
+                IsLoading = true;
+
+                // 检查员工是否有关联记录
+                var checkResult = await Task.Run(() => employeeService.CheckEmployeeRelatedRecords(employee.EmployeeId));
                 
-                // 显示Growl确认对话框
-                Growl.AskGlobal(message, isConfirmed => 
-                {
-                    if (isConfirmed)
-                    {
-                        // 启动后台任务执行删除操作，但不等待它
-                        Task.Run(async () => 
-                        {
-                            await DeleteEmployeeWithRelatedRecords(employee);
-                        });
-                    }
-                    return true;
-                });
-                return;
-            }
-        }
+                // 隐藏加载状态
+                IsLoading = false;
 
-               // 如果没有关联记录，显示普通确认对话框
-        var result = HandyControl.Controls.MessageBox.Show(
-            $"确定要删除员工 {employee.EmployeeName} 吗？此操作不可恢复！",
-            "删除确认",
-            MessageBoxButton.OKCancel,
-            MessageBoxImage.Warning);
+                // 如果有关联记录，显示全局警告框询问是否级联删除
+                if (checkResult.hasRelated)
+                {
+                    // 构建提示消息
+                    string message = "删除操作无法完成，发现关联记录：\n";
+                    
+                    if (checkResult.nominationCount > 0)
+                    {
+                        message += $"• 奖项提名记录 ({checkResult.nominationCount}条)\n";
+                    }
+                    
+                    if (checkResult.declarationCount > 0)
+                    {
+                        message += $"• 提名申报记录 ({checkResult.declarationCount}条)\n";
+                    }
+                    
+                    if (checkResult.voteCount > 0)
+                    {
+                        message += $"• 投票记录 ({checkResult.voteCount}条)\n";
+                    }
+                    
+                    message += "\n是否连带删除所有关联记录？";
+                    
+                    // 显示Growl全局警告框
+                    Growl.AskGlobal(message, isConfirmed => 
+                    {
+                        if (isConfirmed)
+                        {
+                            // 用户确认级联删除，执行删除操作
+                            ExecuteCascadeDelete(employee);
+                        }
+                        return true;
+                    });
+                    return;
+                }
+
+                // 如果没有关联记录，显示普通确认对话框
+                var result = HandyControl.Controls.MessageBox.Show(
+                    $"确定要删除员工 {employee.EmployeeName} 吗？此操作不可恢复！",
+                    "删除确认",
+                    MessageBoxButton.OKCancel,
+                    MessageBoxImage.Warning);
 
                 if (result == MessageBoxResult.OK)
                 {
-                    logger.Info($"开始删除员工：ID={employee.EmployeeId}，姓名={employee.EmployeeName}");
+                    // 执行普通删除
+                    ExecuteNormalDelete(employee);
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error(ex, "删除员工操作失败");
+                Growl.ErrorGlobal($"删除操作失败: {ex.Message}");
+                IsLoading = false;
+            }
+        }
+
+        /// <summary>
+        /// 执行级联删除操作
+        /// </summary>
+        private async void ExecuteCascadeDelete(Employee employee)
+        {
+            // 显示加载中状态
+            IsLoading = true;
+            
+            logger.Info($"开始级联删除员工及关联记录：ID={employee.EmployeeId}，姓名={employee.EmployeeName}");
+            
+            // 显示正在处理的提示
+            Growl.InfoGlobal("正在处理级联删除，请稍候...");
+            
+            // 异步调用服务层删除员工及其关联记录
+            bool success = false;
+            bool shouldUseSqlMethod = false;
+            Exception caughtException = null;
+            
+            try
+            {
+                // 首先尝试使用EF Core方式删除
+                logger.Info($"尝试使用EF Core方式删除员工 ID={employee.EmployeeId}");
+                success = employeeService.DeleteEmployeeWithRelatedRecords(employee.EmployeeId);
+            }
+            catch (Exception ex)
+            {
+                caughtException = ex;
+                logger.Error(ex, $"级联删除员工时发生异常: {ex.Message}");
+                
+                // 外键约束错误，标记使用SQL方法尝试
+                if (ex.Message.Contains("foreign key") || ex.Message.Contains("FOREIGN KEY") || 
+                    ex.Message.Contains("constraint") || ex.Message.Contains("REFERENCE"))
+                {
+                    shouldUseSqlMethod = true;
+                    logger.Info("将尝试使用直接SQL语句方法删除");
+                }
+            }
+            
+            // 如果首次尝试失败且是外键约束问题，尝试使用直接SQL方法
+            if (!success && shouldUseSqlMethod)
+            {
+                try 
+                {
+                    // 使用直接SQL方法再次尝试
+                    Growl.InfoGlobal("正在使用直接SQL方法尝试删除，请稍候...");
+                    logger.Info($"尝试使用SQL方式删除员工 ID={employee.EmployeeId}");
                     
-                    // 显示加载中状态
-                    IsLoading = true;
+                    // 使用直接SQL方法执行删除
+                    success = employeeService.ExecuteDirectSqlDelete(employee.EmployeeId);
                     
-                    // 异步调用服务层删除员工
-                    await Task.Run(() =>
+                    if (success)
                     {
-                        try
-                        {
-                            employeeService.DeleteEmployee(employee.EmployeeId);
-                            return true;
-                        }
-                        catch (Exception ex)
-                        {
-                            logger.Error(ex, $"删除员工时发生数据库错误: {ex.Message}");
-                            return false;
-                        }
-                    }).ContinueWith(task =>
-                    {
-                        // 在UI线程上更新界面
+                        // 清除之前的异常
+                        caughtException = null;
+                        logger.Info("使用直接SQL方法删除成功");
+                        
+                        // 直接更新UI界面，避免重复消息
                         App.Current.Dispatcher.Invoke(() =>
                         {
-                            if (task.Result)
+                            // 从本地集合中移除员工
+                            if (Employees.Contains(employee))
+                                Employees.Remove(employee);
+                            
+                            if (TempEmployees.Contains(employee))
+                                TempEmployees.Remove(employee);
+                            
+                            if (ListViewEmployees.Contains(employee))
+                                ListViewEmployees.Remove(employee);
+                            
+                            if (_allEmployeesCache != null)
+                                _allEmployeesCache.Remove(employee);
+                            
+                            // 更新计数和分页
+                            TotalRecords = TempEmployees.Count;
+                            MaxPage = TotalRecords == 0 ? 1 : 
+                                     (TotalRecords % PageSize == 0 ? 
+                                     TotalRecords / PageSize : (TotalRecords / PageSize) + 1);
+                            
+                            // 如果当前页超出范围，修正为最大页
+                            if (CurrentPage > MaxPage)
+                                CurrentPage = MaxPage > 0 ? MaxPage : 1;
+                            
+                            // 刷新当前页数据
+                            UpdateListViewData();
+                            
+                            // 通知用户
+                            Growl.SuccessGlobal($"已成功删除员工 {employee.EmployeeName} 及其所有关联记录");
+                            
+                            // 发布员工删除事件，通知其他组件
+                            eventAggregator.GetEvent<EmployeeRemovedEvent>().Publish();
+                            
+                            // 隐藏加载状态
+                            IsLoading = false;
+                        });
+                        
+                        logger.Info($"成功级联删除员工及关联记录：ID={employee.EmployeeId}，姓名={employee.EmployeeName}");
+                        return; // 直接返回，避免后续重复处理
+                    }
+                    else
+                    {
+                        logger.Error("直接SQL方法删除失败");
+                        Growl.ErrorGlobal("SQL方法删除失败，可能是数据库权限问题");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    caughtException = ex;
+                    logger.Error(ex, $"使用直接SQL删除员工时发生异常: {ex.Message}");
+                    Growl.ErrorGlobal($"SQL删除失败: {ex.Message}");
+                }
+            }
+            
+            // 在UI线程上更新界面（仅处理失败情况，成功情况已在上面直接返回）
+            App.Current.Dispatcher.Invoke(() =>
+            {
+                if (!success)
+                {
+                    // 分析异常类型，给出更具体的错误提示
+                    string errorMsg = "删除员工失败";
+                    string detailedError = "";
+                    
+                    if (caughtException != null)
+                    {
+                        if (caughtException is TimeoutException)
+                        {
+                            errorMsg = "删除操作超时";
+                            detailedError = "数据库处理时间过长，可能是因为相关记录太多或数据库负载高";
+                        }
+                        else if (caughtException.Message.Contains("foreign key") || 
+                                 caughtException.Message.Contains("FOREIGN KEY") ||
+                                 caughtException.Message.Contains("constraint"))
+                        {
+                            errorMsg = "删除失败：存在外键约束";
+                            detailedError = "员工还存在其他系统中未能自动处理的关联记录";
+                        }
+                        else if (caughtException.Message.Contains("permission") || 
+                                 caughtException.Message.Contains("权限"))
+                        {
+                            errorMsg = "删除失败：数据库权限不足";
+                            detailedError = "SQL操作没有足够的权限完成，请联系系统管理员";
+                        }
+                        else
+                        {
+                            errorMsg = "删除失败";
+                            detailedError = caughtException.Message;
+                        }
+                    }
+                    else
+                    {
+                        detailedError = "尝试了所有删除方法但均未成功，可能是数据库结构问题";
+                    }
+                    
+                    logger.Error($"级联删除员工失败：ID={employee.EmployeeId}，姓名={employee.EmployeeName}，错误：{errorMsg}，详情：{detailedError}");
+                    
+                    // 提示用户并询问是否重试，添加更具体的错误信息
+                    Growl.AskGlobal($"{errorMsg}：{detailedError}\n\n是否尝试更彻底的删除方式？", isConfirmed => 
+                    {
+                        if (isConfirmed)
+                        {
+                            // 记录用户选择重试
+                            logger.Info($"用户选择重试删除员工：ID={employee.EmployeeId}，姓名={employee.EmployeeName}");
+                            
+                            // 如果用户确认，尝试使用更直接的方式处理
+                            TryForceDeleteEmployee(employee);
+                        }
+                        return true;
+                    });
+                }
+                
+                // 隐藏加载状态
+                IsLoading = false;
+            });
+        }
+        
+        /// <summary>
+        /// 尝试强制删除员工，绕过EF Core处理投票记录可能存在的问题
+        /// </summary>
+        private async void TryForceDeleteEmployee(Employee employee)
+        {
+            try
+            {
+                IsLoading = true;
+                Growl.InfoGlobal("正在尝试强制删除关联投票记录...");
+                
+                // 直接通过数据库查询获取关联的投票记录数量
+                using (var context = new DataBaseContext())
+                {
+                    // 查找员工的所有投票记录
+                    var voteRecords = context.VoteRecords
+                        .Where(v => v.VoterEmployeeId == employee.EmployeeId)
+                        .ToList();
+                    
+                    if (voteRecords.Any())
+                    {
+                        Growl.InfoGlobal($"找到 {voteRecords.Count} 条投票记录，正在删除...");
+                        
+                        // 直接删除投票记录
+                        context.VoteRecords.RemoveRange(voteRecords);
+                        
+                        // 尝试保存更改
+                        await context.SaveChangesAsync();
+                        
+                        Growl.SuccessGlobal($"成功删除 {voteRecords.Count} 条投票记录");
+                        
+                        // 直接尝试使用SQL方法删除员工，避免再次调用ExecuteCascadeDelete导致重复提示
+                        Growl.InfoGlobal("正在尝试直接删除员工...");
+                        
+                        bool success = employeeService.ExecuteDirectSqlDelete(employee.EmployeeId);
+                        
+                        if (success)
+                        {
+                            // 更新UI界面
+                            App.Current.Dispatcher.Invoke(() =>
                             {
                                 // 从本地集合中移除员工
                                 if (Employees.Contains(employee))
@@ -831,31 +897,148 @@ private async Task DeleteEmployeeWithRelatedRecords(Employee employee)
                                 
                                 // 刷新当前页数据
                                 UpdateListViewData();
-                                
-                                // 通知用户
-                                Growl.SuccessGlobal($"已成功删除员工 {employee.EmployeeName}");
-                                logger.Info($"成功删除员工：ID={employee.EmployeeId}，姓名={employee.EmployeeName}");
-                                
-                                // 发布员工删除事件，通知其他组件
-                                eventAggregator.GetEvent<EmployeeRemovedEvent>().Publish();
-                            }
-                            else
-                            {
-                                Growl.ErrorGlobal("删除员工失败，可能是数据库错误或权限问题");
-                            }
+                            });
                             
-                            // 隐藏加载状态
-                            IsLoading = false;
-                        });
-                    });
+                            // 通知用户
+                            Growl.SuccessGlobal($"已成功删除员工 {employee.EmployeeName} 及其所有关联记录");
+                            
+                            // 发布员工删除事件，通知其他组件
+                            eventAggregator.GetEvent<EmployeeRemovedEvent>().Publish();
+                            
+                            logger.Info($"强制删除员工成功：ID={employee.EmployeeId}，姓名={employee.EmployeeName}");
+                        }
+                        else
+                        {
+                            Growl.ErrorGlobal("直接删除员工失败，请联系系统管理员");
+                            logger.Error($"强制删除员工失败：ID={employee.EmployeeId}");
+                        }
+                    }
+                    else
+                    {
+                        Growl.WarningGlobal("未找到投票记录，但仍然无法删除员工");
+                        logger.Warn($"强制删除失败：未找到投票记录，ID={employee.EmployeeId}");
+                    }
                 }
             }
             catch (Exception ex)
             {
-                logger.Error(ex, "删除员工操作失败");
-                Growl.ErrorGlobal($"删除操作失败: {ex.Message}");
+                Growl.ErrorGlobal($"强制删除失败：{ex.Message}");
+                logger.Error(ex, "强制删除员工失败");
+            }
+            finally
+            {
                 IsLoading = false;
             }
+        }
+
+        /// <summary>
+        /// 执行普通删除操作
+        /// </summary>
+        private async void ExecuteNormalDelete(Employee employee)
+        {
+            // 显示加载中状态
+            IsLoading = true;
+            
+            logger.Info($"开始删除员工：ID={employee.EmployeeId}，姓名={employee.EmployeeName}");
+            
+            // 异步调用服务层删除员工
+            bool success = await Task.Run(() =>
+            {
+                try
+                {
+                    employeeService.DeleteEmployee(employee.EmployeeId);
+                    return true;
+                }
+                catch (Exception ex)
+                {
+                    logger.Error(ex, $"删除员工时发生数据库错误: {ex.Message}");
+                    return false;
+                }
+            });
+            
+            await App.Current.Dispatcher.InvokeAsync(() =>
+            {
+                if (success)
+                {
+                    // 从本地集合中移除员工
+                    if (Employees.Contains(employee))
+                        Employees.Remove(employee);
+                    
+                    if (TempEmployees.Contains(employee))
+                        TempEmployees.Remove(employee);
+                    
+                    if (ListViewEmployees.Contains(employee))
+                        ListViewEmployees.Remove(employee);
+                    
+                    if (_allEmployeesCache != null)
+                        _allEmployeesCache.Remove(employee);
+                    
+                    // 更新计数和分页
+                    TotalRecords = TempEmployees.Count;
+                    MaxPage = TotalRecords == 0 ? 1 : 
+                             (TotalRecords % PageSize == 0 ? 
+                             TotalRecords / PageSize : (TotalRecords / PageSize) + 1);
+                    
+                    // 如果当前页超出范围，修正为最大页
+                    if (CurrentPage > MaxPage)
+                        CurrentPage = MaxPage > 0 ? MaxPage : 1;
+                    
+                    // 刷新当前页数据
+                    UpdateListViewData();
+                    
+                    // 通知用户
+                    Growl.SuccessGlobal($"已成功删除员工 {employee.EmployeeName}");
+                    logger.Info($"成功删除员工：ID={employee.EmployeeId}，姓名={employee.EmployeeName}");
+                    
+                    // 发布员工删除事件，通知其他组件
+                    eventAggregator.GetEvent<EmployeeRemovedEvent>().Publish();
+                }
+                else
+                {
+                    // 如果删除失败，可能是存在其他关联记录，再次检查
+                    var checkResult = employeeService.CheckEmployeeRelatedRecords(employee.EmployeeId);
+                    
+                    if (checkResult.hasRelated)
+                    {
+                        // 构建错误消息
+                        string message = "删除失败，发现关联记录：\n";
+                        
+                        if (checkResult.nominationCount > 0)
+                        {
+                            message += $"• 奖项提名记录 ({checkResult.nominationCount}条)\n";
+                        }
+                        
+                        if (checkResult.declarationCount > 0)
+                        {
+                            message += $"• 提名申报记录 ({checkResult.declarationCount}条)\n";
+                        }
+                        
+                        if (checkResult.voteCount > 0)
+                        {
+                            message += $"• 投票记录 ({checkResult.voteCount}条)\n";
+                        }
+                        
+                        message += "\n是否连带删除所有关联记录？";
+                        
+                        Growl.AskGlobal(message, isConfirmed => 
+                        {
+                            if (isConfirmed)
+                            {
+                                // 用户确认级联删除，执行删除操作
+                                ExecuteCascadeDelete(employee);
+                            }
+                            return true;
+                        });
+                    }
+                    else
+                    {
+                        Growl.ErrorGlobal("删除员工失败，可能是数据库错误或权限问题");
+                    }
+                }
+                
+                // 隐藏加载状态
+                IsLoading = false;
+            });
         }
         #endregion
 

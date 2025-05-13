@@ -449,18 +449,25 @@ namespace SIASGraduate.ViewModels.EditMessage.EmployeeManager
                                     // 更新相关的提名记录中的部门信息
                                     if (oldDepartmentId != currentEmployee.DepartmentId)
                                     {
-                                        // 查找所有与该员工相关的提名记录
-                                        var nominations = await context.Nominations
-                                            .Where(n => n.NominatedEmployeeId == EmployeeId || n.ProposerEmployeeId == EmployeeId)
-                                            .ToListAsync();
-                                            
-                                        foreach (var nomination in nominations)
-                                        {
-                                            // 更新提名记录中的部门ID为员工的新部门ID
-                                            nomination.DepartmentId = currentEmployee.DepartmentId;
-                                        }
+                                        // 直接使用SQL语句更新提名记录的部门信息
+                                        System.Diagnostics.Debug.WriteLine($"开始更新提名记录的部门信息");
                                         
-                                        System.Diagnostics.Debug.WriteLine($"已更新 {nominations.Count} 条提名记录的部门信息");
+                                        // 先获取受影响的提名记录数量
+                                        var nominationCount = await context.Nominations
+                                            .Where(n => n.NominatedEmployeeId == EmployeeId || n.ProposerEmployeeId == EmployeeId)
+                                            .CountAsync();
+                                        
+                                        // 使用原生SQL直接更新，完全绕过EF Core的实体跟踪
+                                        await context.Database.ExecuteSqlInterpolatedAsync(
+                                            $"UPDATE Nominations SET DepartmentId = {currentEmployee.DepartmentId} WHERE NominatedEmployeeId = {EmployeeId} OR ProposerEmployeeId = {EmployeeId}");
+                                            
+                                        System.Diagnostics.Debug.WriteLine($"使用SQL直接更新了 {nominationCount} 条提名记录的部门信息");
+                                    }
+                                    
+                                    // 清理所有可能被跟踪的Nomination实体，避免保存时尝试更新不存在的列
+                                    foreach (var entry in context.ChangeTracker.Entries<Nomination>())
+                                    {
+                                        entry.State = EntityState.Detached;
                                     }
                                     
                                     System.Diagnostics.Debug.WriteLine("正在保存员工信息更改");
@@ -689,6 +696,67 @@ namespace SIASGraduate.ViewModels.EditMessage.EmployeeManager
                 {
                     // 特别处理数据库更新异常
                     System.Diagnostics.Debug.WriteLine($"数据库更新错误: {dbEx.Message}");
+                    
+                    // 检查是否为IsUserVoted列错误
+                    if (dbEx.Message.Contains("IsUserVoted"))
+                    {
+                        System.Diagnostics.Debug.WriteLine("检测到IsUserVoted列错误，尝试修复...");
+                        
+                        try
+                        {
+                            // 尝试直接更新员工表，避开提名记录
+                            using (var context = new DataBaseContext())
+                            {
+                                var employee = await context.Employees.FindAsync(EmployeeId);
+                                if (employee != null)
+                                {
+                                    // 只更新员工基本信息
+                                    employee.EmployeeName = EmployeeName;
+                                    employee.Account = Account;
+                                    employee.EmployeePassword = EmployeePassword;
+                                    employee.Email = Email;
+                                    employee.HireDate = HireDate;
+                                    employee.IsActive = IsActive;
+                                    
+                                    // 更新部门ID
+                                    if (!string.IsNullOrEmpty(DepartmentName) && DepartmentName != "无部门" && IsActive == true)
+                                    {
+                                        var department = await context.Departments
+                                            .FirstOrDefaultAsync(d => d.DepartmentName == DepartmentName);
+                                        if (department != null)
+                                        {
+                                            employee.DepartmentId = department.DepartmentId;
+                                        }
+                                    }
+                                    else
+                                    {
+                                        employee.DepartmentId = null;
+                                    }
+                                    
+                                    // 保存员工信息变更
+                                    await context.SaveChangesAsync();
+                                    
+                                    // 单独更新提名记录部门
+                                    await context.Database.ExecuteSqlInterpolatedAsync(
+                                        $"UPDATE Nominations SET DepartmentId = {employee.DepartmentId} WHERE NominatedEmployeeId = {EmployeeId} OR ProposerEmployeeId = {EmployeeId}");
+                                    
+                                    // 提示成功
+                                    Growl.SuccessGlobal($"员工 {EmployeeName} 信息已成功更新");
+                                    
+                                    // 发布事件通知视图更新
+                                    eventAggregator.GetEvent<EmployeeUpdatedEvent>().Publish();
+                                    OnCancel();
+                                    return;
+                                }
+                            }
+                        }
+                        catch (Exception fixEx)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"尝试修复IsUserVoted错误失败: {fixEx.Message}");
+                            Growl.ErrorGlobal($"修复数据库错误失败: {fixEx.Message}");
+                        }
+                    }
+                    
                     if (dbEx.InnerException != null)
                     {
                         System.Diagnostics.Debug.WriteLine($"内部异常: {dbEx.InnerException.Message}");
@@ -699,42 +767,19 @@ namespace SIASGraduate.ViewModels.EditMessage.EmployeeManager
                         Growl.ErrorGlobal($"保存失败(数据库更新错误): {dbEx.Message}");
                     }
                 }
-                catch (Exception ex)
-                {
-                    // 捕获并显示任何错误
-                    System.Diagnostics.Debug.WriteLine($"保存操作发生错误: {ex.Message}\n{ex.StackTrace}");
-                    
-                    if (ex.InnerException != null)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"内部异常: {ex.InnerException.Message}");
-                        if (ex.InnerException.InnerException != null)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"二级内部异常: {ex.InnerException.InnerException.Message}");
-                            Growl.ErrorGlobal($"保存失败: {ex.Message} - {ex.InnerException.Message} - {ex.InnerException.InnerException.Message}");
-                        }
-                        else
-                        {
-                            Growl.ErrorGlobal($"保存失败: {ex.Message} - {ex.InnerException.Message}");
-                        }
-                    }
-                    else
-                    {
-                        Growl.ErrorGlobal($"保存失败: {ex.Message}");
-                    }
-                }
-                finally
-                {
-                    // 确保按钮重新启用
-                    IsSaveEnabled = true;
-                    IsCancelEnabled = true;
-                    
-                    System.Diagnostics.Debug.WriteLine("保存操作完成，已重新启用按钮");
-                }
             }
             catch (Exception ex)
             {
                 Growl.ErrorGlobal($"保存操作发生错误: {ex.Message}");
                 System.Diagnostics.Debug.WriteLine($"OnSave方法发生错误: {ex.Message}\n{ex.StackTrace}");
+            }
+            finally
+            {
+                // 确保按钮重新启用
+                IsSaveEnabled = true;
+                IsCancelEnabled = true;
+                
+                System.Diagnostics.Debug.WriteLine("保存操作完成，已重新启用按钮");
             }
         }
         #endregion
