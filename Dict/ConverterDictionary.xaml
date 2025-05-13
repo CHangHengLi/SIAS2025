@@ -25,6 +25,7 @@
     <converter:CollectionContainsConverter x:Key="CollectionContainsConverter" />
     <converter:CollectionContainsMultiConverter x:Key="CollectionContainsMultiConverter" />
     <converter:NullOrEmptyToDepartmentNameDefaultConverter x:Key="NullOrEmptyToDepartmentNameDefaultConverter" />
+    <converter:TextEmptyConverter x:Key="TextEmptyConverter" />
     
     <!-- 系统内置转换器 -->
     <BooleanToVisibilityConverter x:Key="SystemBooleanToVisibilityConverter"/>

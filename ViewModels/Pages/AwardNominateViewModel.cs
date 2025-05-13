@@ -89,29 +89,20 @@ namespace SIASGraduate.ViewModels.Pages
                 {
                     try
                     {
-                        // 使用投影查询，只获取需要的字段，并添加null检查
-                        var query = context.Nominations
-                            .AsNoTracking()
-                            .Select(n => new
-                            {
-                                n.NominationId,
-                                n.AwardId,
-                                n.Introduction,
-                                n.NominateReason,
-                                n.CoverImage,
-                                n.NominationTime,
-                                n.DepartmentId,
-                                n.NominatedEmployeeId,
-                                n.NominatedAdminId,
-                                Award = n.Award != null ? new { n.Award.AwardId, n.Award.AwardName } : null,
-                                Department = n.Department != null ? new { n.Department.DepartmentId, n.Department.DepartmentName } : null,
-                                NominatedEmployee = n.NominatedEmployee != null ? new { n.NominatedEmployee.EmployeeId, n.NominatedEmployee.EmployeeName } : null
-                            });
-                            
-                        var nominationsFromDb = await query.ToListAsync();
+                        // 修改查询，先创建基本查询
+                        var query = context.Nominations.AsNoTracking();
                         
-                        // 转换为Nomination对象并设置UI属性，添加null检查
-                        var processedNominations = nominationsFromDb.Select(n => new Nomination
+                        // 分步骤添加Include，避免类型转换错误
+                        query = query.Include(n => n.Award);
+                        query = query.Include(n => n.Department);
+                        query = query.Include(n => n.NominatedEmployee);
+                        query = query.Include(n => n.NominatedAdmin);
+                        query = query.Include(n => n.VoteRecords);
+                        
+                        // 执行查询
+                        var nominations = await query.ToListAsync();
+                            
+                        var processedNominations = nominations.Select(n => new Nomination
                         {
                             NominationId = n.NominationId,
                             AwardId = n.AwardId,
@@ -122,14 +113,14 @@ namespace SIASGraduate.ViewModels.Pages
                             DepartmentId = n.DepartmentId,
                             NominatedEmployeeId = n.NominatedEmployeeId,
                             NominatedAdminId = n.NominatedAdminId,
-                            Award = n.Award != null ? new Award { AwardId = n.Award.AwardId, AwardName = n.Award.AwardName } : null,
-                            Department = n.Department != null ? new Department { DepartmentId = n.Department.DepartmentId, DepartmentName = n.Department.DepartmentName } : null,
-                            NominatedEmployee = n.NominatedEmployee != null ? new Employee 
-                            { 
-                                EmployeeId = n.NominatedEmployee.EmployeeId, 
-                                EmployeeName = n.NominatedEmployee.EmployeeName,
-                                EmployeePassword = string.Empty // 添加必需的密码字段
-                            } : null,
+                            Award = n.Award,
+                            Department = n.Department,
+                            NominatedEmployee = n.NominatedEmployee,
+                            NominatedAdmin = n.NominatedAdmin,
+                            // 复制投票记录
+                            VoteRecords = n.VoteRecords != null ? 
+                                new ObservableCollection<VoteRecord>(n.VoteRecords) : 
+                                new ObservableCollection<VoteRecord>(),
                             // 设置UI相关属性
                             IsActive = true,
                             IsCommentSectionVisible = false,
@@ -179,7 +170,8 @@ namespace SIASGraduate.ViewModels.Pages
                             UIComments = new ObservableCollection<CommentRecord>(),
                             NewCommentText = string.Empty,
                             CommentCount = 0,
-                            IsUserVoted = false
+                            IsUserVoted = false,
+                            VoteRecords = new ObservableCollection<VoteRecord>()
                         }).ToList();
                             
                         TempViewNominates = new ObservableCollection<Nomination>(basicProcessedNominations);
@@ -310,19 +302,28 @@ namespace SIASGraduate.ViewModels.Pages
         {
             if (nomination == null) return;
             
-            // 使用完全限定名称确保不会有命名空间冲突
-            System.Windows.MessageBoxResult result = System.Windows.MessageBox.Show(
-                $"删除提名「{nomination.NominationId}」将同时删除所有关联的评论和投票记录！\n确定要继续吗？", 
-                "删除确认", 
-                System.Windows.MessageBoxButton.OKCancel);
-        
-            if (result != System.Windows.MessageBoxResult.OK) 
-                return;
-        
             try
             {
                 using (var context = new DataBaseContext())
                 {
+                    // 检查该提名是否有投票记录
+                    int voteCount = context.VoteRecords.Count(v => v.NominationId == nomination.NominationId);
+                    if (voteCount > 0)
+                    {
+                        // 如果有投票，不允许删除
+                        Growl.WarningGlobal($"提名「{nomination.NominationId}」已有{voteCount}个投票记录，不能删除！");
+                        return;
+                    }
+                    
+                    // 使用完全限定名称确保不会有命名空间冲突
+                    System.Windows.MessageBoxResult result = System.Windows.MessageBox.Show(
+                        $"删除提名「{nomination.NominationId}」将同时删除所有关联的评论和投票记录！\n确定要继续吗？", 
+                        "删除确认", 
+                        System.Windows.MessageBoxButton.OKCancel);
+                
+                    if (result != System.Windows.MessageBoxResult.OK) 
+                        return;
+                
                     // 先查找并删除所有关联的评论记录
                     var relatedComments = context.CommentRecords
                         .Where(c => c.NominationId == nomination.NominationId)
@@ -411,112 +412,42 @@ namespace SIASGraduate.ViewModels.Pages
                 {
                     try
                     {
-                        // 使用投影查询，只获取需要的字段，并添加null检查
-                        var query = context.Nominations
-                            .AsNoTracking()
-                            .Select(n => new
-                            {
-                                n.NominationId,
-                                n.AwardId,
-                                n.Introduction,
-                                n.NominateReason,
-                                n.CoverImage,
-                                n.NominationTime,
-                                n.DepartmentId,
-                                n.NominatedEmployeeId,
-                                n.NominatedAdminId,
-                                n.ProposerEmployeeId,
-                                n.ProposerAdminId,
-                                n.ProposerSupAdminId,
-                                Award = n.Award != null ? new { n.Award.AwardId, n.Award.AwardName } : null,
-                                Department = n.Department != null ? new { n.Department.DepartmentId, n.Department.DepartmentName } : null,
-                                NominatedEmployee = n.NominatedEmployee != null ? new { n.NominatedEmployee.EmployeeId, n.NominatedEmployee.EmployeeName } : null,
-                                NominatedAdmin = n.NominatedAdmin != null ? new { n.NominatedAdmin.AdminId, n.NominatedAdmin.AdminName } : null,
-                                ProposerEmployee = n.ProposerEmployee != null ? new { n.ProposerEmployee.EmployeeId, n.ProposerEmployee.EmployeeName } : null,
-                                ProposerAdmin = n.ProposerAdmin != null ? new { n.ProposerAdmin.AdminId, n.ProposerAdmin.AdminName } : null,
-                                ProposerSupAdmin = n.ProposerSupAdmin != null ? new { n.ProposerSupAdmin.SupAdminId, n.ProposerSupAdmin.SupAdminName } : null
-                            });
-
-                        // 执行查询
-                        var nominationsFromDb = query.ToList();
+                        // 修改查询，先创建基本查询
+                        var query = context.Nominations.AsNoTracking();
                         
-                        // 转换为Nomination对象并设置UI属性，添加null检查
-                        var allNominations = nominationsFromDb.Select(n => new Nomination
-                        {
-                            NominationId = n.NominationId,
-                            AwardId = n.AwardId,
-                            Introduction = n.Introduction ?? string.Empty,
-                            NominateReason = n.NominateReason ?? string.Empty,
-                            CoverImage = n.CoverImage,
-                            NominationTime = n.NominationTime,
-                            DepartmentId = n.DepartmentId,
-                            NominatedEmployeeId = n.NominatedEmployeeId,
-                            NominatedAdminId = n.NominatedAdminId,
-                            ProposerEmployeeId = n.ProposerEmployeeId,
-                            ProposerAdminId = n.ProposerAdminId,
-                            ProposerSupAdminId = n.ProposerSupAdminId,
-                            Award = n.Award != null ? new Award { AwardId = n.Award.AwardId, AwardName = n.Award.AwardName } : null,
-                            Department = n.Department != null ? new Department { DepartmentId = n.Department.DepartmentId, DepartmentName = n.Department.DepartmentName } : null,
-                            NominatedEmployee = n.NominatedEmployee != null ? new Employee 
-                            { 
-                                EmployeeId = n.NominatedEmployee.EmployeeId, 
-                                EmployeeName = n.NominatedEmployee.EmployeeName,
-                                EmployeePassword = string.Empty // 添加必需的密码字段
-                            } : null,
-                            NominatedAdmin = n.NominatedAdmin != null ? new Admin 
-                            { 
-                                AdminId = n.NominatedAdmin.AdminId, 
-                                AdminName = n.NominatedAdmin.AdminName,
-                                AdminPassword = string.Empty // 添加必需的密码字段
-                            } : null,
-                            ProposerEmployee = n.ProposerEmployee != null ? new Employee 
-                            { 
-                                EmployeeId = n.ProposerEmployee.EmployeeId, 
-                                EmployeeName = n.ProposerEmployee.EmployeeName,
-                                EmployeePassword = string.Empty // 添加必需的密码字段
-                            } : null,
-                            ProposerAdmin = n.ProposerAdmin != null ? new Admin 
-                            { 
-                                AdminId = n.ProposerAdmin.AdminId, 
-                                AdminName = n.ProposerAdmin.AdminName,
-                                AdminPassword = string.Empty // 添加必需的密码字段
-                            } : null,
-                            ProposerSupAdmin = n.ProposerSupAdmin != null ? new SupAdmin 
-                            { 
-                                SupAdminId = n.ProposerSupAdmin.SupAdminId, 
-                                SupAdminName = n.ProposerSupAdmin.SupAdminName,
-                                SupAdminPassword = string.Empty // 添加必需的密码字段
-                            } : null,
-                            // 设置UI相关属性
-                            IsActive = true,
-                            IsCommentSectionVisible = false,
-                            UIComments = new ObservableCollection<CommentRecord>(),
-                            NewCommentText = string.Empty,
-                            CommentCount = 0,
-                            IsUserVoted = false
-                        }).ToList();
+                        // 分步骤添加Include，避免类型转换错误
+                        query = query.Include(n => n.Award);
+                        query = query.Include(n => n.Department);
+                        query = query.Include(n => n.NominatedEmployee);
+                        query = query.Include(n => n.NominatedAdmin);
+                        query = query.Include(n => n.VoteRecords);
+                        query = query.Include(n => n.ProposerEmployee);
+                        query = query.Include(n => n.ProposerAdmin);
+                        query = query.Include(n => n.ProposerSupAdmin);
 
-                        if (string.IsNullOrWhiteSpace(SearchKeyword))
+                        // 过滤搜索条件
+                        if (!string.IsNullOrWhiteSpace(SearchKeyword))
                         {
-                            TempViewNominates = new ObservableCollection<Nomination>(allNominations);
-                        }
-                        else
-                        {
-                            var searchResults = allNominations.Where(n =>
-                                (n.Award?.AwardName?.Contains(SearchKeyword) ?? false) ||
-                                (n.NominatedEmployee?.EmployeeName?.Contains(SearchKeyword) ?? false) ||
-                                (n.NominatedAdmin?.AdminName?.Contains(SearchKeyword) ?? false) ||
-                                (n.Department?.DepartmentName?.Contains(SearchKeyword) ?? false) ||
-                                (n.Introduction?.Contains(SearchKeyword) ?? false) ||
-                                (n.NominateReason?.Contains(SearchKeyword) ?? false) ||
-                                (n.ProposerEmployee?.EmployeeName?.Contains(SearchKeyword) ?? false) ||
-                                (n.ProposerAdmin?.AdminName?.Contains(SearchKeyword) ?? false) ||
-                                (n.ProposerSupAdmin?.SupAdminName?.Contains(SearchKeyword) ?? false)
-                            ).ToList();
-
-                            TempViewNominates = new ObservableCollection<Nomination>(searchResults);
+                            query = query.Where(n => 
+                                (n.Award != null && n.Award.AwardName.Contains(SearchKeyword)) ||
+                                (n.NominatedEmployee != null && n.NominatedEmployee.EmployeeName.Contains(SearchKeyword)) ||
+                                (n.NominatedAdmin != null && n.NominatedAdmin.AdminName.Contains(SearchKeyword)) ||
+                                (n.Department != null && n.Department.DepartmentName.Contains(SearchKeyword)) ||
+                                (n.Introduction != null && n.Introduction.Contains(SearchKeyword)) ||
+                                (n.NominateReason != null && n.NominateReason.Contains(SearchKeyword)) ||
+                                (n.ProposerEmployee != null && n.ProposerEmployee.EmployeeName.Contains(SearchKeyword)) ||
+                                (n.ProposerAdmin != null && n.ProposerAdmin.AdminName.Contains(SearchKeyword)) ||
+                                (n.ProposerSupAdmin != null && n.ProposerSupAdmin.SupAdminName.Contains(SearchKeyword))
+                            );
                         }
 
+                        // 执行查询，加载全部数据
+                        var nominations = query.ToList();
+                        
+                        // 转为观察集合
+                        TempViewNominates = new ObservableCollection<Nomination>(nominations);
+                        
+                        // 更新UI
                         UpdateListViewData();
                     }
                     catch (Exception ex)
@@ -526,30 +457,17 @@ namespace SIASGraduate.ViewModels.Pages
                         
                         // 如果加载失败，尝试加载最基本的数据
                         var basicQuery = context.Nominations
-                            .AsNoTracking()
-                            .Select(n => new
-                            {
-                                n.NominationId,
-                                n.AwardId,
-                                n.Introduction,
-                                n.NominateReason
-                            });
-                        var basicNominationsFromDb = basicQuery.ToList();
-                        
-                        var basicNominations = basicNominationsFromDb.Select(n => new Nomination
+                            .AsNoTracking();
+                            
+                        if (!string.IsNullOrWhiteSpace(SearchKeyword))
                         {
-                            NominationId = n.NominationId,
-                            AwardId = n.AwardId,
-                            Introduction = n.Introduction ?? string.Empty,
-                            NominateReason = n.NominateReason ?? string.Empty,
-                            // 设置UI相关属性
-                            IsActive = true,
-                            IsCommentSectionVisible = false,
-                            UIComments = new ObservableCollection<CommentRecord>(),
-                            NewCommentText = string.Empty,
-                            CommentCount = 0,
-                            IsUserVoted = false
-                        }).ToList();
+                            basicQuery = basicQuery.Where(n => 
+                                (n.Introduction != null && n.Introduction.Contains(SearchKeyword)) ||
+                                (n.NominateReason != null && n.NominateReason.Contains(SearchKeyword))
+                            );
+                        }
+                        
+                        var basicNominations = basicQuery.ToList();
                             
                         TempViewNominates = new ObservableCollection<Nomination>(basicNominations);
                         UpdateListViewData();
@@ -649,33 +567,39 @@ namespace SIASGraduate.ViewModels.Pages
                 // 创建不包含图片字段的数据列表，但需要从数据库重新查询包含投票记录数量
                 using (var context = new DataBaseContext())
                 {
-                    var nominationsWithVotes = context.Nominations
-                        .AsNoTracking()
-                        .Include(n => n.Award)
-                        .Include(n => n.Department)
-                        .Include(n => n.NominatedEmployee)
-                        .Include(n => n.NominatedAdmin)
-                        .Include(n => n.ProposerEmployee)
-                        .Include(n => n.ProposerAdmin)
-                        .Include(n => n.ProposerSupAdmin)
-                        .Include(n => n.VoteRecords)
-                        .ToList();
+                    // 分步骤创建查询并添加Include
+                    var query = context.Nominations.AsNoTracking();
+                    query = query.Include(n => n.Award);
+                    query = query.Include(n => n.Department);
+                    query = query.Include(n => n.NominatedEmployee);
+                    query = query.Include(n => n.NominatedAdmin);
+                    query = query.Include(n => n.ProposerEmployee);
+                    query = query.Include(n => n.ProposerAdmin);
+                    query = query.Include(n => n.ProposerSupAdmin);
+                    query = query.Include(n => n.VoteRecords);
+                    
+                    // 执行查询
+                    var nominationsWithVotes = query.ToList();
                         
                     // 找到对应的提名数据并获取实际票数
                     var exportData = TempViewNominates.Select(n => {
                         var fullData = nominationsWithVotes.FirstOrDefault(nv => nv.NominationId == n.NominationId);
                         int voteCount = fullData?.VoteRecords?.Count ?? 0;
                         
+                        // 确保获取正确的提名对象和提名人姓名
+                        string nominatedName = GetNominatedName(fullData ?? n);
+                        string proposerName = GetProposerName(fullData ?? n);
+                        
                         return new
                         {
                             提名ID = n.NominationId,
                             奖项名称 = n.Award?.AwardName ?? "未设置",
-                            提名对象 = n.NominatedEmployee?.EmployeeName ?? n.NominatedAdmin?.AdminName ?? "未设置",
+                            提名对象 = nominatedName,
                             所属部门 = n.Department?.DepartmentName ?? "未设置",
-                            一句话介绍 = n.Introduction,
-                            提名理由 = n.NominateReason,
+                            一句话介绍 = n.Introduction ?? "",
+                            提名理由 = n.NominateReason ?? "",
                             提名时间 = n.NominationTime.ToString("yyyy-MM-dd HH:mm:ss"),
-                            提名人 = GetProposerName(n),
+                            提名人 = proposerName,
                             得票数 = voteCount
                         };
                     }).ToList();
@@ -697,11 +621,22 @@ namespace SIASGraduate.ViewModels.Pages
         private string GetProposerName(Nomination nomination)
         {
             if (nomination.ProposerEmployee != null)
-                return nomination.ProposerEmployee.EmployeeName;
+                return nomination.ProposerEmployee.EmployeeName ?? "未设置";
             else if (nomination.ProposerAdmin != null)
-                return nomination.ProposerAdmin.AdminName;
+                return nomination.ProposerAdmin.AdminName ?? "未设置";
             else if (nomination.ProposerSupAdmin != null)
-                return nomination.ProposerSupAdmin.SupAdminName;
+                return nomination.ProposerSupAdmin.SupAdminName ?? "未设置";
+            else
+                return "未设置";
+        }
+        
+        // 辅助方法：获取提名对象姓名
+        private string GetNominatedName(Nomination nomination)
+        {
+            if (nomination.NominatedEmployee != null)
+                return nomination.NominatedEmployee.EmployeeName ?? "未设置";
+            else if (nomination.NominatedAdmin != null)
+                return nomination.NominatedAdmin.AdminName ?? "未设置";
             else
                 return "未设置";
         }

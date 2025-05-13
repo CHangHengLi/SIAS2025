@@ -373,6 +373,11 @@ namespace SIASGraduate.ViewModels.Pages
         public DelegateCommand<Nomination> VoteCommand { get; private set; }
 
         /// <summary>
+        /// 处理投票按钮点击事件，即使按钮被禁用也会执行
+        /// </summary>
+        public DelegateCommand<Nomination> VoteButtonClickCommand { get; private set; }
+
+        /// <summary>
         /// 搜索命令
         /// </summary>
         public DelegateCommand SearchCommand { get; private set; }
@@ -627,6 +632,7 @@ namespace SIASGraduate.ViewModels.Pages
             
             // 初始化命令
             VoteCommand = new DelegateCommand<Nomination>(ExecuteVoteCommand, CanExecuteVoteCommand);
+            VoteButtonClickCommand = new DelegateCommand<Nomination>(ExecuteVoteButtonClickCommand);
             SearchCommand = new DelegateCommand(ExecuteSearchCommand);
             FilterAwardsCommand = new DelegateCommand<string>(ExecuteFilterAwardsCommand);
             TabCompleteCommand = new DelegateCommand<string>(ExecuteTabCompleteCommand);
@@ -1008,7 +1014,7 @@ namespace SIASGraduate.ViewModels.Pages
                                 NewCommentText = string.Empty,
                                 
                                 // 设置投票状态 - 修改为只在达到最大投票次数时才标记为已投票
-                                IsUserVoted = AwardVoteCount.ContainsKey(item.AwardId) && AwardVoteCount[item.AwardId] >= maxVoteCount,
+                                IsUserVoted = false, // 初始化为false，后续由CheckIfUserHasVotedAsync方法更新
                                 
                                 // 设置评论数量
                                 CommentCount = commentCounts.TryGetValue(item.NominationId, out int count) ? count : 0
@@ -1182,27 +1188,37 @@ namespace SIASGraduate.ViewModels.Pages
                             // 更新所有当前显示提名的投票状态
                             if (Nominations != null)
                             {
-                                foreach (var nomination in Nominations)
+                                // 创建一个用户已投票的提名ID集合
+                                var votedNominationIds = userVotes.Select(v => v.NominationId).ToHashSet();
+                                
+                                // 创建一个已达到最大投票数的奖项ID集合
+                                var maxVotedAwardIds = new HashSet<int>();
+                                foreach(var awardId in AwardVoteCount.Keys)
                                 {
-                                    // 如果已经达到最大投票次数，则标记为已投票
-                                    if (nomination.Award != null && AwardVoteCount.ContainsKey(nomination.AwardId))
-                                    {
-                                        // 获取最新的MaxVoteCount
-                                        int maxVotes = 1; // 默认为1
-                                        if (awardsDict.TryGetValue(nomination.AwardId, out var award))
+                                    int maxVotes = 1;
+                                    if (awardsDict.TryGetValue(awardId, out var award))
                                         {
                                             maxVotes = award.MaxVoteCount;
                                         }
-                                        else if (nomination.Award != null)
-                                        {
-                                            maxVotes = nomination.Award.MaxVoteCount;
-                                        }
-                                        
-                                        nomination.IsUserVoted = AwardVoteCount[nomination.AwardId] >= maxVotes;
+                                    
+                                    if (AwardVoteCount[awardId] >= maxVotes)
+                                    {
+                                        maxVotedAwardIds.Add(awardId);
+                                    }
+                                }
+                                
+                                foreach (var nomination in Nominations)
+                                {
+                                    // 逻辑修改：如果该奖项已达到最大投票数，则所有该奖项的提名都标记为已投票状态（显示红色边框）
+                                    if (nomination.AwardId != null && maxVotedAwardIds.Contains(nomination.AwardId))
+                                    {
+                                        // 奖项已达到最大投票数，将所有相关提名标记为已投票状态
+                                        nomination.IsUserVoted = true;
                                     }
                                     else
                                     {
-                                        nomination.IsUserVoted = false;
+                                        // 根据用户是否对该提名投过票设置状态
+                                        nomination.IsUserVoted = votedNominationIds.Contains(nomination.NominationId);
                                     }
                                 }
                             }
@@ -1216,6 +1232,51 @@ namespace SIASGraduate.ViewModels.Pages
             {
                 StatusMessage = $"检查投票状态失败: {ex.Message}";
                 System.Diagnostics.Debug.WriteLine($"检查投票状态失败: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 执行投票按钮点击事件命令
+        /// </summary>
+        private void ExecuteVoteButtonClickCommand(Nomination nomination)
+        {
+            if (nomination == null)
+                return;
+
+            // 检查投票按钮是否被禁用（不能投票）
+            if (!CanExecuteVoteCommand(nomination))
+            {
+                // 获取奖项的最大投票次数和已投票次数
+                int maxVoteCount = nomination.Award?.MaxVoteCount ?? 1;
+                int usedVotes = AwardVoteCount.ContainsKey(nomination.AwardId) ? AwardVoteCount[nomination.AwardId] : 0;
+                
+                if (usedVotes >= maxVoteCount)
+                {
+                    // 显示投票上限提示
+                    string nomineeName = nomination.NominatedEmployee?.EmployeeName ?? 
+                                       nomination.NominatedAdmin?.AdminName ?? 
+                                       "未知提名人";
+                    
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        StatusMessage = $"您已经对奖项 '{nomination.Award?.AwardName}' 投票达到最大次数 {maxVoteCount}";
+                        HandyControl.Controls.Growl.InfoGlobal($"当前奖项 '{nomination.Award?.AwardName}' 能够进行的最大投票数量为：{maxVoteCount}，你已用完所有投票次数");
+                    });
+                }
+                else if (IsSuperAdmin)
+                {
+                    // 超级管理员不能投票
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        StatusMessage = $"超级管理员不能参与投票，仅可查看";
+                        HandyControl.Controls.Growl.InfoGlobal($"超级管理员不能参与投票，仅可查看");
+                    });
+                }
+            }
+            else
+            {
+                // 如果按钮可用，执行正常的投票命令
+                ExecuteVoteCommand(nomination);
             }
         }
 
@@ -1246,126 +1307,70 @@ namespace SIASGraduate.ViewModels.Pages
             
             // 获取奖项的最新数据，确保使用最新的MaxVoteCount
             Award latestAward = null;
-            int maxVoteCount = 1; // 默认为1
+            int maxVoteCount = 1;
             
             using (var context = new DataBaseContext())
             {
-                // 从数据库获取最新的奖项数据
+                try
+                {
+                    // 查询最新的奖项数据
                 latestAward = await context.Awards
                     .AsNoTracking()
                     .FirstOrDefaultAsync(a => a.AwardId == nomination.AwardId);
                 
-                // 如果找到奖项，使用其MaxVoteCount
                 if (latestAward != null)
                 {
                     maxVoteCount = latestAward.MaxVoteCount;
                 }
-                else if (nomination.Award != null)
-                {
-                    // 如果数据库没有找到，但nomination对象有Award属性，则使用它
-                    maxVoteCount = nomination.Award.MaxVoteCount;
                 }
-            }
-            
-            // 检查用户当前对该奖项的投票次数
-            int currentVoteCount = 0;
-            if (AwardVoteCount.ContainsKey(nomination.AwardId))
-            {
-                currentVoteCount = AwardVoteCount[nomination.AwardId];
-            }
-            
-            // 检查是否达到最大投票次数
-            if (currentVoteCount >= maxVoteCount)
-            {
-                string nomineeName = nomination.NominatedEmployee?.EmployeeName ?? 
-                                   nomination.NominatedAdmin?.AdminName ?? 
-                                   "未知提名人";
-                
-                // 使用最新获取的奖项名称
-                string awardName = latestAward?.AwardName ?? nomination.Award?.AwardName ?? "未知奖项";
-                
-                StatusMessage = $"您已经对奖项 \"{awardName}\" 投了 {currentVoteCount} 次票，已达到最大次数 {maxVoteCount}";
-                HandyControl.Controls.Growl.InfoGlobal($"您已经对奖项 \"{awardName}\" 投票达到最大次数 {maxVoteCount}");
-                return; // 返回，不执行实际的投票操作
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"获取奖项最新数据失败: {ex.Message}");
+                }
             }
             
             #endregion
 
-            try
-            {
-                #region 初始化投票操作
-                
-                IsLoading = true;
-                StatusMessage = "正在提交投票...";
-                
-                #endregion
-
-                await Task.Run(() =>
-                {
+            #region 投票操作
+            
+            // 执行实际的投票操作
                     using (var context = new DataBaseContext())
                     {
-                        #region 创建并保存投票记录
-                        
-                        // 获取完整的用户信息，包括部门信息
-                        Employee currentEmployee = null;
-                        Admin currentAdmin = null;
-                        
-                        // 根据用户类型查询完整的用户信息
-                        if (CurrentEmployeeId.HasValue)
-                        {
-                            currentEmployee = context.Employees
-                                .Include(e => e.Department)
-                                .FirstOrDefault(e => e.EmployeeId == CurrentEmployeeId);
-                        }
-                        else if (CurrentAdminId.HasValue)
-                        {
-                            currentAdmin = context.Admins
-                                .Include(a => a.Department)
-                                .FirstOrDefault(a => a.AdminId == CurrentAdminId);
-                        }
-                        
-                        // 验证特定提名的投票次数
-                        int nominationVoteCount = context.VoteRecords
-                            .Count(v => v.NominationId == nomination.NominationId && 
-                                   ((CurrentEmployeeId.HasValue && v.VoterEmployeeId == CurrentEmployeeId) ||
-                                    (CurrentAdminId.HasValue && v.VoterAdminId == CurrentAdminId)));
-                                    
-                        // 检查是否已经对该提名投过票
-                        if (nominationVoteCount > 0)
-                        {
-                            var nomineeName = nomination.NominatedEmployee?.EmployeeName ?? 
-                                            nomination.NominatedAdmin?.AdminName ?? 
-                                            "未知提名人";
-                            
-                            // 同步UI线程通知用户
+                try
+                {
+                    // 检查是否超过了最大投票次数
+                    int currentVoteCount = 0;
+                    if (AwardVoteCount.ContainsKey(nomination.AwardId))
+                    {
+                        currentVoteCount = AwardVoteCount[nomination.AwardId];
+                    }
+                    
+                    if (currentVoteCount >= maxVoteCount)
+                    {
+                        // 已达到最大投票次数，显示提示信息
                             Application.Current.Dispatcher.Invoke(() =>
                             {
-                                StatusMessage = $"您已经为 {nomineeName} 投过票了，不能重复投票";
-                                HandyControl.Controls.Growl.InfoGlobal($"您已经为 {nomineeName} 投过票了，不能重复投票");
-                                IsLoading = false;
+                            StatusMessage = $"您已经对奖项 '{nomination.Award?.AwardName}' 投票达到最大次数 {maxVoteCount}";
+                            HandyControl.Controls.Growl.WarningGlobal($"当前奖项 '{nomination.Award?.AwardName}' 能够进行的最大投票数量为：{maxVoteCount}，你已用完所有投票次数");
                             });
-                            
                             return;
                         }
                         
                         // 创建新的投票记录
                         var voteRecord = new VoteRecord
                         {
-                            VoterEmployeeId = CurrentEmployeeId,
-                            VoterAdminId = CurrentAdminId,
-                            VoteTime = DateTime.Now,
                             AwardId = nomination.AwardId,
-                            NominationId = nomination.NominationId
+                        NominationId = nomination.NominationId,
+                        VoteTime = DateTime.Now,
+                        VoterEmployeeId = CurrentEmployeeId,
+                        VoterAdminId = CurrentAdminId
                         };
                         
-                        // 添加到数据库
+                    // 添加到数据库并保存
                         context.VoteRecords.Add(voteRecord);
-                        context.SaveChanges();
+                    await context.SaveChangesAsync();
                         
-                        #endregion
-                        
-                        #region 更新UI状态
-                        
+                    // 更新UI
                         Application.Current.Dispatcher.Invoke(() =>
                         {
                             // 更新当前奖项的投票次数统计
@@ -1378,1144 +1383,68 @@ namespace SIASGraduate.ViewModels.Pages
                                 AwardVoteCount[nomination.AwardId] = 1;
                             }
                             
-                            // 更新当前投票计数并使用最新的maxVoteCount
+                        // 获取更新后的投票次数
                             int updatedVoteCount = AwardVoteCount[nomination.AwardId];
                             
-                            // 只有在达到最大投票次数时才标记为已投票
-                            HasVotedCurrentAward = (updatedVoteCount >= maxVoteCount);
+                        // 检查是否已达到最大投票次数
+                        bool hasReachedMaxVotes = (updatedVoteCount >= maxVoteCount);
+                        
+                        // 更新当前奖项的投票状态
+                        HasVotedCurrentAward = hasReachedMaxVotes;
+                        
+                        // 修正：为当前奖项的所有提名更新IsUserVoted状态
+                        if (hasReachedMaxVotes)
+                        {
+                            // 如果达到最大投票次数，将该奖项的所有提名标记为已投票状态
+                            foreach (var nom in Nominations.Where(n => n.AwardId == nomination.AwardId))
+                            {
+                                nom.IsUserVoted = true;
+                            }
                             
-                            // 添加到已投票奖项列表（如果已达到最大投票次数）
-                            if (HasVotedCurrentAward && !VotedAwardIds.Contains(nomination.AwardId))
+                            // 添加到已投票奖项列表
+                            if (!VotedAwardIds.Contains(nomination.AwardId))
                             {
                                 VotedAwardIds.Add(nomination.AwardId);
                             }
-                            
-                            // 获取提名对象名称
+                        }
+                        else
+                        {
+                            // 只更新当前提名的状态
+                            nomination.IsUserVoted = true;
+                        }
+                        
+                        // 更新状态信息
                             string nomineeName = nomination.NominatedEmployee?.EmployeeName ?? 
                                                nomination.NominatedAdmin?.AdminName ?? 
                                                "未知提名人";
                             
-                            // 使用Growl代替MessageBox
-                            if (updatedVoteCount < maxVoteCount)
+                        // 更新状态消息
+                        if (hasReachedMaxVotes)
                             {
-                                int remainingVotes = maxVoteCount - updatedVoteCount;
-                                StatusMessage = $"您已成功为 {nomineeName} 在奖项 \"{latestAward?.AwardName ?? nomination.Award?.AwardName}\" 中投票，还剩 {remainingVotes} 次投票机会";
+                            StatusMessage = $"您已对 {nomineeName} 投票成功，已达到奖项 '{nomination.Award?.AwardName}' 的最大投票次数 {maxVoteCount}";
+                            HandyControl.Controls.Growl.SuccessGlobal($"投票成功！当前奖项 '{nomination.Award?.AwardName}' 能够进行的最大投票数量为：{maxVoteCount}，你已用完所有投票次数");
                             }
                             else
                             {
-                                StatusMessage = $"您已成功为 {nomineeName} 在奖项 \"{latestAward?.AwardName ?? nomination.Award?.AwardName}\" 中投票，已用完所有投票机会";
-                            }
-                            
-                            // 更新Growl提示消息，添加最高投票数和剩余投票次数的信息
-                            int remainingVotesForGrowl = maxVoteCount - updatedVoteCount;
-                            string votesInfoText = remainingVotesForGrowl > 0
-                                ? $"（最高投票数: {maxVoteCount}，已使用: {updatedVoteCount}，剩余: {remainingVotesForGrowl}）"
-                                : $"（已用完所有 {maxVoteCount} 次投票机会）";
-                                
-                            HandyControl.Controls.Growl.SuccessGlobal($"投票成功！您已成功为 {nomineeName} 在奖项 \"{latestAward?.AwardName ?? nomination.Award?.AwardName}\" 中投票 {votesInfoText}");
-                            
-                            // 刷新提名列表，更新投票状态
-                            LoadNominationsAsync();
-                            
-                            // 重新检查用户投票状态，确保UI状态更新
-                            CheckIfUserHasVotedAsync();
-                        });
+                            int remainingVotes = maxVoteCount - updatedVoteCount;
+                            StatusMessage = $"您已对 {nomineeName} 投票成功，对奖项 '{nomination.Award?.AwardName}' 还有 {remainingVotes} 次投票机会";
+                            HandyControl.Controls.Growl.SuccessGlobal($"投票成功！当前奖项 '{nomination.Award?.AwardName}' 能够进行的最大投票数量为：{maxVoteCount}，你还剩余投票次数为：{remainingVotes}");
+                        }
                         
-                        #endregion
-                    }
+                        // 刷新命令状态
+                        VoteCommand.RaiseCanExecuteChanged();
                 });
             }
             catch (Exception ex)
             {
+                    // 投票失败
                 StatusMessage = $"投票失败: {ex.Message}";
                 HandyControl.Controls.Growl.ErrorGlobal($"投票失败: {ex.Message}");
                 System.Diagnostics.Debug.WriteLine($"投票失败: {ex}");
             }
-            finally
-            {
-                IsLoading = false;
-            }
-        }
-
-        /// <summary>
-        /// 执行刷新命令
-        /// </summary>
-        private void ExecuteRefreshCommand()
-        {
-            LoadAwardsAsync();
-            LoadNominationsAsync();
-            CheckIfUserHasVotedAsync();
-        }
-
-        /// <summary>
-        /// 检查指定奖项是否已被投票
-        /// </summary>
-        public bool CheckIfAwardVoted(int awardId)
-        {
-            return VotedAwardIds.Contains(awardId);
-        }
-
-        #region 评论功能相关方法
-
-        /// <summary>
-        /// 显示评论区
-        /// </summary>
-        private async void ExecuteShowCommentsCommand(Nomination nomination)
-        {
-            if (nomination == null) return;
-            
-            try
-            {
-                // 明确关闭所有打开的评论区并打印日志以便调试
-                System.Diagnostics.Debug.WriteLine($"关闭所有评论区，保留提名ID: {nomination.NominationId}");
-                CloseAllCommentSections(nomination.NominationId);
-                
-                // 先设置评论区可见，提供更快的UI响应
-                nomination.IsCommentSectionVisible = true;
-                System.Diagnostics.Debug.WriteLine($"已打开提名ID: {nomination.NominationId} 的评论区");
-                
-                // 强制UI立即更新
-                Application.Current.Dispatcher.Invoke(() => {
-                    // 手动触发一次PropertyChanged事件
-                    var temp = nomination.IsCommentSectionVisible;
-                    nomination.IsCommentSectionVisible = false;
-                    nomination.IsCommentSectionVisible = temp;
-                });
-                
-                // 确保UIComments已初始化
-                if (nomination.UIComments == null)
-                {
-                    nomination.UIComments = new ObservableCollection<CommentRecord>();
-                }
-                
-                // 显示加载指示器
-                IsLoading = true;
-                StatusMessage = "正在加载评论...";
-                
-                try
-                {
-                    // 加载评论
-                    await LoadCommentsAsync(nomination);
-                    
-                    // 评论加载完成后的操作
-                    StatusMessage = $"已加载 {nomination.CommentCount} 条评论";
-                    
-                    // 保证UI立即更新
-                    Application.Current.Dispatcher.Invoke(() => 
-                    {
-                        // 强制更新UI - 有时数据绑定不会立即刷新，这里手动触发刷新
-                        var index = PagedNominations.IndexOf(nomination);
-                        if (index != -1)
-                        {
-                            // 使用重新赋值的方式强制刷新UI
-                            var temp = PagedNominations[index];
-                            PagedNominations.RemoveAt(index);
-                            PagedNominations.Insert(index, temp);
-                        }
-                    });
-                    
-                    // 使用Dispatcher延迟显示Growl通知，避免UI阻塞
-                    Application.Current.Dispatcher.BeginInvoke(new Action(() =>
-                    {
-                        HandyControl.Controls.Growl.SuccessGlobal($"已加载 {nomination.CommentCount} 条评论");
-                    }));
-                }
-                catch (Exception ex)
-                {
-                    // 如果加载评论失败，显示错误信息
-                    StatusMessage = $"加载评论失败: {ex.Message}";
-                    HandyControl.Controls.Growl.ErrorGlobal($"加载评论失败: {ex.Message}");
-                    System.Diagnostics.Debug.WriteLine($"加载评论失败: {ex}");
-                    
-                    // 尝试恢复
-                    nomination.UIComments.Clear();
-                    nomination.CommentCount = 0;
-                }
-            }
-            catch (Exception ex)
-            {
-                StatusMessage = $"打开评论区失败: {ex.Message}";
-                HandyControl.Controls.Growl.ErrorGlobal($"打开评论区失败: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"打开评论区失败: {ex}");
-            }
-            finally
-            {
-                IsLoading = false;
-            }
-        }
-        
-        /// <summary>
-        /// 隐藏评论区
-        /// </summary>
-        private void ExecuteHideCommentsCommand(Nomination nomination)
-        {
-            if (nomination == null) return;
-            
-            // 设置当前提名的评论区不可见
-            nomination.IsCommentSectionVisible = false;
-            
-            // 强制更新UI
-            Application.Current.Dispatcher.Invoke(() => 
-            {
-                var index = PagedNominations.IndexOf(nomination);
-                if (index != -1)
-                {
-                    // 使用重新赋值的方式强制刷新UI
-                    var temp = PagedNominations[index];
-                    PagedNominations.RemoveAt(index);
-                    PagedNominations.Insert(index, temp);
-                }
-            });
-        }
-        
-        /// <summary>
-        /// 加载评论（支持分页）
-        /// </summary>
-        private async Task LoadCommentsAsync(Nomination nomination, int page = 1, int pageSize = 10)
-        {
-            if (nomination == null) return;
-            
-            using (var context = new DataBaseContext())
-            {
-                try
-                {
-                    // 计算跳过的记录数
-                    int skip = (page - 1) * pageSize;
-                    
-                    // 查询该提名的评论 - 使用分页查询以提高性能
-                    var comments = await context.CommentRecords
-                        .AsNoTracking() // 提高性能，因为我们只是读取数据
-                        .Where(c => c.NominationId == nomination.NominationId && !c.IsDeleted)
-                        .OrderByDescending(c => c.CommentTime)
-                        .Skip(skip)
-                        .Take(pageSize)
-                        .Select(c => new CommentRecord 
-                        {
-                            CommentId = c.CommentId,
-                            CommentTime = c.CommentTime,
-                            Content = c.Content,
-                            NominationId = c.NominationId,
-                            AwardId = c.AwardId,
-                            IsDeleted = c.IsDeleted,
-                            CommenterEmployeeId = c.CommenterEmployeeId,
-                            CommenterAdminId = c.CommenterAdminId, 
-                            CommenterSupAdminId = c.CommenterSupAdminId,
-                            CommenterEmployee = c.CommenterEmployee != null ? new Employee 
-                            {
-                                EmployeeId = c.CommenterEmployee.EmployeeId,
-                                EmployeeName = c.CommenterEmployee.EmployeeName,
-                                EmployeeImage = c.CommenterEmployee.EmployeeImage,
-                                EmployeePassword = c.CommenterEmployee.EmployeePassword // 必须包含required字段
-                            } : null,
-                            CommenterAdmin = c.CommenterAdmin != null ? new Admin 
-                            {
-                                AdminId = c.CommenterAdmin.AdminId,
-                                AdminName = c.CommenterAdmin.AdminName,
-                                AdminImage = c.CommenterAdmin.AdminImage,
-                                AdminPassword = c.CommenterAdmin.AdminPassword // 必须包含required字段
-                            } : null,
-                            CommenterSupAdmin = c.CommenterSupAdmin != null ? new SupAdmin 
-                            {
-                                SupAdminId = c.CommenterSupAdmin.SupAdminId,
-                                SupAdminName = c.CommenterSupAdmin.SupAdminName,
-                                SupAdminImage = c.CommenterSupAdmin.SupAdminImage,
-                                SupAdminPassword = c.CommenterSupAdmin.SupAdminPassword // 必须包含required字段
-                            } : null
-                        })
-                        .ToListAsync();
-                    
-                    // 获取总评论数
-                    int totalComments = await context.CommentRecords
-                        .AsNoTracking()
-                        .Where(c => c.NominationId == nomination.NominationId && !c.IsDeleted)
-                        .CountAsync();
-                    
-                    // 在UI线程上更新UI集合
-                    Application.Current.Dispatcher.Invoke(() => 
-                    {
-                        // 确保UIComments已初始化
-                        if (nomination.UIComments == null)
-                        {
-                            nomination.UIComments = new ObservableCollection<CommentRecord>();
-                        }
-                        
-                        // 如果是第一页，清空集合；否则追加数据
-                        if (page == 1)
-                        {
-                            nomination.UIComments.Clear();
-                        }
-                        
-                        // 添加新加载的评论
-                        foreach (var comment in comments)
-                        {
-                            nomination.UIComments.Add(comment);
-                        }
-                        
-                        // 更新本地评论数量
-                        nomination.CommentCount = totalComments;
-                        
-                        // 如果评论数量大于页面显示数量，显示加载更多按钮
-                        nomination.HasMoreComments = totalComments > nomination.UIComments.Count;
-                        nomination.CurrentCommentPage = page;
-                    });
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"加载评论时发生错误: {ex}");
-                    throw; // 重新抛出异常，让调用者处理
-                }
-            }
-        }
-        
-        /// <summary>
-        /// 添加评论
-        /// </summary>
-        private async void ExecuteAddCommentCommand(Nomination nomination)
-        {
-            if (nomination == null) return;
-            
-            // 检查评论内容是否为空
-            if (string.IsNullOrWhiteSpace(nomination.NewCommentText))
-            {
-                HandyControl.Controls.Growl.InfoGlobal("评论内容不能为空");
-                return;
             }
             
-            // 检查是否登录，任意一个ID不为空即表示已登录
-            bool isLoggedIn = CurrentEmployeeId.HasValue || CurrentAdminId.HasValue || CurrentSupAdminId.HasValue;
-            if (!isLoggedIn)
-            {
-                HandyControl.Controls.Growl.WarningGlobal("您需要登录后才能发表评论");
-                return;
-            }
-
-            IsLoading = true;
-            StatusMessage = "正在发表评论...";
-            
-            try
-            {
-                await Task.Run(async () => 
-                {
-                    using (var context = new DataBaseContext())
-                    {
-                        try 
-                        {
-                            // 创建执行策略来处理事务
-                            var strategy = context.Database.CreateExecutionStrategy();
-                            
-                            // 使用执行策略来包装事务操作
-                            await strategy.ExecuteAsync(async () =>
-                            {
-                                // 在执行策略内部使用事务
-                                using (var transaction = await context.Database.BeginTransactionAsync())
-                                {
-                                    try
-                                    {
-                                        // 检查奖项和提名是否存在
-                                        var nominationEntity = await context.Nominations
-                                            .FirstOrDefaultAsync(n => n.NominationId == nomination.NominationId);
-                                        
-                                        if (nominationEntity == null)
-                                        {
-                                            Application.Current.Dispatcher.Invoke(() => 
-                                            {
-                                                StatusMessage = "提名不存在或已被删除";
-                                                HandyControl.Controls.Growl.WarningGlobal("提名不存在或已被删除");
-                                            });
-                                            return;
-                                        }
-                                        
-                                        // 先获取发表评论的用户名称，用于显示消息
-                                        string commenterName = "未知用户";
-                                        
-                                        // 创建新评论 - 仅设置必要的字段
-                                        var newComment = new CommentRecord
-                                        {
-                                            Content = nomination.NewCommentText.Trim(), // 移除前后空格
-                                            CommentTime = DateTime.Now,
-                                            NominationId = nomination.NominationId,
-                                            AwardId = nomination.AwardId,
-                                            IsDeleted = false
-                                        };
-                                        
-                                        // 根据当前用户类型设置评论者ID
-                                        if (CurrentSupAdminId.HasValue)
-                                        {
-                                            // 超级管理员评论
-                                            newComment.CommenterSupAdminId = CurrentSupAdminId.Value;
-                                            var supAdmin = await context.SupAdmins
-                                                .AsNoTracking()
-                                                .Where(s => s.SupAdminId == CurrentSupAdminId.Value)
-                                                .Select(s => new { s.SupAdminName })
-                                                .FirstOrDefaultAsync();
-                                            if (supAdmin != null)
-                                            {
-                                                commenterName = supAdmin.SupAdminName;
-                                            }
-                                            
-                                            // 更新提名表的最新评论者字段
-                                            nominationEntity.LastCommenterEmployeeId = null;
-                                            nominationEntity.LastCommenterAdminId = null;
-                                            nominationEntity.LastCommenterSupAdminId = CurrentSupAdminId.Value;
-                                        }
-                                        else if (CurrentAdminId.HasValue)
-                                        {
-                                            // 管理员评论
-                                            newComment.CommenterAdminId = CurrentAdminId.Value;
-                                            var admin = await context.Admins
-                                                .AsNoTracking()
-                                                .Where(a => a.AdminId == CurrentAdminId.Value)
-                                                .Select(a => new { a.AdminName })
-                                                .FirstOrDefaultAsync();
-                                            if (admin != null)
-                                            {
-                                                commenterName = admin.AdminName;
-                                            }
-                                            
-                                            // 更新提名表的最新评论者字段
-                                            nominationEntity.LastCommenterEmployeeId = null;
-                                            nominationEntity.LastCommenterAdminId = CurrentAdminId.Value;
-                                            nominationEntity.LastCommenterSupAdminId = null;
-                                        }
-                                        else if (CurrentEmployeeId.HasValue)
-                                        {
-                                            // 员工评论
-                                            newComment.CommenterEmployeeId = CurrentEmployeeId.Value;
-                                            var employee = await context.Employees
-                                                .AsNoTracking()
-                                                .Where(e => e.EmployeeId == CurrentEmployeeId.Value)
-                                                .Select(e => new { e.EmployeeName })
-                                                .FirstOrDefaultAsync();
-                                            if (employee != null)
-                                            {
-                                                commenterName = employee.EmployeeName;
-                                            }
-                                            
-                                            // 更新提名表的最新评论者字段
-                                            nominationEntity.LastCommenterEmployeeId = CurrentEmployeeId.Value;
-                                            nominationEntity.LastCommenterAdminId = null;
-                                            nominationEntity.LastCommenterSupAdminId = null;
-                                        }
-                                        else
-                                        {
-                                            // 未登录用户不能评论（前面已经检查过，正常不会走到这里）
-                                            Application.Current.Dispatcher.Invoke(() => 
-                                            {
-                                                StatusMessage = "您需要登录后才能发表评论";
-                                                HandyControl.Controls.Growl.WarningGlobal("您需要登录后才能发表评论");
-                                            });
-                                            return;
-                                        }
-                                        
-                                        // 更新提名表中的评论相关字段
-                                        nominationEntity.CommentCount = nominationEntity.CommentCount + 1;
-                                        nominationEntity.LastCommentTime = newComment.CommentTime;
-                                        // 存储评论内容预览（最多80个字符）
-                                        nominationEntity.LastCommentPreview = newComment.Content.Length > 80 
-                                            ? newComment.Content.Substring(0, 80) + "..." 
-                                            : newComment.Content;
-                                        
-                                        // 保存评论并更新提名
-                                        context.CommentRecords.Add(newComment);
-                                        await context.SaveChangesAsync();
-                                        
-                                        // 提交事务
-                                        await transaction.CommitAsync();
-                                        
-                                        // 保存成功后，再次查询评论以获取完整数据（包括用户信息）
-                                        var savedComment = await context.CommentRecords
-                                            .AsNoTracking()
-                                            .Include(c => c.CommenterEmployee)
-                                            .Include(c => c.CommenterAdmin)
-                                            .Include(c => c.CommenterSupAdmin)
-                                            .FirstOrDefaultAsync(c => c.CommentId == newComment.CommentId);
-                                        
-                                        if (savedComment == null)
-                                        {
-                                            Application.Current.Dispatcher.Invoke(() => 
-                                            {
-                                                StatusMessage = "评论保存成功但无法加载";
-                                                HandyControl.Controls.Growl.WarningGlobal("评论保存成功但无法加载");
-                                            });
-                                            return;
-                                        }
-                                        
-                                        // 在UI线程上更新界面
-                                        Application.Current.Dispatcher.Invoke(() => 
-                                        {
-                                            // 清空评论输入框
-                                            nomination.NewCommentText = string.Empty;
-                                            
-                                            // 添加新评论到界面集合
-                                            nomination.UIComments.Insert(0, savedComment);
-                                            
-                                            // 更新本地评论数据和计数
-                                            nomination.CommentCount = nominationEntity.CommentCount;
-                                            nomination.LastCommentTime = nominationEntity.LastCommentTime;
-                                            nomination.LastCommentPreview = nominationEntity.LastCommentPreview;
-                                            nomination.LastCommenterEmployeeId = nominationEntity.LastCommenterEmployeeId;
-                                            nomination.LastCommenterAdminId = nominationEntity.LastCommenterAdminId;
-                                            nomination.LastCommenterSupAdminId = nominationEntity.LastCommenterSupAdminId;
-                                            
-                                            StatusMessage = $"{commenterName} 的评论发表成功";
-                                            HandyControl.Controls.Growl.SuccessGlobal($"{commenterName} 的评论发表成功");
-                                            
-                                            // 强制刷新UI
-                                            var index = PagedNominations.IndexOf(nomination);
-                                            if (index != -1)
-                                            {
-                                                var temp = PagedNominations[index];
-                                                PagedNominations.RemoveAt(index);
-                                                PagedNominations.Insert(index, temp);
-                                            }
-                                        });
-                                    }
-                                    catch
-                                    {
-                                        // 发生异常时回滚事务
-                                        await transaction.RollbackAsync();
-                                        throw;
-                                    }
-                                }
-                            });
-                        }
-                        catch (Exception ex)
-                        {
-                            // 处理异常
-                            Application.Current.Dispatcher.Invoke(() => 
-                            {
-                                StatusMessage = $"发表评论失败: {ex.Message}";
-                                HandyControl.Controls.Growl.ErrorGlobal($"发表评论失败: {ex.Message}");
-                            });
-                        }
-                    }
-                });
-            }
-            catch (Exception ex)
-            {
-                StatusMessage = $"发表评论失败: {ex.Message}";
-                HandyControl.Controls.Growl.ErrorGlobal($"发表评论失败: {ex.Message}");
-            }
-            finally
-            {
-                IsLoading = false;
-            }
-        }
-        
-        /// <summary>
-        /// 删除评论
-        /// </summary>
-        private async void ExecuteDeleteCommentCommand(CommentRecord comment)
-        {
-            if (comment == null) return;
-            
-            // 只有管理员和超级管理员可以删除评论
-            if (!IsAdmin)
-            {
-                HandyControl.Controls.Growl.WarningGlobal("您没有权限删除评论");
-                return;
-            }
-            
-            // 确认是否删除
-            var result = HandyControl.Controls.MessageBox.Ask("确定要删除这条评论吗？", "确认");
-            if (result != MessageBoxResult.OK) return;
-            
-            IsLoading = true;
-            StatusMessage = "正在删除评论...";
-            
-            try
-            {
-                // 找到评论所属的提名对象，用于后续刷新UI
-                Nomination nomination = null;
-                Application.Current.Dispatcher.Invoke(() => {
-                    nomination = Nominations.FirstOrDefault(n => n.NominationId == comment.NominationId);
-                });
-                
-                if (nomination == null)
-                {
-                    StatusMessage = "找不到评论所属的提名";
-                    HandyControl.Controls.Growl.WarningGlobal("找不到评论所属的提名");
-                    IsLoading = false;
-                    return;
-                }
-                
-                await Task.Run(async () =>
-                {
-                    using (var context = new DataBaseContext())
-                    {
-                        try
-                        {
-                            // 创建执行策略来处理事务
-                            var strategy = context.Database.CreateExecutionStrategy();
-                            
-                            // 使用执行策略来包装事务操作
-                            await strategy.ExecuteAsync(async () =>
-                            {
-                                // 在执行策略内部使用事务
-                                using (var transaction = await context.Database.BeginTransactionAsync())
-                                {
-                                    try
-                                    {
-                                        // 查找评论
-                                        var commentToDelete = await context.CommentRecords.FindAsync(comment.CommentId);
-                                        if (commentToDelete == null)
-                                        {
-                                            Application.Current.Dispatcher.Invoke(() =>
-                                            {
-                                                HandyControl.Controls.Growl.WarningGlobal("评论不存在或已被删除");
-                                                StatusMessage = "评论不存在或已被删除";
-                                            });
-                                            return;
-                                        }
-                                        
-                                        // 设置评论为已删除
-                                        commentToDelete.IsDeleted = true;
-                                        commentToDelete.DeletedTime = DateTime.Now;
-                                        
-                                        // 根据当前用户类型设置删除者信息
-                                        if (CurrentAdminId.HasValue)
-                                        {
-                                            commentToDelete.DeletedByAdminId = CurrentAdminId;
-                                        }
-                                        else if (CurrentSupAdminId.HasValue)
-                                        {
-                                            commentToDelete.DeletedBySupAdminId = CurrentSupAdminId;
-                                        }
-                                        
-                                        // 更新提名表中的评论计数
-                                        var nominationEntity = await context.Nominations.FindAsync(comment.NominationId);
-                                        if (nominationEntity != null)
-                                        {
-                                            nominationEntity.CommentCount = Math.Max(0, nominationEntity.CommentCount - 1);
-                                            
-                                            // 如果删除的是最新评论，需要更新最新评论相关信息
-                                            if (comment.CommentTime == nominationEntity.LastCommentTime)
-                                            {
-                                                // 查找最新的未删除评论
-                                                var latestComment = await context.CommentRecords
-                                                    .Where(c => c.NominationId == comment.NominationId && !c.IsDeleted)
-                                                    .OrderByDescending(c => c.CommentTime)
-                                                    .FirstOrDefaultAsync();
-                                                
-                                                if (latestComment != null)
-                                                {
-                                                    // 更新最新评论信息
-                                                    nominationEntity.LastCommentTime = latestComment.CommentTime;
-                                                    nominationEntity.LastCommenterEmployeeId = latestComment.CommenterEmployeeId;
-                                                    nominationEntity.LastCommenterAdminId = latestComment.CommenterAdminId;
-                                                    nominationEntity.LastCommenterSupAdminId = latestComment.CommenterSupAdminId;
-                                                    nominationEntity.LastCommentPreview = latestComment.Content.Length > 80 
-                                                        ? latestComment.Content.Substring(0, 80) + "..." 
-                                                        : latestComment.Content;
-                                                }
-                                                else
-                                                {
-                                                    // 如果没有剩余评论，清空最新评论信息
-                                                    nominationEntity.LastCommentTime = null;
-                                                    nominationEntity.LastCommenterEmployeeId = null;
-                                                    nominationEntity.LastCommenterAdminId = null;
-                                                    nominationEntity.LastCommenterSupAdminId = null;
-                                                    nominationEntity.LastCommentPreview = null;
-                                                }
-                                            }
-                                        }
-                                        
-                                        // 保存更改
-                                        await context.SaveChangesAsync();
-                                        
-                                        // 提交事务
-                                        await transaction.CommitAsync();
-                                        
-                                        // 获取删除者名称
-                                        string deleterName = "管理员";
-                                        if (CurrentAdminId.HasValue)
-                                        {
-                                            var admin = await context.Admins
-                                                .AsNoTracking()
-                                                .Where(a => a.AdminId == CurrentAdminId.Value)
-                                                .Select(a => new { a.AdminName })
-                                                .FirstOrDefaultAsync();
-                                            if (admin != null)
-                                            {
-                                                deleterName = admin.AdminName;
-                                            }
-                                        }
-                                        else if (CurrentSupAdminId.HasValue)
-                                        {
-                                            var supAdmin = await context.SupAdmins
-                                                .AsNoTracking()
-                                                .Where(s => s.SupAdminId == CurrentSupAdminId.Value)
-                                                .Select(s => new { s.SupAdminName })
-                                                .FirstOrDefaultAsync();
-                                            if (supAdmin != null)
-                                            {
-                                                deleterName = supAdmin.SupAdminName;
-                                            }
-                                        }
-                                        
-                                        // 在UI线程中完全刷新评论区
-                                        Application.Current.Dispatcher.Invoke(async () =>
-                                        {
-                                            try
-                                            {
-                                                // 更新本地评论计数
-                                                if (nominationEntity != null)
-                                                {
-                                                    nomination.CommentCount = nominationEntity.CommentCount;
-                                                    nomination.LastCommentTime = nominationEntity.LastCommentTime;
-                                                    nomination.LastCommenterEmployeeId = nominationEntity.LastCommenterEmployeeId;
-                                                    nomination.LastCommenterAdminId = nominationEntity.LastCommenterAdminId;
-                                                    nomination.LastCommenterSupAdminId = nominationEntity.LastCommenterSupAdminId;
-                                                    nomination.LastCommentPreview = nominationEntity.LastCommentPreview;
-                                                }
-                                                
-                                                // 重新加载该提名的所有评论
-                                                await LoadCommentsAsync(nomination);
-                                                
-                                                // 确保评论区依然保持打开状态
-                                                nomination.IsCommentSectionVisible = true;
-                                                
-                                                // 强制刷新UI
-                                                var index = PagedNominations.IndexOf(nomination);
-                                                if (index != -1)
-                                                {
-                                                    var temp = PagedNominations[index];
-                                                    PagedNominations.RemoveAt(index);
-                                                    PagedNominations.Insert(index, temp);
-                                                }
-                                                
-                                                StatusMessage = $"评论已被{deleterName}删除";
-                                                HandyControl.Controls.Growl.SuccessGlobal($"评论已被{deleterName}删除");
-                                            }
-                                            catch (Exception ex)
-                                            {
-                                                StatusMessage = $"刷新评论区失败: {ex.Message}";
-                                                System.Diagnostics.Debug.WriteLine($"刷新评论区失败: {ex}");
-                                            }
-                                        });
-                                    }
-                                    catch
-                                    {
-                                        // 发生异常时回滚事务
-                                        await transaction.RollbackAsync();
-                                        throw;
-                                    }
-                                }
-                            });
-                        }
-                        catch (Exception ex)
-                        {
-                            System.Diagnostics.Debug.WriteLine($"删除评论异常: {ex}");
-                            
-                            Application.Current.Dispatcher.Invoke(() => 
-                            {
-                                StatusMessage = $"删除评论失败: {ex.Message}";
-                                HandyControl.Controls.MessageBox.Error($"删除评论失败: {ex.Message}", "错误");
-                            });
-                        }
-                    }
-                });
-            }
-            catch (Exception ex)
-            {
-                StatusMessage = $"评论删除失败: {ex.Message}";
-                HandyControl.Controls.MessageBox.Error($"评论删除失败: {ex.Message}", "错误");
-                System.Diagnostics.Debug.WriteLine($"评论删除失败: {ex}");
-            }
-            finally
-            {
-                IsLoading = false;
-            }
-        }
-
-        /// <summary>
-        /// 执行首页命令
-        /// </summary>
-        private void ExecuteFirstPageCommand()
-        {
-            if (CurrentPage > 1)
-            {
-                CurrentPage = 1;
-                UpdatePagedNominations();
-            }
-        }
-
-        /// <summary>
-        /// 执行上一页命令
-        /// </summary>
-        private void ExecutePreviousPageCommand()
-        {
-            if (CurrentPage > 1)
-            {
-                CurrentPage--;
-                UpdatePagedNominations();
-            }
-        }
-
-        /// <summary>
-        /// 执行下一页命令
-        /// </summary>
-        private void ExecuteNextPageCommand()
-        {
-            if (CurrentPage < TotalPages)
-            {
-                CurrentPage++;
-                UpdatePagedNominations();
-            }
-        }
-
-        /// <summary>
-        /// 执行末页命令
-        /// </summary>
-        private void ExecuteLastPageCommand()
-        {
-            if (CurrentPage < TotalPages)
-            {
-                CurrentPage = TotalPages;
-                UpdatePagedNominations();
-            }
-        }
-
-        /// <summary>
-        /// 首页命令的CanExecute方法
-        /// </summary>
-        private bool CanExecuteFirstPageCommand()
-        {
-            return CurrentPage > 1;
-        }
-
-        /// <summary>
-        /// 上一页命令的CanExecute方法
-        /// </summary>
-        private bool CanExecutePreviousPageCommand()
-        {
-            return CurrentPage > 1;
-        }
-
-        /// <summary>
-        /// 下一页命令的CanExecute方法
-        /// </summary>
-        private bool CanExecuteNextPageCommand()
-        {
-            return CurrentPage < TotalPages;
-        }
-
-        /// <summary>
-        /// 末页命令的CanExecute方法
-        /// </summary>
-        private bool CanExecuteLastPageCommand()
-        {
-            return CurrentPage < TotalPages;
-        }
-
-        /// <summary>
-        /// 执行页大小改变命令
-        /// </summary>
-        private void ExecutePageSizeChangedCommand(object parameter)
-        {
-            if (parameter is int pageSize)
-            {
-                PageSize = pageSize;
-                // 切换页面大小后返回第一页
-                CurrentPage = 1;
-                UpdatePagedNominations();
-            }
-        }
-
-        /// <summary>
-        /// 执行跳转页命令
-        /// </summary>
-        private void ExecuteJumpPageCommand()
-        {
-            if (string.IsNullOrWhiteSpace(SearchText))
-                return;
-
-            if (int.TryParse(SearchText, out int pageNumber))
-            {
-                // 确保页码在有效范围内
-                if (pageNumber >= 1 && pageNumber <= TotalPages)
-                {
-                    CurrentPage = pageNumber;
-                    UpdatePagedNominations();
-                }
-                else
-                {
-                    HandyControl.Controls.Growl.WarningGlobal($"页码超出范围，有效范围：1-{TotalPages}");
-                    // 自动修正页码
-                    if (pageNumber < 1)
-                        SearchText = "1";
-                    else if (pageNumber > TotalPages)
-                        SearchText = TotalPages.ToString();
-                }
-            }
-            else
-            {
-                HandyControl.Controls.Growl.WarningGlobal("请输入有效的页码");
-                SearchText = CurrentPage.ToString();
-            }
-        }
-
-        /// <summary>
-        /// 执行输入验证命令
-        /// </summary>
-        private void ExecutePreviewTextInputCommand(string text)
-        {
-            // 监控按键，如果是Enter键则执行跳转
-            if (System.Windows.Input.Keyboard.IsKeyDown(System.Windows.Input.Key.Enter))
-            {
-                ExecuteJumpPageCommand();
-            }
-            
-            // 只允许输入数字
-            if (!string.IsNullOrEmpty(text))
-            {
-                foreach (char c in text)
-                {
-                    if (!char.IsDigit(c))
-                    {
-                        SearchText = text.Where(char.IsDigit).Aggregate(string.Empty, (current, c) => current + c);
-                        return;
-                    }
-                }
-            }
-        }
-
-        /// <summary>
-        /// 关闭所有评论区，除了指定ID的提名
-        /// </summary>
-        private void CloseAllCommentSections(int exceptNominationId)
-        {
-            // 在所有提名记录中检查并关闭评论区
-            if (Nominations != null)
-            {
-                foreach (var nomination in Nominations)
-                {
-                    if (nomination.NominationId != exceptNominationId && nomination.IsCommentSectionVisible)
-                    {
-                        nomination.IsCommentSectionVisible = false;
-                    }
-                }
-            }
-            
-            // 在分页数据中再次检查，确保可见内容也被关闭
-            if (PagedNominations != null)
-            {
-                foreach (var nomination in PagedNominations)
-                {
-                    if (nomination.NominationId != exceptNominationId && nomination.IsCommentSectionVisible)
-                    {
-                        nomination.IsCommentSectionVisible = false;
-                    }
-                }
-            }
-        }
-
-        /// <summary>
-        /// 执行加载更多评论命令
-        /// </summary>
-        private async void ExecuteLoadMoreCommentsCommand(Nomination nomination)
-        {
-            if (nomination == null) return;
-            
-            // 已经没有更多评论
-            if (!nomination.HasMoreComments) return;
-            
-            try
-            {
-                IsLoading = true;
-                StatusMessage = "正在加载更多评论...";
-                
-                // 增加页码
-                int nextPage = nomination.CurrentCommentPage + 1;
-                
-                // 调用加载评论方法，传递递增的页码
-                await LoadCommentsAsync(nomination, nextPage);
-                
-                StatusMessage = "评论加载完成";
-            }
-            catch (Exception ex)
-            {
-                StatusMessage = $"加载更多评论失败: {ex.Message}";
-                HandyControl.Controls.Growl.ErrorGlobal($"加载更多评论失败: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"加载更多评论失败: {ex}");
-            }
-            finally
-            {
-                IsLoading = false;
-            }
-        }
-
-        /// <summary>
-        /// 清理资源并重置状态，在页面导航离开时调用以避免多用户数据混乱
-        /// </summary>
-        public void Cleanup()
-        {
-            // 清空集合，避免内存泄漏
-            if (Nominations != null)
-            {
-                foreach (var nomination in Nominations)
-                {
-                    // 清空评论相关数据
-                    if (nomination.UIComments != null)
-                    {
-                        nomination.UIComments.Clear();
-                    }
-                }
-                Nominations.Clear();
-            }
-            
-            if (PagedNominations != null)
-            {
-                PagedNominations.Clear();
-            }
-            
-            if (VotedAwardIds != null)
-            {
-                VotedAwardIds.Clear();
-            }
-            
-            // 重置状态
-            IsLoading = false;
-            CurrentPage = 1;
-            
-            // 标记当前ViewModel已清理，避免在用户切换后继续处理事件
-            IsActive = false;
-        }
-        
-        /// <summary>
-        /// 验证当前ViewModel是否可以执行操作，避免在页面导航离开后继续处理事件
-        /// </summary>
-        private bool CanExecuteOperation()
-        {
-            return IsActive && !IsLoading;
-        }
-
-        /// <summary>
-        /// 处理标签页完成加载事件
-        /// </summary>
-        private void ExecuteTabCompleteCommand(string tabName)
-        {
-            // ... existing code ...
-        }
-        
-        /// <summary>
-        /// 执行筛选奖项的命令
-        /// </summary>
-        /// <param name="searchText">搜索文本</param>
-        private void ExecuteFilterAwardsCommand(string searchText)
-        {
-            // 只保存搜索文本，不执行搜索操作
-            SearchedAwardName = searchText;
-        }
-        
-        /// <summary>
-        /// 处理键盘输入事件
-        /// </summary>
-        private void ExecuteHandlePreviewKeyDownCommand(object parameter)
-        {
-            // 尝试将参数转换为KeyEventArgs
-            if (parameter is System.Windows.Input.KeyEventArgs keyArgs)
-            {
-                // 检查是否按下了Tab键
-                if (keyArgs.Key == System.Windows.Input.Key.Tab)
-                {
-                    // 如果有匹配的奖项，选择第一个
-                    if (_filteredAwards.Count > 0)
-                    {
-                        var bestMatch = _filteredAwards.FirstOrDefault();
-                        if (bestMatch != null)
-                        {
-                            // 在UI线程上执行，因为可能在事件处理中
-                            Application.Current.Dispatcher.BeginInvoke(new Action(() =>
-                            {
-                                // 设置为选中项
-                                SelectedAward = bestMatch;
-                                // 更新输入框文本
-                                SearchedAwardName = bestMatch.AwardName;
-                                
-                                // 触发搜索
-                                ExecuteSearchCommand();
-                            }));
-                            
-                            // 标记事件已处理，防止默认Tab行为
-                            keyArgs.Handled = true;
-                        }
-                    }
-                }
-            }
-        }
-
-        #endregion
-
-        // 添加查看提名详情命令
-        private DelegateCommand<Nomination> _viewNominationDetailsCommand;
-        /// <summary>
-        /// 查看提名详情命令
-        /// </summary>
-        public DelegateCommand<Nomination> ViewNominationDetailsCommand =>
-            _viewNominationDetailsCommand ?? (_viewNominationDetailsCommand = new DelegateCommand<Nomination>(ExecuteViewNominationDetailsCommand));
-
-        /// <summary>
-        /// 执行查看提名详情命令
-        /// </summary>
-        private async void ExecuteViewNominationDetailsCommand(Nomination nomination)
-        {
-            if (nomination == null)
-                return;
-            
-            // 显示加载状态
-            IsLoading = true;
-            
-            try
-            {
-                // 从数据库加载完整的提名数据，包括所有关联实体
-                using (var context = new DataBaseContext())
-                {
-                    // 加载完整的提名数据，包括关联实体
-                    var fullNomination = await context.Nominations
-                        .AsNoTracking()
-                        .Include(n => n.NominatedEmployee)
-                        .Include(n => n.NominatedAdmin)
-                        .Include(n => n.Award)
-                        .Include(n => n.Department)
-                        .Include(n => n.VoteRecords)
-                            .ThenInclude(vr => vr.VoterEmployee)
-                                .ThenInclude(e => e.Department)
-                        .Include(n => n.VoteRecords)
-                            .ThenInclude(vr => vr.VoterAdmin)
-                                .ThenInclude(a => a.Department)
-                        .FirstOrDefaultAsync(n => n.NominationId == nomination.NominationId);
-                    
-                    if (fullNomination != null)
-                    {
-                        // 确保CoverImage被正确加载
-                        fullNomination.CoverImage = await context.Nominations
-                            .Where(n => n.NominationId == nomination.NominationId)
-                            .Select(n => n.CoverImage)
-                            .FirstOrDefaultAsync();
-                        
-                        // 创建并显示详情窗口
-                        var detailsWindow = new NominationDetailsWindow(fullNomination);
-                        
-                        // 显示窗口
-                        detailsWindow.ShowDialog();
-                    }
-                    else
-                    {
-                        HandyControl.Controls.Growl.WarningGlobal("未能加载提名详情");
-                    }
-                }
-            }
-            catch (Exception ex)
-            {
-                HandyControl.Controls.Growl.ErrorGlobal($"查看提名详情失败: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"查看提名详情异常详情: {ex}");
-            }
-            finally
-            {
-                // 隐藏加载状态
-                IsLoading = false;
-            }
+            #endregion
         }
 
         /// <summary>
@@ -2527,50 +1456,223 @@ namespace SIASGraduate.ViewModels.Pages
             if (IsSuperAdmin || nomination == null)
                 return false;
 
-            // 只需验证nomination存在，实际投票逻辑将在ExecuteVoteCommand中进行
-            // 这样即使用户已经投过票，按钮也会可点击，但点击时会显示提示信息
-            return nomination != null;
+            // 检查奖项是否已达到最大投票次数
+            if (nomination.Award != null && AwardVoteCount.ContainsKey(nomination.AwardId))
+            {
+                int maxVoteCount = nomination.Award.MaxVoteCount;
+                int currentVoteCount = AwardVoteCount[nomination.AwardId];
+                
+                // 如果已达到最大投票次数，则禁用投票按钮
+                if (currentVoteCount >= maxVoteCount)
+                    return false;
+            }
+
+            // 允许投票
+            return true;
         }
 
+        #endregion
+
+        #region 搜索和筛选命令
+        
         /// <summary>
         /// 执行搜索命令
         /// </summary>
         private void ExecuteSearchCommand()
         {
-            if (!CanExecuteOperation())
-                return;
-            
-            // 更新状态
-            IsLoading = true;
-            StatusMessage = "正在搜索...";
+            // 加载提名数据，会使用SearchKeyword参数进行过滤
+            LoadNominationsAsync();
+        }
+        
+        /// <summary>
+        /// 执行奖项筛选命令
+        /// </summary>
+        private void ExecuteFilterAwardsCommand(string keyword)
+        {
+            // 在实际项目中实现奖项筛选逻辑
+        }
 
-            // 首先处理奖项筛选
-            if (!string.IsNullOrEmpty(SearchedAwardName) && SearchedAwardName != AllAwards.AwardName)
+        /// <summary>
+        /// 执行Tab自动完成命令
+        /// </summary>
+        private void ExecuteTabCompleteCommand(string text)
+        {
+            // 在实际项目中实现Tab自动完成逻辑
+        }
+
+        /// <summary>
+        /// 执行按键预览命令
+        /// </summary>
+        private void ExecuteHandlePreviewKeyDownCommand(object parameter)
+        {
+            // 在实际项目中实现按键预览处理逻辑
+        }
+        
+        /// <summary>
+        /// 执行刷新命令
+        /// </summary>
+        private void ExecuteRefreshCommand()
+        {
+            // 重新加载提名数据
+            LoadNominationsAsync();
+        }
+
+        #endregion
+
+        #region 评论相关命令
+
+        /// <summary>
+        /// 执行显示评论命令
+        /// </summary>
+        private void ExecuteShowCommentsCommand(Nomination nomination)
+        {
+            // 在实际项目中实现显示评论逻辑
+            if (nomination != null)
             {
-                // 从缓存的奖项列表中查找匹配的奖项
-                var exactMatch = _filteredAwards.FirstOrDefault(a => 
-                    a.AwardName.Equals(SearchedAwardName, StringComparison.OrdinalIgnoreCase));
-                
-                if (exactMatch != null)
+                nomination.IsCommentSectionVisible = true;
+            }
+        }
+
+        /// <summary>
+        /// 执行隐藏评论命令
+        /// </summary>
+        private void ExecuteHideCommentsCommand(Nomination nomination)
+        {
+            // 在实际项目中实现隐藏评论逻辑
+            if (nomination != null)
+            {
+                nomination.IsCommentSectionVisible = false;
+            }
+        }
+
+        /// <summary>
+        /// 执行添加评论命令
+        /// </summary>
+        private void ExecuteAddCommentCommand(Nomination nomination)
+        {
+            // 在实际项目中实现添加评论逻辑
+        }
+
+        /// <summary>
+        /// 执行删除评论命令
+        /// </summary>
+        private void ExecuteDeleteCommentCommand(CommentRecord comment)
+        {
+            // 在实际项目中实现删除评论逻辑
+        }
+        
+        /// <summary>
+        /// 执行加载更多评论命令
+        /// </summary>
+        private void ExecuteLoadMoreCommentsCommand(Nomination nomination)
+        {
+            // 在实际项目中实现加载更多评论逻辑
+        }
+
+        #endregion
+
+        #region 分页命令
+
+        /// <summary>
+        /// 执行首页命令
+        /// </summary>
+        private void ExecuteFirstPageCommand()
+            {
+                CurrentPage = 1;
+        }
+
+        /// <summary>
+        /// 首页命令是否可执行
+        /// </summary>
+        private bool CanExecuteFirstPageCommand()
+        {
+            return CurrentPage > 1;
+        }
+
+        /// <summary>
+        /// 执行上一页命令
+        /// </summary>
+        private void ExecutePreviousPageCommand()
+        {
+            if (CurrentPage > 1)
+            {
+                CurrentPage--;
+            }
+        }
+
+        /// <summary>
+        /// 上一页命令是否可执行
+        /// </summary>
+        private bool CanExecutePreviousPageCommand()
+        {
+            return CurrentPage > 1;
+        }
+
+        /// <summary>
+        /// 执行下一页命令
+        /// </summary>
+        private void ExecuteNextPageCommand()
+        {
+            if (CurrentPage < TotalPages)
+            {
+                CurrentPage++;
+            }
+        }
+
+        /// <summary>
+        /// 下一页命令是否可执行
+        /// </summary>
+        private bool CanExecuteNextPageCommand()
+        {
+            return CurrentPage < TotalPages;
+        }
+
+        /// <summary>
+        /// 执行末页命令
+        /// </summary>
+        private void ExecuteLastPageCommand()
+        {
+            CurrentPage = TotalPages;
+        }
+
+        /// <summary>
+        /// 末页命令是否可执行
+        /// </summary>
+        private bool CanExecuteLastPageCommand()
+        {
+            return CurrentPage < TotalPages;
+        }
+
+        /// <summary>
+        /// 执行页大小改变命令
+        /// </summary>
+        private void ExecutePageSizeChangedCommand(object parameter)
+        {
+            // 在实际项目中实现页大小改变逻辑
+            // 这里已经在PageSize属性的setter中实现了
+        }
+
+        /// <summary>
+        /// 执行跳转页命令
+        /// </summary>
+        private void ExecuteJumpPageCommand()
+        {
+            if (int.TryParse(SearchText, out int pageNumber))
+            {
+                if (pageNumber > 0 && pageNumber <= TotalPages)
                 {
-                    // 找到精确匹配
-                    SelectedAward = exactMatch;
-                }
-                else
-                {
-                    // 尝试模糊匹配
-                    var fuzzyMatch = _filteredAwards.FirstOrDefault(a => 
-                        a.AwardName.Contains(SearchedAwardName, StringComparison.OrdinalIgnoreCase));
-                    
-                    if (fuzzyMatch != null)
-                    {
-                        SelectedAward = fuzzyMatch;
-                    }
+                    CurrentPage = pageNumber;
                 }
             }
+        }
 
-            // 然后应用关键字搜索 - LoadNominationsAsync方法会自动设置IsLoading=false
-            LoadNominationsAsync();
+        /// <summary>
+        /// 执行预览文本输入命令
+        /// </summary>
+        private void ExecutePreviewTextInputCommand(string text)
+        {
+            // 仅允许输入数字
+            SearchText = new string(text.Where(char.IsDigit).ToArray());
         }
 
         #endregion

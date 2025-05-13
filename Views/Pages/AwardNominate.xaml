@@ -108,8 +108,51 @@
                 <ListView.View>
                     <GridView>
                         <GridViewColumn DisplayMemberBinding="{Binding Award.AwardName}" Header="提报奖项名称" />
-                        <GridViewColumn DisplayMemberBinding="{Binding NominatedEmployee.EmployeeName}" Header="提报对象姓名" />
+                        <GridViewColumn Header="提报对象姓名">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock>
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Text" Value="{Binding NominatedEmployee.EmployeeName}"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding NominatedEmployee}" Value="{x:Null}">
+                                                        <Setter Property="Text" Value="{Binding NominatedAdmin.AdminName}"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
                         <GridViewColumn DisplayMemberBinding="{Binding Department.DepartmentName}" Header="所属部门" />
+                        <GridViewColumn Header="投票数量">
+                            <GridViewColumn.CellTemplate>
+                                <DataTemplate>
+                                    <TextBlock ToolTip="投票数量大于0的提名将限制修改奖项和提名对象">
+                                        <TextBlock.Style>
+                                            <Style TargetType="TextBlock">
+                                                <Setter Property="Text" Value="{Binding VoteRecords.Count}"/>
+                                                <Setter Property="Foreground" Value="Black"/>
+                                                <Style.Triggers>
+                                                    <DataTrigger Binding="{Binding VoteRecords.Count}" Value="0">
+                                                        <Setter Property="Foreground" Value="Green"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding VoteRecords}" Value="{x:Null}">
+                                                        <Setter Property="Text" Value="0"/>
+                                                    </DataTrigger>
+                                                    <DataTrigger Binding="{Binding VoteRecords.Count, Converter={StaticResource CountToBooleanConverter}}" Value="True">
+                                                        <Setter Property="Foreground" Value="Red"/>
+                                                        <Setter Property="FontWeight" Value="Bold"/>
+                                                    </DataTrigger>
+                                                </Style.Triggers>
+                                            </Style>
+                                        </TextBlock.Style>
+                                    </TextBlock>
+                                </DataTemplate>
+                            </GridViewColumn.CellTemplate>
+                        </GridViewColumn>
                         <GridViewColumn DisplayMemberBinding="{Binding Introduction}" Header="一句话介绍" />
                         <GridViewColumn DisplayMemberBinding="{Binding NominateReason}" Header="提名理由" />
                         <GridViewColumn Header="封面图片" Width="80">

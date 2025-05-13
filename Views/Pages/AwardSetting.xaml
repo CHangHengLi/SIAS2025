@@ -115,9 +115,16 @@
                             DisplayMemberBinding="{Binding AwardDescription}"
                             Header="奖项描述" />
                         <GridViewColumn
-                            Width="100"
+                            Width="130"
                             DisplayMemberBinding="{Binding MaxVoteCount}"
-                            Header="最大投票次数" />
+                            Header="最大投票次数">
+                            <GridViewColumn.HeaderContainerStyle>
+                                <Style TargetType="{x:Type GridViewColumnHeader}" BasedOn="{StaticResource {x:Type GridViewColumnHeader}}">
+                                    <Setter Property="ToolTip" Value="每个用户可对该奖项投票的最大次数" />
+                                    <Setter Property="FontWeight" Value="Bold"/>
+                                </Style>
+                            </GridViewColumn.HeaderContainerStyle>
+                        </GridViewColumn>
                     </GridView>
                 </ListView.View>
             </ListView>

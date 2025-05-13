@@ -149,6 +149,43 @@ namespace SIASGraduate.ViewModels.EditMessage.AwardNominateManager
         }
         #endregion
 
+        #region 是否已有投票
+        private bool hasVotes;
+        public bool HasVotes
+        {
+            get { return hasVotes; }
+            set 
+            { 
+                SetProperty(ref hasVotes, value);
+                RaisePropertyChanged(nameof(CanEditAward));
+                RaisePropertyChanged(nameof(CanEditNominee));
+            }
+        }
+        #endregion
+
+        #region 是否可以修改奖项
+        public bool CanEditAward
+        {
+            get { return !HasVotes; }
+        }
+        #endregion
+
+        #region 是否可以修改提名对象
+        public bool CanEditNominee
+        {
+            get { return !HasVotes; }
+        }
+        #endregion
+
+        #region 选中的Tab索引
+        private int selectedTabIndex;
+        public int SelectedTabIndex
+        {
+            get { return selectedTabIndex; }
+            set { SetProperty(ref selectedTabIndex, value); }
+        }
+        #endregion
+
         #endregion
 
         #region 命令
@@ -233,61 +270,71 @@ namespace SIASGraduate.ViewModels.EditMessage.AwardNominateManager
                         Growl.ErrorGlobal("未找到要修改的提名记录");
                         return;
                     }
+
+                    // 检查是否有投票记录
+                    int voteCount = context.VoteRecords.Count(v => v.NominationId == nomination.NominationId);
                     
-                    // 检查新选择的被提名人是否已经有同一奖项的提名(排除当前正在编辑的记录)
-                    bool duplicateNomination = false;
-                    
-                    if (SelectedNominee is Employee selectedEmployee)
+                    // 如果已有投票，则不允许修改奖项和提名对象
+                    if (voteCount > 0)
                     {
-                        // 如果更改了奖项或被提名人，需要检查是否存在重复提名
-                        if (selectedEmployee.EmployeeId != CurrentNomination.NominatedEmployeeId || 
-                            SelectedAward.AwardId != CurrentNomination.AwardId)
+                        // 检查是否试图修改奖项
+                        if (SelectedAward.AwardId != CurrentNomination.AwardId)
                         {
-                            duplicateNomination = context.Nominations.Any(n => 
-                                n.NominationId != CurrentNomination.NominationId && // 排除当前记录
-                                n.AwardId == SelectedAward.AwardId && 
-                                n.NominatedEmployeeId == selectedEmployee.EmployeeId);
-                            nomineeType = "员工";
+                            Growl.WarningGlobal("此提名已有投票，不能修改奖项");
+                            return;
+                        }
+                        
+                        // 检查是否试图修改提名对象
+                        bool isNomineeChanged = false;
+                        
+                        if (SelectedNominee is Employee selectedEmployee && CurrentNomination.NominatedEmployeeId != selectedEmployee.EmployeeId)
+                        {
+                            isNomineeChanged = true;
+                        }
+                        else if (SelectedNominee is Admin selectedAdmin && CurrentNomination.NominatedAdminId != selectedAdmin.AdminId)
+                        {
+                            isNomineeChanged = true;
+                        }
+                        else if ((SelectedNominee is Employee && CurrentNomination.NominatedEmployeeId == null) ||
+                                 (SelectedNominee is Admin && CurrentNomination.NominatedAdminId == null))
+                        {
+                            isNomineeChanged = true;
+                        }
+                        
+                        if (isNomineeChanged)
+                        {
+                            Growl.WarningGlobal("此提名已有投票，不能修改提名对象");
+                            return;
+                        }
+                        
+                        // 只更新允许的字段
+                        nomination.Introduction = Introduction;
+                        nomination.NominateReason = NominateReason;
+                        nomination.CoverImage = CoverImage;
+                    }
+                    else
+                    {
+                        // 如果没有投票，允许完全更新
+                        nomination.AwardId = SelectedAward.AwardId;
+                        nomination.NominateReason = NominateReason;
+                        nomination.Introduction = Introduction;
+                        nomination.CoverImage = CoverImage;
+
+                        if (SelectedNominee is Employee selectedEmployee1)
+                        {
+                            nomination.NominatedEmployeeId = selectedEmployee1.EmployeeId;
+                            nomination.NominatedAdminId = null;
+                            nomination.DepartmentId = selectedEmployee1.DepartmentId;
+                        }
+                        else if (SelectedNominee is Admin selectedAdmin)
+                        {
+                            nomination.NominatedAdminId = selectedAdmin.AdminId;
+                            nomination.NominatedEmployeeId = null;
+                            nomination.DepartmentId = selectedAdmin.DepartmentId;
                         }
                     }
-                    else if (SelectedNominee is Admin selectedAdmin)
-                    {
-                        // 如果更改了奖项或被提名人，需要检查是否存在重复提名
-                        if (selectedAdmin.AdminId != CurrentNomination.NominatedAdminId || 
-                            SelectedAward.AwardId != CurrentNomination.AwardId)
-                        {
-                            duplicateNomination = context.Nominations.Any(n => 
-                                n.NominationId != CurrentNomination.NominationId && // 排除当前记录
-                                n.AwardId == SelectedAward.AwardId && 
-                                n.NominatedAdminId == selectedAdmin.AdminId);
-                            nomineeType = "管理员";
-                        }
-                    }
                     
-                    if (duplicateNomination)
-                    {
-                        Growl.WarningGlobal($"同一{nomineeType}只能申请一次同一奖项");
-                        return;
-                    }
-
-                    nomination.AwardId = SelectedAward.AwardId;
-                    nomination.NominateReason = NominateReason;
-                    nomination.Introduction = Introduction;
-                    nomination.CoverImage = CoverImage;
-
-                    if (SelectedNominee is Employee selectedEmployee1)
-                    {
-                        nomination.NominatedEmployeeId = selectedEmployee1.EmployeeId;
-                        nomination.NominatedAdminId = null;
-                        nomination.DepartmentId = selectedEmployee1.DepartmentId;
-                    }
-                    else if (SelectedNominee is Admin selectedAdmin)
-                    {
-                        nomination.NominatedAdminId = selectedAdmin.AdminId;
-                        nomination.NominatedEmployeeId = null;
-                        nomination.DepartmentId = selectedAdmin.DepartmentId;
-                    }
-
+                    // 更新提名
                     context.Nominations.Update(nomination);
                     await context.SaveChangesAsync();
                 }
@@ -426,6 +473,24 @@ namespace SIASGraduate.ViewModels.EditMessage.AwardNominateManager
                     }
                     
                     NominationId = CurrentNomination.NominationId;
+                    
+                    // 查询当前提名是否已有投票 - 先查询再设置其他属性
+                    using (var context = new DataBaseContext())
+                    {
+                        int voteCount = context.VoteRecords.Count(v => v.NominationId == CurrentNomination.NominationId);
+                        HasVotes = voteCount > 0;
+                        
+                        if (HasVotes)
+                        {
+                            Growl.InfoGlobal($"此提名已有{voteCount}个投票，奖项和提名对象不能修改");
+                        }
+                        else
+                        {
+                            System.Diagnostics.Debug.WriteLine("无投票，可编辑所有字段");
+                        }
+                    }
+                    
+                    // 设置基本属性
                     SelectedAward = Awards.FirstOrDefault(a => a.AwardId == CurrentNomination.AwardId);
                     Introduction = CurrentNomination.Introduction;
                     NominateReason = CurrentNomination.NominateReason;
@@ -460,6 +525,8 @@ namespace SIASGraduate.ViewModels.EditMessage.AwardNominateManager
                                 
                                 // 设置为当前选中项
                                 SelectedNominee = Employees.FirstOrDefault(e => e.EmployeeId == employeeInDb.EmployeeId);
+                                // 设置TabControl选中员工标签页
+                                SelectedTabIndex = 0;
                             }
                         }
                         // 如果是管理员
@@ -484,6 +551,8 @@ namespace SIASGraduate.ViewModels.EditMessage.AwardNominateManager
                                 
                                 // 设置为当前选中项
                                 SelectedNominee = Admins.FirstOrDefault(a => a.AdminId == adminInDb.AdminId);
+                                // 设置TabControl选中管理员标签页
+                                SelectedTabIndex = 1;
                             }
                         }
                     }

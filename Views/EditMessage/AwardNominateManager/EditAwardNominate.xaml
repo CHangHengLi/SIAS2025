@@ -56,9 +56,23 @@
                 Margin="10,0,0,0"
                 DisplayMemberPath="AwardName"
                 IsEditable="True"
-                ItemsSource="{Binding Awards}"
-                SelectedItem="{Binding SelectedAward}"
-                StaysOpenOnEdit="True" />
+                IsEnabled="{Binding CanEditAward}">
+                <ComboBox.Style>
+                    <Style TargetType="ComboBox" BasedOn="{StaticResource {x:Type ComboBox}}">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HasVotes}" Value="True">
+                                <Setter Property="ToolTip" Value="此提名已有投票，不能修改奖项" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </ComboBox.Style>
+                <ComboBox.ItemsSource>
+                    <Binding Path="Awards"/>
+                </ComboBox.ItemsSource>
+                <ComboBox.SelectedItem>
+                    <Binding Path="SelectedAward"/>
+                </ComboBox.SelectedItem>
+            </ComboBox>
         </Grid>
 
         <!--  提报对象  -->
@@ -70,7 +84,16 @@
             <TextBlock VerticalAlignment="Center" Text="提报对象：" />
             
             <!-- 使用TabControl让用户可以切换员工和管理员 -->
-            <TabControl Grid.Column="1" Margin="10,0,0,0" BorderThickness="0">
+            <TabControl Grid.Column="1" Margin="10,0,0,0" BorderThickness="0" IsEnabled="{Binding CanEditNominee}" SelectedIndex="{Binding SelectedTabIndex}">
+                <TabControl.Style>
+                    <Style TargetType="TabControl" BasedOn="{StaticResource {x:Type TabControl}}">
+                        <Style.Triggers>
+                            <DataTrigger Binding="{Binding HasVotes}" Value="True">
+                                <Setter Property="ToolTip" Value="此提名已有投票，不能修改提名对象" />
+                            </DataTrigger>
+                        </Style.Triggers>
+                    </Style>
+                </TabControl.Style>
                 <TabItem Header="员工">
                     <ComboBox
                         Margin="0,5,0,0"

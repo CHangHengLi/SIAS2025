@@ -66,5 +66,27 @@ namespace SIASGraduate.Views.Pages
                 MainScrollViewer.ScrollToTop();
             }
         }
+
+        /// <summary>
+        /// 处理投票按钮的鼠标左键按下事件
+        /// 注意：此方法目前未被使用，因为按钮上没有绑定MouseLeftButtonDown事件
+        /// 保留此方法是为了向后兼容
+        /// </summary>
+        private void VoteButton_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            // 方法保留但不执行任何操作，避免重复投票
+            // 实际的投票逻辑已通过Command属性绑定到ViewModel中的VoteButtonClickCommand
+        }
+
+        /// <summary>
+        /// 处理投票按钮的预览鼠标左键按下事件
+        /// 注意：此方法目前未被使用，因为按钮上没有绑定PreviewMouseLeftButtonDown事件
+        /// 保留此方法是为了向后兼容
+        /// </summary>
+        private void VoteButton_PreviewMouseLeftButtonDown(object sender, MouseButtonEventArgs e)
+        {
+            // 方法保留但不执行任何操作，避免重复投票
+            // 实际的投票逻辑已通过Command属性绑定到ViewModel中的VoteButtonClickCommand
+        }
     }
 }

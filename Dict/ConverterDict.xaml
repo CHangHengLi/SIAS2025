@@ -37,4 +37,7 @@
     <converter:WidthPercentageConverter x:Key="WidthPercentageConverter" />
     <converter:NumberToRoleConverter x:Key="NumberToRoleConverter" />
     <converter:NullOrEmptyToDepartmentNameDefaultConverter x:Key="NullOrEmptyToDepartmentNameDefaultConverter" />
+    
+    <!-- 文本处理 -->
+    <converter:TextEmptyConverter x:Key="TextEmptyConverter" />
 </ResourceDictionary> 

@@ -19,10 +19,10 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="publish\publish\**" />
-    <EmbeddedResource Remove="publish\publish\**" />
-    <None Remove="publish\publish\**" />
-    <Page Remove="publish\publish\**" />
+    <Compile Remove="publish\**" />
+    <EmbeddedResource Remove="publish\**" />
+    <None Remove="publish\**" />
+    <Page Remove="publish\**" />
   </ItemGroup>
 
   <ItemGroup>
@@ -113,7 +113,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <Folder Include="publish\" />
     <Folder Include="ViewModels\EditMessage\NominationDeclarationManager\" />
     <Folder Include="ViewModels\EditMessage\NominationDetailsWindows\" />
     <Folder Include="Views\EditMessage\NominationDeclarationManager\" />

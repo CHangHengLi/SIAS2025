@@ -124,69 +124,38 @@
                             <GridViewColumn.CellTemplate>
                                 <DataTemplate>
                                     <TextBlock>
-                                        <Run Text="{Binding OperatorName, Mode=OneWay}">
-                                            <Run.Style>
-                                                <Style TargetType="Run">
-                                                    <Setter Property="Text" Value="未知" />
+                                        <TextBlock Text="{Binding OperatorName, Mode=OneWay, TargetNullValue='未知', FallbackValue='未知'}" Margin="0,0,0,0">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
                                                     <Style.Triggers>
                                                         <DataTrigger Binding="{Binding OperatorEmployee}" Value="{x:Null}">
-                                                            <Setter Property="Text" Value="{Binding OperatorAdmin.AdminName, Mode=OneWay}" />
+                                                            <Setter Property="Text" Value="{Binding OperatorAdmin.AdminName, Mode=OneWay, FallbackValue='未知'}" />
                                                         </DataTrigger>
                                                         <DataTrigger Binding="{Binding OperatorAdmin}" Value="{x:Null}">
-                                                            <Setter Property="Text" Value="{Binding OperatorEmployee.EmployeeName, Mode=OneWay}" />
+                                                            <Setter Property="Text" Value="{Binding OperatorEmployee.EmployeeName, Mode=OneWay, FallbackValue='未知'}" />
                                                         </DataTrigger>
                                                         <DataTrigger Binding="{Binding OperatorSupAdmin, Converter={StaticResource NullToFalseConverter}}" Value="True">
-                                                            <Setter Property="Text" Value="{Binding OperatorSupAdmin.SupAdminName, Mode=OneWay}" />
+                                                            <Setter Property="Text" Value="{Binding OperatorSupAdmin.SupAdminName, Mode=OneWay, FallbackValue='未知'}" />
                                                         </DataTrigger>
                                                     </Style.Triggers>
                                                 </Style>
-                                            </Run.Style>
-                                        </Run>
-                                        <Run Text=" (">
-                                            <Run.Style>
-                                                <Style TargetType="Run">
-                                                    <Setter Property="Foreground" Value="Transparent" />
+                                            </TextBlock.Style>
+                                        </TextBlock>
+                                        
+                                        <TextBlock Margin="5,0,0,0">
+                                            <TextBlock.Style>
+                                                <Style TargetType="TextBlock">
+                                                    <Setter Property="Text" Value="" />
+                                                    <Setter Property="Visibility" Value="Collapsed" />
                                                     <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding OperatorEmployee.Department}" Value="{x:Null}">
-                                                            <Setter Property="Foreground" Value="Transparent" />
-                                                        </DataTrigger>
                                                         <DataTrigger Binding="{Binding OperatorEmployee.Department, Converter={StaticResource NullToFalseConverter}}" Value="True">
-                                                            <Setter Property="Foreground" Value="Black" />
+                                                            <Setter Property="Text" Value="{Binding OperatorEmployee.Department.DepartmentName, StringFormat='({0})', Mode=OneWay}" />
+                                                            <Setter Property="Visibility" Value="Visible" />
                                                         </DataTrigger>
                                                     </Style.Triggers>
                                                 </Style>
-                                            </Run.Style>
-                                        </Run>
-                                        <Run Text="{Binding OperatorEmployee.Department.DepartmentName, Mode=OneWay}">
-                                            <Run.Style>
-                                                <Style TargetType="Run">
-                                                    <Setter Property="Foreground" Value="Transparent" />
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding OperatorEmployee.Department}" Value="{x:Null}">
-                                                            <Setter Property="Foreground" Value="Transparent" />
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding OperatorEmployee.Department, Converter={StaticResource NullToFalseConverter}}" Value="True">
-                                                            <Setter Property="Foreground" Value="Black" />
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Run.Style>
-                                        </Run>
-                                        <Run Text=")">
-                                            <Run.Style>
-                                                <Style TargetType="Run">
-                                                    <Setter Property="Foreground" Value="Transparent" />
-                                                    <Style.Triggers>
-                                                        <DataTrigger Binding="{Binding OperatorEmployee.Department}" Value="{x:Null}">
-                                                            <Setter Property="Foreground" Value="Transparent" />
-                                                        </DataTrigger>
-                                                        <DataTrigger Binding="{Binding OperatorEmployee.Department, Converter={StaticResource NullToFalseConverter}}" Value="True">
-                                                            <Setter Property="Foreground" Value="Black" />
-                                                        </DataTrigger>
-                                                    </Style.Triggers>
-                                                </Style>
-                                            </Run.Style>
-                                        </Run>
+                                            </TextBlock.Style>
+                                        </TextBlock>
                                     </TextBlock>
                                 </DataTemplate>
                             </GridViewColumn.CellTemplate>
