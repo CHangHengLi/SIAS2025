@@ -223,74 +223,95 @@ namespace SIASGraduate.ViewModels.EditMessage.EmployeeManager
         #region OnSave方法: 保存按钮点击事件
         private async void OnSave()
         {
-            //账号密码不能为空
-            if (string.IsNullOrEmpty(Account) || EmployeePassword.IsNullOrEmpty())
+            try
             {
-                Growl.Warning("账号或密码不能为空");
-                return;
-            }
-            
-            if (string.IsNullOrEmpty(EmployeeName))
-            {
-                Growl.Warning("员工姓名不能为空");
-                return;
-            }
-            
-            //员工账号不能够和超级管理员,管理员,员工重复评审员重复
-            bool accountExists = await Task.Run(() =>
-            {
-                return supAdminService.IsSupAdminAccountExist(Account) ||
-                       adminService.IsAdminAccountExist(Account) ||
-                       employeeService.IsEmployeeAccountExist(Account);
-            });
-            if (accountExists)
-            {
-                Growl.Warning("账号已存在");
-                return;
-            }
-
-            //员工名称不能够和超级管理员,管理员,员工重复评审员重复
-            bool nameExists = await Task.Run(() =>
-            {
-                return supAdminService.IsSupAdminNameExist(EmployeeName) ||
-                       adminService.IsAdminNameExist(EmployeeName) ||
-                       employeeService.IsEmployeeNameExist(EmployeeName);
-            });
-            if (nameExists)
-            {
-                Growl.Warning("员工姓名已存在");
-                return;
-            }
-
-            var AddEmployee = new Employee()
-            {
-                Account = Account,
-                EmployeeName = EmployeeName,
-                EmployeePassword = EmployeePassword,
-                Email = Email,
-                HireDate = HireDate,
-                IsActive = IsActive,
-                RoleId = RoleId
-            };
-            
-            if (!DepartmentName.IsNullOrEmpty() && DepartmentName != "无部门")
-            {
-                using var context = new DataBaseContext();
-                var department = context.Departments.FirstOrDefault(d => d.DepartmentName == DepartmentName);
-                var departmentId = department?.DepartmentId;
-                if (department != null)
+                // 验证密码长度
+                if (EmployeePassword.Length < 6 || EmployeePassword.Length > 20)
                 {
-                    AddEmployee.DepartmentId = departmentId;
+                    HandyControl.Controls.Growl.Warning("密码长度必须在6-20位之间");
+                    return;
                 }
-            }
-            // 如果选择"无部门"，DepartmentId保持为null
+                
+                // 其他验证和保存逻辑
+                if (string.IsNullOrEmpty(EmployeeName) || string.IsNullOrEmpty(EmployeePassword))
+                {
+                    HandyControl.Controls.Growl.Error("请填写必要信息（姓名、密码）", "保存失败");
+                    return;
+                }
+                
+                //账号密码不能为空
+                if (string.IsNullOrEmpty(Account) || EmployeePassword.IsNullOrEmpty())
+                {
+                    Growl.Warning("账号或密码不能为空");
+                    return;
+                }
+                
+                if (string.IsNullOrEmpty(EmployeeName))
+                {
+                    Growl.Warning("员工姓名不能为空");
+                    return;
+                }
+                
+                //员工账号不能够和超级管理员,管理员,员工重复评审员重复
+                bool accountExists = await Task.Run(() =>
+                {
+                    return supAdminService.IsSupAdminAccountExist(Account) ||
+                           adminService.IsAdminAccountExist(Account) ||
+                           employeeService.IsEmployeeAccountExist(Account);
+                });
+                if (accountExists)
+                {
+                    Growl.Warning("账号已存在");
+                    return;
+                }
 
-            employeeService.AddEmployee(AddEmployee);
-            Growl.SuccessGlobal("员工添加成功");
-            
-            // 发布正确的事件通知左侧视图更新
-            eventAggregator.GetEvent<EmployeeAddedEvent>().Publish();
-            OnCancel();
+                //员工名称不能够和超级管理员,管理员,员工重复评审员重复
+                bool nameExists = await Task.Run(() =>
+                {
+                    return supAdminService.IsSupAdminNameExist(EmployeeName) ||
+                           adminService.IsAdminNameExist(EmployeeName) ||
+                           employeeService.IsEmployeeNameExist(EmployeeName);
+                });
+                if (nameExists)
+                {
+                    Growl.Warning("员工姓名已存在");
+                    return;
+                }
+
+                var AddEmployee = new Employee()
+                {
+                    Account = Account,
+                    EmployeeName = EmployeeName,
+                    EmployeePassword = EmployeePassword,
+                    Email = Email,
+                    HireDate = HireDate,
+                    IsActive = IsActive,
+                    RoleId = RoleId
+                };
+                
+                if (!DepartmentName.IsNullOrEmpty() && DepartmentName != "无部门")
+                {
+                    using var context = new DataBaseContext();
+                    var department = context.Departments.FirstOrDefault(d => d.DepartmentName == DepartmentName);
+                    var departmentId = department?.DepartmentId;
+                    if (department != null)
+                    {
+                        AddEmployee.DepartmentId = departmentId;
+                    }
+                }
+                // 如果选择"无部门"，DepartmentId保持为null
+
+                employeeService.AddEmployee(AddEmployee);
+                Growl.SuccessGlobal("员工添加成功");
+                
+                // 发布正确的事件通知左侧视图更新
+                eventAggregator.GetEvent<EmployeeAddedEvent>().Publish();
+                OnCancel();
+            }
+            catch (Exception ex)
+            {
+                Growl.Error(ex.Message, "保存失败");
+            }
         }
         private void OnCancel()
         {

@@ -38,7 +38,7 @@ namespace SIASGraduate.Models
         /// 员工密码
         /// </summary>
         // 非空长度不超过20
-        [StringLength(20, ErrorMessage = "密码长度不能超过20")]
+        [StringLength(20, MinimumLength = 6, ErrorMessage = "密码长度必须在6-20位之间")]
         public required string EmployeePassword { get; set; }
 
         /// <summary>

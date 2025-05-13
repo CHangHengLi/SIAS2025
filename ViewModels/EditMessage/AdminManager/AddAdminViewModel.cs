@@ -223,71 +223,85 @@ namespace SIASGraduate.ViewModels.EditMessage.AdminManager
         #region OnSave方法: 保存按钮点击事件
         private async void OnSave()
         {
-            //账号密码不能为空
-            if (string.IsNullOrEmpty(Account) || AdminPassword.IsNullOrEmpty())
+            try
             {
-                Growl.Warning("账号或密码不能为空");
-                return;
-            }
-            
-            if (string.IsNullOrEmpty(AdminName))
-            {
-                Growl.Warning("管理员姓名不能为空");
-                return;
-            }
-            
-            //管理员账号不能够与已有账号重复
-            bool accountExists = await Task.Run(() =>
-            {
-                return supAdminService.IsSupAdminAccountExist(Account) ||
-                       adminService.IsAdminAccountExist(Account) ||
-                       employeeService.IsEmployeeAccountExist(Account);
-            });
-            if (accountExists)
-            {
-                Growl.Warning("账号已存在");
-                return;
-            }
-
-            //管理员姓名不能重复
-            bool nameExists = await Task.Run(() =>
-            {
-                return supAdminService.IsSupAdminNameExist(AdminName) ||
-                       adminService.IsAdminNameExist(AdminName) ||
-                       employeeService.IsEmployeeNameExist(AdminName);
-            });
-            if (nameExists)
-            {
-                Growl.Warning("管理员姓名已存在");
-                return;
-            }
-
-            var AddAdmin = new Admin()
-            {
-                Account = Account,
-                AdminName = AdminName,
-                AdminPassword = AdminPassword,
-                Email = Email,
-                HireDate = HireDate,
-                IsActive = IsActive,
-                RoleId = RoleId
-            };
-
-            if (!DepartmentName.IsNullOrEmpty() && DepartmentName != "无部门")
-            {
-                using var context = new DataBaseContext();
-                var department = context.Departments.FirstOrDefault(d => d.DepartmentName == DepartmentName);
-                var departmentId = department?.DepartmentId;
-                if (department != null)
+                // 验证密码长度
+                if (AdminPassword.Length < 6 || AdminPassword.Length > 20)
                 {
-                    AddAdmin.DepartmentId = departmentId;
+                    HandyControl.Controls.Growl.Warning("密码长度必须在6-20位之间");
+                    return;
                 }
+                
+                //账号密码不能为空
+                if (string.IsNullOrEmpty(Account) || AdminPassword.IsNullOrEmpty())
+                {
+                    Growl.Warning("账号或密码不能为空");
+                    return;
+                }
+                
+                if (string.IsNullOrEmpty(AdminName))
+                {
+                    Growl.Warning("管理员姓名不能为空");
+                    return;
+                }
+                
+                //管理员账号不能够与已有账号重复
+                bool accountExists = await Task.Run(() =>
+                {
+                    return supAdminService.IsSupAdminAccountExist(Account) ||
+                           adminService.IsAdminAccountExist(Account) ||
+                           employeeService.IsEmployeeAccountExist(Account);
+                });
+                if (accountExists)
+                {
+                    Growl.Warning("账号已存在");
+                    return;
+                }
+
+                //管理员姓名不能重复
+                bool nameExists = await Task.Run(() =>
+                {
+                    return supAdminService.IsSupAdminNameExist(AdminName) ||
+                           adminService.IsAdminNameExist(AdminName) ||
+                           employeeService.IsEmployeeNameExist(AdminName);
+                });
+                if (nameExists)
+                {
+                    Growl.Warning("管理员姓名已存在");
+                    return;
+                }
+
+                var AddAdmin = new Admin()
+                {
+                    Account = Account,
+                    AdminName = AdminName,
+                    AdminPassword = AdminPassword,
+                    Email = Email,
+                    HireDate = HireDate,
+                    IsActive = IsActive,
+                    RoleId = RoleId
+                };
+
+                if (!DepartmentName.IsNullOrEmpty() && DepartmentName != "无部门")
+                {
+                    using var context = new DataBaseContext();
+                    var department = context.Departments.FirstOrDefault(d => d.DepartmentName == DepartmentName);
+                    var departmentId = department?.DepartmentId;
+                    if (department != null)
+                    {
+                        AddAdmin.DepartmentId = departmentId;
+                    }
+                }
+                adminService.AddAdmin(AddAdmin);
+                // 发布事件通知左侧视图更新
+                eventAggregator.GetEvent<AdminAddEvent>().Publish();
+                Growl.SuccessGlobal("添加成功");
+                OnCancel();
             }
-            adminService.AddAdmin(AddAdmin);
-            // 发布事件通知左侧视图更新
-            eventAggregator.GetEvent<AdminAddEvent>().Publish();
-            Growl.SuccessGlobal("添加成功");
-            OnCancel();
+            catch (Exception ex)
+            {
+                Growl.Warning(ex.Message);
+            }
         }
         private void OnCancel()
         {

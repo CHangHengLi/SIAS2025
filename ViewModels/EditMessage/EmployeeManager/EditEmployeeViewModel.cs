@@ -666,72 +666,75 @@ namespace SIASGraduate.ViewModels.EditMessage.EmployeeManager
         #region OnSave方法: 保存按钮点击事件
         private async void OnSave()
         {
-            System.Diagnostics.Debug.WriteLine($"开始保存操作: EmployeeId={EmployeeId}, Name={EmployeeName}, Role={RoleId}");
-            
-            // 记住当前命令对象，用于稍后重新启用
-            var saveCommand = SaveCommand;
-            var cancelCommand = CancelCommand;
-            
-            // 显示加载消息并禁用按钮
-            Growl.InfoGlobal("正在处理中...");
-            IsSaveEnabled = false;
-            IsCancelEnabled = false;
-            
             try
             {
-                // 执行实际的保存操作
-                System.Diagnostics.Debug.WriteLine("开始调用OnSaveAsync()");
-                await OnSaveAsync();
-                System.Diagnostics.Debug.WriteLine("OnSaveAsync()执行完成");
-            }
-            catch (DbUpdateException dbEx)
-            {
-                // 特别处理数据库更新异常
-                System.Diagnostics.Debug.WriteLine($"数据库更新错误: {dbEx.Message}");
-                if (dbEx.InnerException != null)
+                // 验证密码长度
+                if (EmployeePassword.Length < 6 || EmployeePassword.Length > 20)
                 {
-                    System.Diagnostics.Debug.WriteLine($"内部异常: {dbEx.InnerException.Message}");
-                    Growl.ErrorGlobal($"保存失败(数据库更新错误): {dbEx.Message} - {dbEx.InnerException.Message}");
+                    HandyControl.Controls.Growl.Warning("密码长度必须在6-20位之间");
+                    return;
                 }
-                else
+                
+                // 禁用保存按钮，防止重复提交
+                IsSaveEnabled = false;
+                
+                try
                 {
-                    Growl.ErrorGlobal($"保存失败(数据库更新错误): {dbEx.Message}");
+                    // 执行实际的保存操作
+                    System.Diagnostics.Debug.WriteLine("开始调用OnSaveAsync()");
+                    await OnSaveAsync();
+                    System.Diagnostics.Debug.WriteLine("OnSaveAsync()执行完成");
+                }
+                catch (DbUpdateException dbEx)
+                {
+                    // 特别处理数据库更新异常
+                    System.Diagnostics.Debug.WriteLine($"数据库更新错误: {dbEx.Message}");
+                    if (dbEx.InnerException != null)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"内部异常: {dbEx.InnerException.Message}");
+                        Growl.ErrorGlobal($"保存失败(数据库更新错误): {dbEx.Message} - {dbEx.InnerException.Message}");
+                    }
+                    else
+                    {
+                        Growl.ErrorGlobal($"保存失败(数据库更新错误): {dbEx.Message}");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    // 捕获并显示任何错误
+                    System.Diagnostics.Debug.WriteLine($"保存操作发生错误: {ex.Message}\n{ex.StackTrace}");
+                    
+                    if (ex.InnerException != null)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"内部异常: {ex.InnerException.Message}");
+                        if (ex.InnerException.InnerException != null)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"二级内部异常: {ex.InnerException.InnerException.Message}");
+                            Growl.ErrorGlobal($"保存失败: {ex.Message} - {ex.InnerException.Message} - {ex.InnerException.InnerException.Message}");
+                        }
+                        else
+                        {
+                            Growl.ErrorGlobal($"保存失败: {ex.Message} - {ex.InnerException.Message}");
+                        }
+                    }
+                    else
+                    {
+                        Growl.ErrorGlobal($"保存失败: {ex.Message}");
+                    }
+                }
+                finally
+                {
+                    // 确保按钮重新启用
+                    IsSaveEnabled = true;
+                    IsCancelEnabled = true;
+                    
+                    System.Diagnostics.Debug.WriteLine("保存操作完成，已重新启用按钮");
                 }
             }
             catch (Exception ex)
             {
-                // 捕获并显示任何错误
-                System.Diagnostics.Debug.WriteLine($"保存操作发生错误: {ex.Message}\n{ex.StackTrace}");
-                
-                if (ex.InnerException != null)
-                {
-                    System.Diagnostics.Debug.WriteLine($"内部异常: {ex.InnerException.Message}");
-                    if (ex.InnerException.InnerException != null)
-                    {
-                        System.Diagnostics.Debug.WriteLine($"二级内部异常: {ex.InnerException.InnerException.Message}");
-                        Growl.ErrorGlobal($"保存失败: {ex.Message} - {ex.InnerException.Message} - {ex.InnerException.InnerException.Message}");
-                    }
-                    else
-                    {
-                        Growl.ErrorGlobal($"保存失败: {ex.Message} - {ex.InnerException.Message}");
-                    }
-                }
-                else
-                {
-                    Growl.ErrorGlobal($"保存失败: {ex.Message}");
-                }
-            }
-            finally
-            {
-                // 确保按钮重新启用
-                IsSaveEnabled = true;
-                IsCancelEnabled = true;
-                
-                // 通知UI更新按钮状态
-                saveCommand?.RaiseCanExecuteChanged();
-                cancelCommand?.RaiseCanExecuteChanged();
-                
-                System.Diagnostics.Debug.WriteLine("保存操作完成，已重新启用按钮");
+                Growl.ErrorGlobal($"保存操作发生错误: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"OnSave方法发生错误: {ex.Message}\n{ex.StackTrace}");
             }
         }
         #endregion

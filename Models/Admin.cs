@@ -36,7 +36,7 @@ namespace SIASGraduate.Models
         /// 管理员密码
         /// </summary>
         // 非空长度不超过20
-        [StringLength(20, ErrorMessage = "密码长度不能超过20")]
+        [StringLength(20, MinimumLength = 6, ErrorMessage = "密码长度必须在6-20位之间")]
         public required string AdminPassword { get; set; }
         /// <summary>
         /// 管理员邮箱

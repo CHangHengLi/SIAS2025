@@ -106,6 +106,14 @@ namespace SIASGraduate.ViewModels.EditMessage.PersonnallyManager
                     Growl.Warning("姓名或密码不能为空");
                     return;
                 }
+                
+                // 验证密码长度
+                if (CurrentAdmin.AdminPassword.Length < 6 || CurrentAdmin.AdminPassword.Length > 20)
+                {
+                    Growl.Warning("密码长度必须在6-20位之间");
+                    return;
+                }
+                
                 // 如果用户名没有变化，直接更新
                 if (CurrentAdmin.AdminName == CurrentUser.UserName)
                 {

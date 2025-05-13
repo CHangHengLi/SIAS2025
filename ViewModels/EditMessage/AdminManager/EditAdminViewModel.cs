@@ -268,54 +268,71 @@ namespace SIASGraduate.ViewModels.EditMessage.AdminManager
         #region OnSave方法: 保存按钮点击事件
         private async void OnSave()
         {
-            System.Diagnostics.Debug.WriteLine($"开始保存操作: AdminId={AdminId}, Name={AdminName}, Role={RoleId}");
-            
-            // 记住当前命令对象，用于稍后重新启用
-            var saveCommand = SaveCommand;
-            var cancelCommand = CancelCommand;
-            
-            // 显示加载消息并禁用按钮
-            Growl.InfoGlobal("正在处理中...");
-            IsSaveEnabled = false;
-            IsCancelEnabled = false;
-            
             try
             {
-                // 执行实际的保存操作
-                System.Diagnostics.Debug.WriteLine("开始调用OnSaveInternalAsync()");
-                await OnSaveInternalAsync();
-                System.Diagnostics.Debug.WriteLine("OnSaveInternalAsync()执行完成");
-            }
-            catch (DbUpdateException dbEx)
-            {
-                // 特别处理数据库更新异常
-                HandleDbUpdateException(dbEx);
+                // 验证密码长度
+                if (AdminPassword.Length < 6 || AdminPassword.Length > 20)
+                {
+                    HandyControl.Controls.Growl.Warning("密码长度必须在6-20位之间");
+                    return;
+                }
+                
+                // 禁用保存按钮
+                IsSaveEnabled = false;
+                
+                System.Diagnostics.Debug.WriteLine($"开始保存操作: AdminId={AdminId}, Name={AdminName}, Role={RoleId}");
+                
+                // 记住当前命令对象，用于稍后重新启用
+                var saveCommand = SaveCommand;
+                var cancelCommand = CancelCommand;
+                
+                // 显示加载消息并禁用按钮
+                Growl.InfoGlobal("正在处理中...");
+                IsSaveEnabled = false;
+                IsCancelEnabled = false;
+                
+                try
+                {
+                    // 执行实际的保存操作
+                    System.Diagnostics.Debug.WriteLine("开始调用OnSaveInternalAsync()");
+                    await OnSaveInternalAsync();
+                    System.Diagnostics.Debug.WriteLine("OnSaveInternalAsync()执行完成");
+                }
+                catch (DbUpdateException dbEx)
+                {
+                    // 特别处理数据库更新异常
+                    HandleDbUpdateException(dbEx);
+                }
+                catch (Exception ex)
+                {
+                    // 捕获并显示任何错误
+                    System.Diagnostics.Debug.WriteLine($"保存失败: {ex.Message}");
+                    if (ex.InnerException != null)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"内部异常: {ex.InnerException.Message}");
+                        Growl.ErrorGlobal($"保存失败: {ex.Message} - {ex.InnerException.Message}");
+                    }
+                    else
+                    {
+                        Growl.ErrorGlobal($"保存失败: {ex.Message}");
+                    }
+                }
+                finally
+                {
+                    // 确保按钮重新启用
+                    IsSaveEnabled = true;
+                    IsCancelEnabled = true;
+                    
+                    // 通知UI更新按钮状态
+                    saveCommand?.RaiseCanExecuteChanged();
+                    cancelCommand?.RaiseCanExecuteChanged();
+                    
+                    System.Diagnostics.Debug.WriteLine("保存操作完成，已重新启用按钮");
+                }
             }
             catch (Exception ex)
             {
-                // 捕获并显示任何错误
-                System.Diagnostics.Debug.WriteLine($"保存失败: {ex.Message}");
-                if (ex.InnerException != null)
-                {
-                    System.Diagnostics.Debug.WriteLine($"内部异常: {ex.InnerException.Message}");
-                    Growl.ErrorGlobal($"保存失败: {ex.Message} - {ex.InnerException.Message}");
-                }
-                else
-                {
-                    Growl.ErrorGlobal($"保存失败: {ex.Message}");
-                }
-            }
-            finally
-            {
-                // 确保按钮重新启用
-                IsSaveEnabled = true;
-                IsCancelEnabled = true;
-                
-                // 通知UI更新按钮状态
-                saveCommand?.RaiseCanExecuteChanged();
-                cancelCommand?.RaiseCanExecuteChanged();
-                
-                System.Diagnostics.Debug.WriteLine("保存操作完成，已重新启用按钮");
+                LogAndShowError("处理保存操作时出错", ex);
             }
         }
         #endregion

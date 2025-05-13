@@ -130,6 +130,13 @@ namespace SIASGraduate.ViewModels.EditMessage.PersonnallyManager
                     return;
                 }
                 
+                // 验证密码长度
+                if (CurrentSupAdmin.SupAdminPassword.Length < 6 || CurrentSupAdmin.SupAdminPassword.Length > 20)
+                {
+                    Growl.Warning("密码长度必须在6-20位之间");
+                    return;
+                }
+                
                 // 如果用户名没有变化，直接更新
                 if (CurrentSupAdmin.SupAdminName == CurrentUser.UserName)
                 {
