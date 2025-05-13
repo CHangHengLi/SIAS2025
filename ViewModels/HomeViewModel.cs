@@ -39,6 +39,8 @@ namespace SIASGraduate.ViewModels
     {
         #region  属性
         private DispatcherTimer _timer;
+        // 添加登录状态检查定时器
+        private DispatcherTimer _loginCheckTimer;
         private IRegionManager regionManager;
 
         // 添加Random实例
@@ -243,6 +245,14 @@ namespace SIASGraduate.ViewModels
             _timer.Tick += UpdateUserName;
             _timer.Start();
             #endregion
+            
+            #region 登录状态检查
+            // 初始化登录状态检查定时器，每30秒检查一次
+            _loginCheckTimer = new DispatcherTimer();
+            _loginCheckTimer.Interval = TimeSpan.FromSeconds(30);
+            _loginCheckTimer.Tick += CheckLoginStatus;
+            _loginCheckTimer.Start();
+            #endregion
 
             #region LiveCharts
             // 初始化图表集合
@@ -443,6 +453,155 @@ namespace SIASGraduate.ViewModels
             {
                 Debug.WriteLine($"更新显示姓名时出错: {ex.Message}");
                 DisplayName = CurrentUser.UserName; // 出错时使用账号
+            }
+        }
+        #endregion
+
+        #region 登录状态检查
+        /// <summary>
+        /// 检查用户登录状态是否合法
+        /// </summary>
+        private void CheckLoginStatus(object sender, EventArgs e)
+        {
+            try
+            {
+                // 验证当前用户信息是否有效
+                if (!IsLoginValid())
+                {
+                    Debug.WriteLine("用户登录状态无效，强制退出登录");
+                    // 强制退出登录
+                    ForceLogout();
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"检查登录状态时出错: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 验证用户登录状态是否有效
+        /// </summary>
+        private bool IsLoginValid()
+        {
+            // 如果未登录，直接返回无效
+            if (string.IsNullOrEmpty(CurrentUser.Account) || string.IsNullOrEmpty(CurrentUser.UserName))
+            {
+                return false;
+            }
+            
+            using (var context = new DataBaseContext())
+            {
+                try
+                {
+                    // 根据角色检查用户在数据库中的状态
+                    switch (CurrentUser.RoleId)
+                    {
+                        case 1: // 超级管理员
+                            var supAdmin = context.SupAdmins.FirstOrDefault(sa => 
+                                sa.Account == CurrentUser.Account && 
+                                sa.SupAdminPassword == CurrentUser.Password);
+                            return supAdmin != null && supAdmin.IsActive == true;
+                            
+                        case 2: // 管理员
+                            var admin = context.Admins.FirstOrDefault(a => 
+                                a.Account == CurrentUser.Account && 
+                                a.AdminPassword == CurrentUser.Password);
+                            return admin != null && admin.IsActive == true;
+                            
+                        case 3: // 员工
+                            var employee = context.Employees.FirstOrDefault(e => 
+                                e.Account == CurrentUser.Account && 
+                                e.EmployeePassword == CurrentUser.Password);
+                            return employee != null && employee.IsActive == true;
+                            
+                        default:
+                            return false;
+                    }
+                }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"验证登录状态时数据库异常: {ex.Message}");
+                    return false; // 发生异常时保守处理，返回无效
+                }
+            }
+        }
+
+        /// <summary>
+        /// 强制用户退出登录
+        /// </summary>
+        private void ForceLogout()
+        {
+            try
+            {
+                // 显示提示
+                Application.Current.Dispatcher.Invoke(() =>
+                {
+                    // 显示错误提示对话框
+                    HandyControl.Controls.MessageBox.Show(
+                        "您的账号登录状态已失效，可能由于以下原因：\n\n" +
+                        "1. 您的账号已被管理员禁用\n" + 
+                        "2. 您的账号信息已被修改\n" + 
+                        "3. 您的会话已过期\n\n" +
+                        "系统将自动退出登录，请重新登录。",
+                        "登录状态失效", 
+                        MessageBoxButton.OK, 
+                        MessageBoxImage.Warning);
+                        
+                    // 同时在界面上显示提示消息
+                    HandyControl.Controls.Growl.InfoGlobal("登录状态已失效，即将退出登录");
+                });
+                
+                // 等待提示显示完毕
+                Thread.Sleep(1500);
+                
+                // 清除当前用户信息
+                CurrentUser.Clear();
+                
+                // 重启应用以返回登录界面
+                var currentProcess = Process.GetCurrentProcess();
+                var fileName = currentProcess.MainModule?.FileName;
+                if (fileName != null)
+                {
+                    // 启动新进程
+                    Process.Start(new ProcessStartInfo
+                    {
+                        FileName = fileName,
+                        UseShellExecute = true
+                    });
+                    
+                    // 关闭当前程序
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        Application.Current.Shutdown();
+                    });
+                }
+                else
+                {
+                    // 如果无法获取文件名，直接关闭应用
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        Application.Current.Shutdown();
+                    });
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"强制退出登录时出错: {ex.Message}");
+                
+                // 如果重启应用失败，至少尝试退出应用
+                try
+                {
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        Application.Current.Shutdown();
+                    });
+                }
+                catch
+                {
+                    // 最后尝试强制退出
+                    Environment.Exit(0);
+                }
             }
         }
         #endregion
