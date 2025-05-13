@@ -16,6 +16,25 @@ using SIASGraduate.Models;
 
 namespace SIASGraduate.ViewModels
 {
+    /// <summary>
+    /// 被提名者得票数据类
+    /// </summary>
+    public class NomineeVoteCount
+    {
+        /// <summary>
+        /// 被提名人姓名
+        /// </summary>
+        public string NomineeName { get; set; }
+        
+        /// <summary>
+        /// 得票数
+        /// </summary>
+        public int VoteCount { get; set; }
+    }
+    
+    /// <summary>
+    /// 首页视图模型
+    /// </summary>
     public class HomeViewModel : BindableBase
     {
         #region  属性
@@ -879,23 +898,73 @@ namespace SIASGraduate.ViewModels
                         });
 
                         // 获取得票最多的前10名提名者
-                        var topNominees = context.VoteRecords
-                            .Include(v => v.Nomination)
-                            .Include(v => v.Nomination.NominatedEmployee)
-                            .Include(v => v.Nomination.NominatedAdmin)
+                        var topVoteRecords = context.VoteRecords
                             .AsNoTracking()
-                            .GroupBy(v => new 
-                            { 
-                                NominationId = v.NominationId, 
-                                Name = v.Nomination.NominatedEmployee != null ? 
-                                    v.Nomination.NominatedEmployee.EmployeeName : 
-                                    (v.Nomination.NominatedAdmin != null ? v.Nomination.NominatedAdmin.AdminName : "未知")
-                            })
-                            .Select(g => new { NomineeName = g.Key.Name, VoteCount = g.Count() })
+                            .GroupBy(v => v.NominationId)
+                            .Select(g => new { NominationId = g.Key, VoteCount = g.Count() })
                             .OrderByDescending(x => x.VoteCount)
                             .Take(10)
                             .ToList();
 
+                        // 分步加载被提名者信息，避免SQL查询中包含NotMapped属性
+                        var topNominees = new List<NomineeVoteCount>();
+                        
+                        foreach (var record in topVoteRecords)
+                        {
+                            // 先获取基本提名信息
+                            var nomination = context.Nominations
+                                .AsNoTracking()
+                                .Where(n => n.NominationId == record.NominationId)
+                                .Select(n => new 
+                                {
+                                    n.NominationId,
+                                    n.NominatedEmployeeId,
+                                    n.NominatedAdminId
+                                })
+                                .FirstOrDefault();
+                                
+                            if (nomination != null)
+                            {
+                                string nomineeName = "未知";
+                                
+                                // 单独加载被提名员工
+                                if (nomination.NominatedEmployeeId.HasValue)
+                                {
+                                    var employee = context.Employees
+                                        .AsNoTracking()
+                                        .Where(e => e.EmployeeId == nomination.NominatedEmployeeId.Value)
+                                        .Select(e => e.EmployeeName)
+                                        .FirstOrDefault();
+                                    
+                                    if (!string.IsNullOrEmpty(employee))
+                                    {
+                                        nomineeName = employee;
+                                    }
+                                }
+                                // 单独加载被提名管理员
+                                else if (nomination.NominatedAdminId.HasValue)
+                                {
+                                    var admin = context.Admins
+                                        .AsNoTracking()
+                                        .Where(a => a.AdminId == nomination.NominatedAdminId.Value)
+                                        .Select(a => a.AdminName)
+                                        .FirstOrDefault();
+                                    
+                                    if (!string.IsNullOrEmpty(admin))
+                                    {
+                                        nomineeName = admin;
+                                    }
+                                }
+                                
+                                // 添加到结果列表
+                                topNominees.Add(new NomineeVoteCount 
+                                { 
+                                    NomineeName = nomineeName, 
+                                    VoteCount = record.VoteCount 
+                                });
+                            }
+                        }
+                        
                         if (topNominees.Count > 0)
                         {
                             var nomineeLabels = topNominees.Select(n => n.NomineeName).ToArray();
@@ -1343,7 +1412,9 @@ namespace SIASGraduate.ViewModels
             }
         }
         
-        // 查看提名详情
+        /// <summary>
+        /// 查看提名详情
+        /// </summary>
         private void ViewNominationDetails(VoteDetailDto voteDetail)
         {
             if (voteDetail == null) return;
@@ -1365,18 +1436,14 @@ namespace SIASGraduate.ViewModels
                 }
                 catch (Exception ex)
                 {
-                    // 记录详细信息窗口加载失败的信息
-                    System.Diagnostics.Debug.WriteLine($"加载提名详情数据时出错: {ex.Message}");
-                    System.Diagnostics.Debug.WriteLine(ex.StackTrace);
-                    detailsWindow.Close(); // 关闭窗口
-                    HandyControl.Controls.MessageBox.Show($"加载提名详情数据时出错: {ex.Message}", "错误");
+                    HandyControl.Controls.Growl.ErrorGlobal($"加载详情异常: {ex.Message}");
+                    System.Diagnostics.Debug.WriteLine($"加载详情异常: {ex}");
                 }
             }
             catch (Exception ex)
             {
-                HandyControl.Controls.MessageBox.Show($"打开提名详情时出错: {ex.Message}", "错误");
-                System.Diagnostics.Debug.WriteLine($"打开提名详情时出错: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine(ex.StackTrace);
+                HandyControl.Controls.Growl.ErrorGlobal($"打开详情窗口异常: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"打开详情窗口异常: {ex}");
             }
         }
 

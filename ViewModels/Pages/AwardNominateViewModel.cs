@@ -105,20 +105,79 @@ namespace SIASGraduate.ViewModels.Pages
                         
                         foreach (var nominationId in nominationIds)
                         {
-                            // 获取基本提名信息
+                            // 使用Select投影获取基本提名信息，避免导航属性
                             var nomination = await context.Nominations
                                 .AsNoTracking()
-                                .Include(n => n.Award)
-                                .Include(n => n.Department)
-                                .Include(n => n.NominatedEmployee)
-                                .Include(n => n.NominatedAdmin)
-                                .Include(n => n.ProposerEmployee)
-                                .Include(n => n.ProposerAdmin)
-                                .Include(n => n.ProposerSupAdmin)
-                                .FirstOrDefaultAsync(n => n.NominationId == nominationId);
+                                .Where(n => n.NominationId == nominationId)
+                                .Select(n => new Nomination
+                                {
+                                    NominationId = n.NominationId,
+                                    AwardId = n.AwardId,
+                                    DepartmentId = n.DepartmentId,
+                                    NominatedEmployeeId = n.NominatedEmployeeId,
+                                    NominatedAdminId = n.NominatedAdminId,
+                                    ProposerEmployeeId = n.ProposerEmployeeId,
+                                    ProposerAdminId = n.ProposerAdminId,
+                                    ProposerSupAdminId = n.ProposerSupAdminId,
+                                    Introduction = n.Introduction,
+                                    NominateReason = n.NominateReason,
+                                    CoverImage = n.CoverImage,
+                                    NominationTime = n.NominationTime
+                                })
+                                .FirstOrDefaultAsync();
                                 
                             if (nomination != null)
                             {
+                                // 单独加载各个关联实体
+                                if (nomination.AwardId > 0)
+                                {
+                                    nomination.Award = await context.Awards
+                                        .AsNoTracking()
+                                        .FirstOrDefaultAsync(a => a.AwardId == nomination.AwardId);
+                                }
+                                
+                                if (nomination.DepartmentId.HasValue && nomination.DepartmentId.Value > 0)
+                                {
+                                    nomination.Department = await context.Departments
+                                        .AsNoTracking()
+                                        .FirstOrDefaultAsync(d => d.DepartmentId == nomination.DepartmentId.Value);
+                                }
+                                
+                                if (nomination.NominatedEmployeeId.HasValue && nomination.NominatedEmployeeId.Value > 0)
+                                {
+                                    nomination.NominatedEmployee = await context.Employees
+                                        .AsNoTracking()
+                                        .FirstOrDefaultAsync(e => e.EmployeeId == nomination.NominatedEmployeeId.Value);
+                                }
+                                
+                                if (nomination.NominatedAdminId.HasValue && nomination.NominatedAdminId.Value > 0)
+                                {
+                                    nomination.NominatedAdmin = await context.Admins
+                                        .AsNoTracking()
+                                        .FirstOrDefaultAsync(a => a.AdminId == nomination.NominatedAdminId.Value);
+                                }
+                                
+                                if (nomination.ProposerEmployeeId.HasValue && nomination.ProposerEmployeeId.Value > 0)
+                                {
+                                    nomination.ProposerEmployee = await context.Employees
+                                        .AsNoTracking()
+                                        .FirstOrDefaultAsync(e => e.EmployeeId == nomination.ProposerEmployeeId.Value);
+                                }
+                                
+                                if (nomination.ProposerAdminId.HasValue && nomination.ProposerAdminId.Value > 0)
+                                {
+                                    nomination.ProposerAdmin = await context.Admins
+                                        .AsNoTracking()
+                                        .FirstOrDefaultAsync(a => a.AdminId == nomination.ProposerAdminId.Value);
+                                }
+                                
+                                if (nomination.ProposerSupAdminId.HasValue && nomination.ProposerSupAdminId.Value > 0)
+                                {
+                                    nomination.ProposerSupAdmin = await context.SupAdmins
+                                        .AsNoTracking()
+                                        .FirstOrDefaultAsync(s => s.SupAdminId == nomination.ProposerSupAdminId.Value);
+                                }
+                                
                                 // 单独加载投票记录
                                 var voteRecords = await context.VoteRecords
                                     .AsNoTracking()
@@ -171,7 +230,6 @@ namespace SIASGraduate.ViewModels.Pages
                             UIComments = new ObservableCollection<CommentRecord>(),
                             NewCommentText = string.Empty,
                             CommentCount = 0,
-                            IsUserVoted = false,
                             VoteRecords = new ObservableCollection<VoteRecord>()
                         }).ToList();
                             
@@ -418,23 +476,13 @@ namespace SIASGraduate.ViewModels.Pages
                 {
                     try
                     {
-                        // 修改查询，先创建基本查询
-                        var query = context.Nominations.AsNoTracking();
+                        // 修改查询，先创建基本查询并获取ID列表
+                        var baseQuery = context.Nominations.AsNoTracking();
                         
-                        // 分步骤添加Include，避免类型转换错误
-                        query = query.Include(n => n.Award);
-                        query = query.Include(n => n.Department);
-                        query = query.Include(n => n.NominatedEmployee);
-                        query = query.Include(n => n.NominatedAdmin);
-                        query = query.Include(n => n.VoteRecords);
-                        query = query.Include(n => n.ProposerEmployee);
-                        query = query.Include(n => n.ProposerAdmin);
-                        query = query.Include(n => n.ProposerSupAdmin);
-
-                        // 过滤搜索条件
+                        // 使用基本过滤条件
                         if (!string.IsNullOrWhiteSpace(SearchKeyword))
                         {
-                            query = query.Where(n => 
+                            baseQuery = baseQuery.Where(n => 
                                 (n.Award != null && n.Award.AwardName.Contains(SearchKeyword)) ||
                                 (n.NominatedEmployee != null && n.NominatedEmployee.EmployeeName.Contains(SearchKeyword)) ||
                                 (n.NominatedAdmin != null && n.NominatedAdmin.AdminName.Contains(SearchKeyword)) ||
@@ -446,9 +494,98 @@ namespace SIASGraduate.ViewModels.Pages
                                 (n.ProposerSupAdmin != null && n.ProposerSupAdmin.SupAdminName.Contains(SearchKeyword))
                             );
                         }
-
-                        // 执行查询，加载全部数据
-                        var nominations = query.ToList();
+                        
+                        // 首先获取匹配条件的提名ID列表
+                        var nominationIds = baseQuery.Select(n => n.NominationId).ToList();
+                        
+                        // 然后分别加载每个提名的完整数据
+                        var nominations = new List<Nomination>();
+                        
+                        foreach (var nominationId in nominationIds)
+                        {
+                            // 首先获取基本提名信息，不包含导航属性
+                            var nomination = context.Nominations
+                                .AsNoTracking()
+                                .Where(n => n.NominationId == nominationId)
+                                .Select(n => new Nomination
+                                {
+                                    NominationId = n.NominationId,
+                                    AwardId = n.AwardId,
+                                    DepartmentId = n.DepartmentId,
+                                    NominatedEmployeeId = n.NominatedEmployeeId,
+                                    NominatedAdminId = n.NominatedAdminId,
+                                    ProposerEmployeeId = n.ProposerEmployeeId,
+                                    ProposerAdminId = n.ProposerAdminId,
+                                    ProposerSupAdminId = n.ProposerSupAdminId,
+                                    Introduction = n.Introduction,
+                                    NominateReason = n.NominateReason,
+                                    CoverImage = n.CoverImage,
+                                    NominationTime = n.NominationTime
+                                })
+                                .FirstOrDefault();
+                                
+                            if (nomination != null)
+                            {
+                                // 单独加载各个关联实体
+                                if (nomination.AwardId > 0)
+                                {
+                                    nomination.Award = context.Awards
+                                        .AsNoTracking()
+                                        .FirstOrDefault(a => a.AwardId == nomination.AwardId);
+                                }
+                                
+                                if (nomination.DepartmentId.HasValue && nomination.DepartmentId.Value > 0)
+                                {
+                                    nomination.Department = context.Departments
+                                        .AsNoTracking()
+                                        .FirstOrDefault(d => d.DepartmentId == nomination.DepartmentId.Value);
+                                }
+                                
+                                if (nomination.NominatedEmployeeId.HasValue && nomination.NominatedEmployeeId.Value > 0)
+                                {
+                                    nomination.NominatedEmployee = context.Employees
+                                        .AsNoTracking()
+                                        .FirstOrDefault(e => e.EmployeeId == nomination.NominatedEmployeeId.Value);
+                                }
+                                
+                                if (nomination.NominatedAdminId.HasValue && nomination.NominatedAdminId.Value > 0)
+                                {
+                                    nomination.NominatedAdmin = context.Admins
+                                        .AsNoTracking()
+                                        .FirstOrDefault(a => a.AdminId == nomination.NominatedAdminId.Value);
+                                }
+                                
+                                if (nomination.ProposerEmployeeId.HasValue && nomination.ProposerEmployeeId.Value > 0)
+                                {
+                                    nomination.ProposerEmployee = context.Employees
+                                        .AsNoTracking()
+                                        .FirstOrDefault(e => e.EmployeeId == nomination.ProposerEmployeeId.Value);
+                                }
+                                
+                                if (nomination.ProposerAdminId.HasValue && nomination.ProposerAdminId.Value > 0)
+                                {
+                                    nomination.ProposerAdmin = context.Admins
+                                        .AsNoTracking()
+                                        .FirstOrDefault(a => a.AdminId == nomination.ProposerAdminId.Value);
+                                }
+                                
+                                if (nomination.ProposerSupAdminId.HasValue && nomination.ProposerSupAdminId.Value > 0)
+                                {
+                                    nomination.ProposerSupAdmin = context.SupAdmins
+                                        .AsNoTracking()
+                                        .FirstOrDefault(a => a.SupAdminId == nomination.ProposerSupAdminId.Value);
+                                }
+                                
+                                // 单独加载投票记录
+                                var voteRecords = context.VoteRecords
+                                    .AsNoTracking()
+                                    .Where(v => v.NominationId == nominationId)
+                                    .ToList();
+                                    
+                                nomination.VoteRecords = new ObservableCollection<VoteRecord>(voteRecords);
+                                nominations.Add(nomination);
+                            }
+                        }
                         
                         // 转为观察集合
                         TempViewNominates = new ObservableCollection<Nomination>(nominations);
@@ -581,20 +718,78 @@ namespace SIASGraduate.ViewModels.Pages
                     
                     foreach (var nominationId in nominationIds)
                     {
-                        // 获取基本提名信息
+                        // 先获取基础提名信息，不包含导航属性
                         var nomination = context.Nominations
                             .AsNoTracking()
-                            .Include(n => n.Award)
-                            .Include(n => n.Department)
-                            .Include(n => n.NominatedEmployee)
-                            .Include(n => n.NominatedAdmin)
-                            .Include(n => n.ProposerEmployee)
-                            .Include(n => n.ProposerAdmin)
-                            .Include(n => n.ProposerSupAdmin)
-                            .FirstOrDefault(n => n.NominationId == nominationId);
+                            .Where(n => n.NominationId == nominationId)
+                            .Select(n => new Nomination
+                            {
+                                NominationId = n.NominationId,
+                                AwardId = n.AwardId,
+                                DepartmentId = n.DepartmentId,
+                                NominatedEmployeeId = n.NominatedEmployeeId,
+                                NominatedAdminId = n.NominatedAdminId,
+                                ProposerEmployeeId = n.ProposerEmployeeId,
+                                ProposerAdminId = n.ProposerAdminId,
+                                ProposerSupAdminId = n.ProposerSupAdminId,
+                                Introduction = n.Introduction,
+                                NominateReason = n.NominateReason,
+                                NominationTime = n.NominationTime
+                            })
+                            .FirstOrDefault();
                             
                         if (nomination != null)
                         {
+                            // 单独加载各个关联实体
+                            if (nomination.AwardId > 0)
+                            {
+                                nomination.Award = context.Awards
+                                    .AsNoTracking()
+                                    .FirstOrDefault(a => a.AwardId == nomination.AwardId);
+                            }
+                            
+                            if (nomination.DepartmentId.HasValue && nomination.DepartmentId.Value > 0)
+                            {
+                                nomination.Department = context.Departments
+                                    .AsNoTracking()
+                                    .FirstOrDefault(d => d.DepartmentId == nomination.DepartmentId.Value);
+                            }
+                            
+                            if (nomination.NominatedEmployeeId.HasValue && nomination.NominatedEmployeeId.Value > 0)
+                            {
+                                nomination.NominatedEmployee = context.Employees
+                                    .AsNoTracking()
+                                    .FirstOrDefault(e => e.EmployeeId == nomination.NominatedEmployeeId.Value);
+                            }
+                            
+                            if (nomination.NominatedAdminId.HasValue && nomination.NominatedAdminId.Value > 0)
+                            {
+                                nomination.NominatedAdmin = context.Admins
+                                    .AsNoTracking()
+                                    .FirstOrDefault(a => a.AdminId == nomination.NominatedAdminId.Value);
+                            }
+                            
+                            if (nomination.ProposerEmployeeId.HasValue && nomination.ProposerEmployeeId.Value > 0)
+                            {
+                                nomination.ProposerEmployee = context.Employees
+                                    .AsNoTracking()
+                                    .FirstOrDefault(e => e.EmployeeId == nomination.ProposerEmployeeId.Value);
+                            }
+                            
+                            if (nomination.ProposerAdminId.HasValue && nomination.ProposerAdminId.Value > 0)
+                            {
+                                nomination.ProposerAdmin = context.Admins
+                                    .AsNoTracking()
+                                    .FirstOrDefault(a => a.AdminId == nomination.ProposerAdminId.Value);
+                            }
+                            
+                            if (nomination.ProposerSupAdminId.HasValue && nomination.ProposerSupAdminId.Value > 0)
+                            {
+                                nomination.ProposerSupAdmin = context.SupAdmins
+                                    .AsNoTracking()
+                                    .FirstOrDefault(a => a.SupAdminId == nomination.ProposerSupAdminId.Value);
+                            }
+                            
                             // 单独查询投票记录数量
                             int voteCount = context.VoteRecords
                                 .Count(v => v.NominationId == nominationId);
@@ -610,25 +805,24 @@ namespace SIASGraduate.ViewModels.Pages
                                 奖项名称 = nomination.Award?.AwardName ?? "未设置",
                                 提名对象 = nominatedName,
                                 所属部门 = nomination.Department?.DepartmentName ?? "未设置",
-                                一句话介绍 = nomination.Introduction ?? "",
-                                提名理由 = nomination.NominateReason ?? "",
-                                提名时间 = nomination.NominationTime.ToString("yyyy-MM-dd HH:mm:ss"),
                                 提名人 = proposerName,
+                                一句话介绍 = nomination.Introduction ?? string.Empty,
+                                提名理由 = nomination.NominateReason ?? string.Empty,
+                                提名时间 = nomination.NominationTime,
                                 得票数 = voteCount
                             });
                         }
                     }
                     
-                    // 写入数据
                     csv.WriteRecords(exportData);
-                    
-                    Growl.SuccessGlobal($"成功导出{exportData.Count}条提名记录到: {filePath}");
                 }
+                
+                Growl.SuccessGlobal($"已成功导出提名数据到: {filePath}");
             }
             catch (Exception ex)
             {
-                Growl.ErrorGlobal($"导出失败: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"导出提名数据出错: {ex.Message}\n{ex.StackTrace}");
+                Growl.ErrorGlobal($"导出数据失败: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"导出数据异常: {ex}");
             }
         }
 

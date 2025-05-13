@@ -290,14 +290,42 @@ namespace SIASGraduate.ViewModels.EditMessage.NominationDetailsWindows
                         
                         // 获取新添加的完整投票记录（包含关联对象）
                         var voteWithInfo = db.VoteRecords
-                            .Include(v => v.VoterEmployee)
-                            .ThenInclude(e => e.Department)
-                            .Include(v => v.VoterAdmin)
-                            .ThenInclude(a => a.Department)
+                            .AsNoTracking()
                             .FirstOrDefault(v => v.VoteRecordId == newVote.VoteRecordId);
 
                         if (voteWithInfo != null)
                         {
+                            // 手动加载关联实体
+                            if (voteWithInfo.VoterEmployeeId.HasValue)
+                            {
+                                voteWithInfo.VoterEmployee = db.Employees
+                                    .AsNoTracking()
+                                    .FirstOrDefault(e => e.EmployeeId == voteWithInfo.VoterEmployeeId);
+                                    
+                                // 如果有员工，再加载其部门
+                                if (voteWithInfo.VoterEmployee != null && voteWithInfo.VoterEmployee.DepartmentId.HasValue)
+                                {
+                                    voteWithInfo.VoterEmployee.Department = db.Departments
+                                        .AsNoTracking()
+                                        .FirstOrDefault(d => d.DepartmentId == voteWithInfo.VoterEmployee.DepartmentId);
+                                }
+                            }
+                            
+                            if (voteWithInfo.VoterAdminId.HasValue)
+                            {
+                                voteWithInfo.VoterAdmin = db.Admins
+                                    .AsNoTracking()
+                                    .FirstOrDefault(a => a.AdminId == voteWithInfo.VoterAdminId);
+                                    
+                                // 如果有管理员，再加载其部门
+                                if (voteWithInfo.VoterAdmin != null && voteWithInfo.VoterAdmin.DepartmentId.HasValue)
+                                {
+                                    voteWithInfo.VoterAdmin.Department = db.Departments
+                                        .AsNoTracking()
+                                        .FirstOrDefault(d => d.DepartmentId == voteWithInfo.VoterAdmin.DepartmentId);
+                                }
+                            }
+                            
                             // 将新的投票记录添加到提名的投票记录集合中
                             if (Nomination.VoteRecords == null)
                             {
@@ -737,9 +765,7 @@ namespace SIASGraduate.ViewModels.EditMessage.NominationDetailsWindows
                     {
                         // 查找匹配的投票记录
                         var voteToDelete = db.VoteRecords
-                            .Include(v => v.Award)
-                            .Include(v => v.VoterEmployee)
-                            .Include(v => v.VoterAdmin)
+                            .AsNoTracking()
                             .FirstOrDefault(v => v.VoteRecordId == voteRecord.VoteRecordId);
                         
                         if (voteToDelete != null)
@@ -752,8 +778,32 @@ namespace SIASGraduate.ViewModels.EditMessage.NominationDetailsWindows
                             int? employeeId = voteToDelete.VoterEmployeeId;
                             int? adminId = voteToDelete.VoterAdminId;
                             
+                            // 单独加载Award信息
+                            if (voteToDelete.AwardId > 0)
+                            {
+                                voteToDelete.Award = db.Awards
+                                    .AsNoTracking()
+                                    .FirstOrDefault(a => a.AwardId == voteToDelete.AwardId);
+                            }
+                            
                             // 获取奖项投票设置（获取最大投票数等信息）
-                            var award = db.Awards.FirstOrDefault(a => a.AwardId == awardId);
+                            var award = voteToDelete.Award ?? db.Awards.FirstOrDefault(a => a.AwardId == awardId);
+                            
+                            // 单独加载VoterEmployee信息
+                            if (voteToDelete.VoterEmployeeId.HasValue)
+                            {
+                                voteToDelete.VoterEmployee = db.Employees
+                                    .AsNoTracking()
+                                    .FirstOrDefault(e => e.EmployeeId == voteToDelete.VoterEmployeeId);
+                            }
+                            
+                            // 单独加载VoterAdmin信息
+                            if (voteToDelete.VoterAdminId.HasValue)
+                            {
+                                voteToDelete.VoterAdmin = db.Admins
+                                    .AsNoTracking()
+                                    .FirstOrDefault(a => a.AdminId == voteToDelete.VoterAdminId);
+                            }
                             
                             // 删除投票记录
                             db.VoteRecords.Remove(voteToDelete);
