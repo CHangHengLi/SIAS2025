@@ -28,7 +28,10 @@
                 </WrapPanel>
                 <WrapPanel>
                     <Label Content="奖项描述:" Style="{DynamicResource PageEditLabelBase}" />
-                    <hc:TextBox Width="150" Text="{Binding AwardDescription}" TextWrapping="Wrap"></hc:TextBox>
+                    <hc:TextBox
+                        Width="150"
+                        Text="{Binding AwardDescription}"
+                        TextWrapping="Wrap" />
                     <!--  对RichBoxText进行文字内容的绑定  -->
                     <!--<RichTextBox Width="150" Style="{DynamicResource RichTextBoxBaseStyle}">
                         <FlowDocument>
@@ -37,20 +40,17 @@
                             </Paragraph>
                         </FlowDocument>
                     </RichTextBox>-->
-                    <Label
-                        Content="(选填)"
-                        Style="{DynamicResource PageEditLabelBase}" />
+                    <Label Content="(选填)" Style="{DynamicResource PageEditLabelBase}" />
                 </WrapPanel>
                 <WrapPanel>
                     <Label Content="最大投票次数:" Style="{DynamicResource PageEditLabelBase}" />
                     <hc:NumericUpDown
-                        Width="auto"
-                        Minimum="1"
+                        Width="70"
+                        Margin="10,0"
                         Maximum="100"
+                        Minimum="1"
                         Value="{Binding MaxVoteCount}" />
-                    <Label
-                        Content="(默认为1)"
-                        Style="{DynamicResource PageEditLabelBase}" />
+                    <Label Content="(默认为1)" Style="{DynamicResource PageEditLabelBase}" />
                 </WrapPanel>
                 <!--  保存和取消按钮  -->
                 <StackPanel Orientation="Horizontal">

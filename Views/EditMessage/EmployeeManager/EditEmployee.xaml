@@ -111,6 +111,7 @@
                     Height="20"
                     FontSize="15"
                     SelectedItem="0"
+                    IsEnabled="{Binding IsRoleEditable}"
                     SelectedValue="{Binding RoleId, Mode=TwoWay, Converter={StaticResource NumberToRoleConverter}}"
                     SelectedValuePath="Content"
                     Style="{DynamicResource ComboBoxExtend.Small}">

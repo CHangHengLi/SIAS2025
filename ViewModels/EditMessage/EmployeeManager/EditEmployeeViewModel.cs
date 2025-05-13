@@ -179,6 +179,15 @@ namespace SIASGraduate.ViewModels.EditMessage.EmployeeManager
         }
         #endregion
 
+        #region 角色是否可编辑
+        private bool isRoleEditable = true;
+        public bool IsRoleEditable
+        {
+            get { return isRoleEditable; }
+            set { SetProperty(ref isRoleEditable, value); }
+        }
+        #endregion
+
         #endregion
 
         #region 构造函数
@@ -198,6 +207,9 @@ namespace SIASGraduate.ViewModels.EditMessage.EmployeeManager
                 departmentNames.Insert(0, "无部门");
                 DepartmentNames = new ObservableCollection<string>(departmentNames);
             }
+
+            // 根据当前用户角色设置是否可以编辑角色
+            IsRoleEditable = SIASGraduate.Common.CurrentUser.RoleId == 1; // 只有超级管理员才能编辑角色
         }
 
         private bool CanSave()
@@ -262,6 +274,13 @@ namespace SIASGraduate.ViewModels.EditMessage.EmployeeManager
                     Growl.Warning("姓名已存在");
                     return;
                 }
+            }
+
+            // 检查当前用户权限，如果不是超级管理员但尝试将员工设置为管理员
+            if (RoleId == 2 && SIASGraduate.Common.CurrentUser.RoleId != 1)
+            {
+                Growl.WarningGlobal("您没有权限将员工提升为管理员");
+                return;
             }
 
             // 如果将员工角色修改为管理员
@@ -630,6 +649,9 @@ namespace SIASGraduate.ViewModels.EditMessage.EmployeeManager
                     RoleId = UpdateEmployee.RoleId;
                     BaseName = UpdateEmployee.EmployeeName;
                     BaseAccount = UpdateEmployee.Account; // 设置基础账号用于后续比较
+
+                    // 根据当前用户角色设置是否可以编辑角色
+                    IsRoleEditable = SIASGraduate.Common.CurrentUser.RoleId == 1; // 只有超级管理员才能编辑角色
 
                     if (UpdateEmployee.DepartmentId.HasValue)
                     {

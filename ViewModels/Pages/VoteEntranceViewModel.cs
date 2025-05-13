@@ -1487,7 +1487,7 @@ namespace SIASGraduate.ViewModels.Pages
         private void ExecuteSearchCommand()
         {
             // 加载提名数据，会使用SearchKeyword参数进行过滤
-            LoadNominationsAsync();
+            LoadNominationsAndCheckVoteStatusAsync();
         }
         
         /// <summary>
