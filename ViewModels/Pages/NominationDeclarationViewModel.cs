@@ -1267,7 +1267,7 @@ namespace SIASGraduate.ViewModels.Pages
                             nomination.ProposerAdminId = CurrentUser.AdminId;
                             break;
                     }
-                    
+
                     // 添加额外逻辑：将原申报人信息也保留到提名记录中
                     // 仅当当前没有设置提名人时才进行设置（避免覆盖当前管理员作为提名人的情况）
                     if (nomination.ProposerEmployeeId == null && nomination.ProposerAdminId == null && nomination.ProposerSupAdminId == null)
@@ -1605,18 +1605,18 @@ namespace SIASGraduate.ViewModels.Pages
         private void ExportToCsv(string filePath)
         {
             try 
+        {
+            // 使用UTF8编码，确保中文正确显示
+            using (var writer = new StreamWriter(filePath, false, Encoding.UTF8))
             {
-                // 使用UTF8编码，确保中文正确显示
-                using (var writer = new StreamWriter(filePath, false, Encoding.UTF8))
-                {
-                    // 写入CSV头部
-                    writer.WriteLine("申报ID,奖项名称,部门,被提名人,申报原因,申报人,申报时间,状态,审核人,审核时间");
+                // 写入CSV头部
+                writer.WriteLine("申报ID,奖项名称,部门,被提名人,申报原因,申报人,申报时间,状态,审核人,审核时间");
 
-                    // 写入每一行数据
-                    foreach (var declaration in ListViewDeclarations)
-                    {
-                        // 处理CSV中的特殊字符，如逗号、换行符等
-                        string reason = declaration.DeclarationReason?.Replace("\"", "\"\"").Replace(",", "，") ?? "";
+                // 写入每一行数据
+                foreach (var declaration in ListViewDeclarations)
+                {
+                    // 处理CSV中的特殊字符，如逗号、换行符等
+                    string reason = declaration.DeclarationReason?.Replace("\"", "\"\"").Replace(",", "，") ?? "";
                         
                         // 确保所有字段都有有效值
                         string awardName = declaration.Award?.AwardName?.Replace("\"", "\"\"") ?? "未设置";
@@ -1626,18 +1626,18 @@ namespace SIASGraduate.ViewModels.Pages
                         string statusText = declaration.StatusText?.Replace("\"", "\"\"") ?? "未知";
                         string reviewerName = declaration.ReviewerName?.Replace("\"", "\"\"") ?? "";
 
-                        writer.WriteLine(
-                            $"{declaration.DeclarationId}," +
+                    writer.WriteLine(
+                        $"{declaration.DeclarationId}," +
                             $"\"{awardName}\"," +
                             $"\"{departmentName}\"," +
                             $"\"{nominatedName}\"," +
-                            $"\"{reason}\"," +
+                        $"\"{reason}\"," +
                             $"\"{declarerName}\"," +
-                            $"{declaration.DeclarationTime:yyyy-MM-dd HH:mm:ss}," +
+                        $"{declaration.DeclarationTime:yyyy-MM-dd HH:mm:ss}," +
                             $"\"{statusText}\"," +
                             $"\"{reviewerName}\"," +
-                            $"{(declaration.ReviewTime.HasValue ? declaration.ReviewTime.Value.ToString("yyyy-MM-dd HH:mm:ss") : "")}");
-                    }
+                        $"{(declaration.ReviewTime.HasValue ? declaration.ReviewTime.Value.ToString("yyyy-MM-dd HH:mm:ss") : "")}");
+                }
                 }
                 
                 Growl.SuccessGlobal($"成功导出{ListViewDeclarations.Count}条申报记录到: {filePath}");

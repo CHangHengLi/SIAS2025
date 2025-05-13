@@ -1414,8 +1414,8 @@ namespace SIASGraduate.ViewModels.Pages
                                 
                                 // 添加到已投票奖项列表
                                 if (!VotedAwardIds.Contains(nomination.AwardId))
-                                {
-                                    VotedAwardIds.Add(nomination.AwardId);
+                            {
+                                VotedAwardIds.Add(nomination.AwardId);
                                 }
                             }
                             
@@ -1439,15 +1439,15 @@ namespace SIASGraduate.ViewModels.Pages
                             
                             // 刷新命令状态
                             VoteCommand.RaiseCanExecuteChanged();
-                        });
-                    }
-                catch (Exception ex)
-                {
+                });
+            }
+            catch (Exception ex)
+            {
                     // 投票失败
-                    StatusMessage = $"投票失败: {ex.Message}";
-                    HandyControl.Controls.Growl.ErrorGlobal($"投票失败: {ex.Message}");
-                    System.Diagnostics.Debug.WriteLine($"投票失败: {ex}");
-                }
+                StatusMessage = $"投票失败: {ex.Message}";
+                HandyControl.Controls.Growl.ErrorGlobal($"投票失败: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"投票失败: {ex}");
+            }
             }
             
             #endregion

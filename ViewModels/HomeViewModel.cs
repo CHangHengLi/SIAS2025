@@ -1352,9 +1352,25 @@ namespace SIASGraduate.ViewModels
             {
                 // 创建并显示提名详情窗口，使用完整类型名以避免歧义
                 var detailsWindow = new SIASGraduate.Views.EditMessage.NominationDetailsWindows.NominationDetailsWindow();
-                // 直接加载提名详情，不需要手动创建ViewModel
-                detailsWindow.LoadNominationDetails(voteDetail);
-                detailsWindow.ShowDialog(); // 使用模态窗口显示
+                
+                // 加载提名详情前先确保显示窗口，以便UI上下文初始化
+                detailsWindow.Show();
+                
+                try
+                {
+                    // 使用更安全的方式加载详情，避免立即使用EF查询
+                    System.Windows.Threading.Dispatcher.CurrentDispatcher.BeginInvoke(
+                        new Action(() => detailsWindow.LoadNominationDetails(voteDetail)),
+                        System.Windows.Threading.DispatcherPriority.Background);
+                }
+                catch (Exception ex)
+                {
+                    // 记录详细信息窗口加载失败的信息
+                    System.Diagnostics.Debug.WriteLine($"加载提名详情数据时出错: {ex.Message}");
+                    System.Diagnostics.Debug.WriteLine(ex.StackTrace);
+                    detailsWindow.Close(); // 关闭窗口
+                    HandyControl.Controls.MessageBox.Show($"加载提名详情数据时出错: {ex.Message}", "错误");
+                }
             }
             catch (Exception ex)
             {

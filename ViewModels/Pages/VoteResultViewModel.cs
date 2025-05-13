@@ -198,40 +198,144 @@ namespace SIASGraduate.ViewModels.Pages
             
             try
             {
-                // 从数据库加载完整的提名数据
+                // 使用更安全、分离的方式从数据库加载提名数据
                 using (var context = new DataBaseContext())
                 {
-                    // 加载完整的提名数据，包括关联实体
-                    var fullNomination = await context.Nominations
-                        .AsNoTracking()
-                        .Include(n => n.NominatedEmployee)
-                        .Include(n => n.NominatedAdmin)
-                        .Include(n => n.Award)
-                        .Include(n => n.Department)
-                        .Include(n => n.VoteRecords)
-                            .ThenInclude(vr => vr.VoterEmployee)
-                                .ThenInclude(e => e.Department)
-                        .Include(n => n.VoteRecords)
-                            .ThenInclude(vr => vr.VoterAdmin)
-                                .ThenInclude(a => a.Department)
-                        .FirstOrDefaultAsync(n => n.NominationId == nomination.NominationId);
+                    var nominationId = nomination.NominationId;
                     
-                    if (fullNomination != null)
+                    // 1. 首先只获取基本提名信息，不加载任何关联实体
+                    var baseQuery = await context.Nominations
+                        .AsNoTracking()
+                        .Where(n => n.NominationId == nominationId)
+                        .Select(n => new
+                        {
+                            n.NominationId,
+                            n.AwardId,
+                            n.DepartmentId,
+                            n.NominatedEmployeeId,
+                            n.NominatedAdminId,
+                            n.Introduction,
+                            n.NominateReason,
+                            n.NominationTime,
+                            n.CoverImage
+                        })
+                        .FirstOrDefaultAsync();
+                        
+                    if (baseQuery == null)
                     {
-                        // 创建并显示详情窗口
-                        var detailsWindow = new NominationDetailsWindow(fullNomination);
-                        
-                        // 隐藏加载状态
+                        Growl.ErrorGlobal("找不到该提名的详细信息");
                         IsLoading = false;
+                        return;
+                    }
+                    
+                    // 2. 创建新的Nomination对象，避免EF追踪状态
+                    var fullNomination = new Nomination
+                    {
+                        NominationId = baseQuery.NominationId,
+                        AwardId = baseQuery.AwardId,
+                        DepartmentId = baseQuery.DepartmentId,
+                        NominatedEmployeeId = baseQuery.NominatedEmployeeId,
+                        NominatedAdminId = baseQuery.NominatedAdminId,
+                        Introduction = baseQuery.Introduction,
+                        NominateReason = baseQuery.NominateReason,
+                        NominationTime = baseQuery.NominationTime,
+                        CoverImage = baseQuery.CoverImage,
+                        // 初始化ObservableCollection，避免空引用
+                        VoteRecords = new ObservableCollection<VoteRecord>()
+                    };
+
+                    // 3. 分别加载每个关联实体
+                    // 加载奖项
+                    if (baseQuery.AwardId > 0)
+                    {
+                        fullNomination.Award = await context.Awards
+                            .AsNoTracking()
+                            .FirstOrDefaultAsync(a => a.AwardId == baseQuery.AwardId);
+                    }
+                    
+                    // 加载部门
+                    if (baseQuery.DepartmentId > 0)
+                    {
+                        fullNomination.Department = await context.Departments
+                            .AsNoTracking()
+                            .FirstOrDefaultAsync(d => d.DepartmentId == baseQuery.DepartmentId);
+                    }
+                    
+                    // 加载被提名员工
+                    if (baseQuery.NominatedEmployeeId.HasValue)
+                    {
+                        fullNomination.NominatedEmployee = await context.Employees
+                            .AsNoTracking()
+                            .FirstOrDefaultAsync(e => e.EmployeeId == baseQuery.NominatedEmployeeId.Value);
+                    }
+                    
+                    // 加载被提名管理员
+                    if (baseQuery.NominatedAdminId.HasValue)
+                    {
+                        fullNomination.NominatedAdmin = await context.Admins
+                            .AsNoTracking()
+                            .FirstOrDefaultAsync(a => a.AdminId == baseQuery.NominatedAdminId.Value);
+                    }
+                    
+                    // 4. 加载投票记录
+                    var voteRecords = await context.VoteRecords
+                        .AsNoTracking()
+                        .Where(v => v.NominationId == baseQuery.NominationId)
+                        .ToListAsync();
                         
+                    // 5. 对于每个投票记录，单独加载员工和管理员信息
+                    foreach (var voteRecord in voteRecords)
+                    {
+                        // 加载投票员工信息
+                        if (voteRecord.VoterEmployeeId.HasValue)
+                        {
+                            voteRecord.VoterEmployee = await context.Employees
+                                .AsNoTracking()
+                                .FirstOrDefaultAsync(e => e.EmployeeId == voteRecord.VoterEmployeeId.Value);
+                                
+                            // 如果员工存在并有部门ID，单独加载部门
+                            if (voteRecord.VoterEmployee != null && voteRecord.VoterEmployee.DepartmentId.HasValue)
+                            {
+                                voteRecord.VoterEmployee.Department = await context.Departments
+                                    .AsNoTracking()
+                                    .FirstOrDefaultAsync(d => d.DepartmentId == voteRecord.VoterEmployee.DepartmentId.Value);
+                            }
+                        }
+                        
+                        // 加载投票管理员信息
+                        if (voteRecord.VoterAdminId.HasValue)
+                        {
+                            voteRecord.VoterAdmin = await context.Admins
+                                .AsNoTracking()
+                                .FirstOrDefaultAsync(a => a.AdminId == voteRecord.VoterAdminId.Value);
+                                
+                            // 如果管理员存在并有部门ID，单独加载部门
+                            if (voteRecord.VoterAdmin != null && voteRecord.VoterAdmin.DepartmentId.HasValue)
+                            {
+                                voteRecord.VoterAdmin.Department = await context.Departments
+                                    .AsNoTracking()
+                                    .FirstOrDefaultAsync(d => d.DepartmentId == voteRecord.VoterAdmin.DepartmentId.Value);
+                            }
+                        }
+                        
+                        // 添加到集合
+                        fullNomination.VoteRecords.Add(voteRecord);
+                    }
+                    
+                    // 隐藏加载状态
+                    IsLoading = false;
+                    
+                    // 使用新窗口显示
+                    try
+                    {
+                        var detailsWindow = new NominationDetailsWindow(fullNomination);
                         // 显示窗口
                         detailsWindow.ShowDialog();
                     }
-                    else
+                    catch (Exception ex)
                     {
-                        // 数据不存在时显示错误消息
-                        Growl.ErrorGlobal("找不到该提名的详细信息");
-                        IsLoading = false;
+                        Debug.WriteLine($"显示详情窗口时出错: {ex.Message}");
+                        Growl.ErrorGlobal($"显示详情窗口时出错: {ex.Message}");
                     }
                 }
             }

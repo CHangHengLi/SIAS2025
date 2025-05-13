@@ -477,49 +477,78 @@ namespace SIASGraduate.ViewModels.EditMessage.NominationDetailsWindows
                 {
                     using (var db = new DataBaseContext())
                     {
-                        // 加载完整的投票记录数据
-                        var fullNomination = db.Nominations
-                            .Include(n => n.VoteRecords)
-                                .ThenInclude(v => v.VoterEmployee)
-                                    .ThenInclude(e => e.Department)
-                            .Include(n => n.VoteRecords)
-                                .ThenInclude(v => v.VoterAdmin)
-                                    .ThenInclude(a => a.Department)
-                            .Include(n => n.VoteRecords)
-                                .ThenInclude(v => v.Award)
-                            .AsNoTracking() // 使用AsNoTracking提高性能
-                            .FirstOrDefault(n => n.NominationId == nominationId);
+                        // 使用分步方式加载数据，避免NotMapped属性问题
                         
-                        if (fullNomination != null && fullNomination.VoteRecords != null)
+                        // 1. 首先获取投票记录
+                        var voteRecords = db.VoteRecords
+                            .AsNoTracking()
+                            .Where(v => v.NominationId == nominationId)
+                            .OrderByDescending(v => v.VoteTime)
+                            .ToList();
+                        
+                        // 2. 手动加载关联实体
+                        foreach (var record in voteRecords)
                         {
-                            // 获取按时间排序的投票记录
-                            var sortedRecords = fullNomination.VoteRecords
-                                .OrderByDescending(v => v.VoteTime)
-                                .ToList();
-                                
-                            // 清空当前集合并添加新的记录
-                            if (Nomination.VoteRecords == null)
+                            // 加载投票者(员工)信息
+                            if (record.VoterEmployeeId.HasValue)
                             {
-                                Nomination.VoteRecords = new ObservableCollection<VoteRecord>();
-                            }
-                            else
-                            {
-                                Nomination.VoteRecords.Clear();
+                                record.VoterEmployee = db.Employees
+                                    .AsNoTracking()
+                                    .FirstOrDefault(e => e.EmployeeId == record.VoterEmployeeId);
+                                    
+                                // 如果员工存在且有部门ID，单独加载部门
+                                if (record.VoterEmployee != null && record.VoterEmployee.DepartmentId.HasValue)
+                                {
+                                    record.VoterEmployee.Department = db.Departments
+                                        .AsNoTracking()
+                                        .FirstOrDefault(d => d.DepartmentId == record.VoterEmployee.DepartmentId);
+                                }
                             }
                             
-                            foreach (var record in sortedRecords)
+                            // 加载投票者(管理员)信息
+                            if (record.VoterAdminId.HasValue)
                             {
-                                Nomination.VoteRecords.Add(record);
+                                record.VoterAdmin = db.Admins
+                                    .AsNoTracking()
+                                    .FirstOrDefault(a => a.AdminId == record.VoterAdminId);
+                                    
+                                // 如果管理员存在且有部门ID，单独加载部门
+                                if (record.VoterAdmin != null && record.VoterAdmin.DepartmentId.HasValue)
+                                {
+                                    record.VoterAdmin.Department = db.Departments
+                                        .AsNoTracking()
+                                        .FirstOrDefault(d => d.DepartmentId == record.VoterAdmin.DepartmentId);
+                                }
                             }
-                                
-                            System.Diagnostics.Debug.WriteLine($"已加载 {Nomination.VoteRecords.Count} 条投票记录");
                             
-                            // 通知UI更新
-                            RaisePropertyChanged(nameof(Nomination));
-                            RaisePropertyChanged(nameof(EmployeeVoteCount));
-                            RaisePropertyChanged(nameof(AdminVoteCount));
-                            RaisePropertyChanged(nameof(TotalVoteCount));
+                            // 加载奖项信息
+                            record.Award = db.Awards
+                                .AsNoTracking()
+                                .FirstOrDefault(a => a.AwardId == record.AwardId);
                         }
+                        
+                        // 更新提名对象的投票记录集合
+                        if (Nomination.VoteRecords == null)
+                        {
+                            Nomination.VoteRecords = new ObservableCollection<VoteRecord>();
+                        }
+                        else
+                        {
+                            Nomination.VoteRecords.Clear();
+                        }
+                        
+                        foreach (var record in voteRecords)
+                        {
+                            Nomination.VoteRecords.Add(record);
+                        }
+                            
+                        System.Diagnostics.Debug.WriteLine($"已加载 {Nomination.VoteRecords.Count} 条投票记录");
+                        
+                        // 通知UI更新
+                        RaisePropertyChanged(nameof(Nomination));
+                        RaisePropertyChanged(nameof(EmployeeVoteCount));
+                        RaisePropertyChanged(nameof(AdminVoteCount));
+                        RaisePropertyChanged(nameof(TotalVoteCount));
                     }
                 }
                 catch (Exception ex)

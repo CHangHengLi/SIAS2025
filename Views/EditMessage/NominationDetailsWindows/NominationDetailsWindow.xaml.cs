@@ -106,30 +106,58 @@ namespace SIASGraduate.Views.EditMessage.NominationDetailsWindows
             {
                 using (var context = new DataBaseContext())
                 {
-                    // 加载完整的提名信息包括投票记录
-                    var nomination = context.Nominations
-                        .Include(n => n.VoteRecords)
-                            .ThenInclude(v => v.VoterEmployee)
-                                .ThenInclude(e => e.Department)
-                        .Include(n => n.VoteRecords)
-                            .ThenInclude(v => v.VoterAdmin)
-                                .ThenInclude(a => a.Department)
-                        .AsNoTracking() // 使用AsNoTracking提高性能
-                        .FirstOrDefault(n => n.NominationId == nominationId);
+                    // 使用分步方式加载数据，避免NotMapped属性问题
                     
-                    if (nomination != null && this.DataContext is NominationDetailsViewModel vm)
+                    // 单独加载投票记录（不通过导航属性加载）
+                    var voteRecords = context.VoteRecords
+                        .AsNoTracking()
+                        .Where(v => v.NominationId == nominationId)
+                        .OrderByDescending(v => v.VoteTime)
+                        .ToList();
+                    
+                    if (this.DataContext is NominationDetailsViewModel vm)
                     {
-                        // 显示加载结果
-                        System.Diagnostics.Debug.WriteLine($"从数据库加载到 {nomination.VoteRecords?.Count ?? 0} 条投票记录");
+                        // 手动加载关联实体
+                        foreach (var record in voteRecords)
+                        {
+                            // 加载投票者(员工)信息
+                            if (record.VoterEmployeeId.HasValue)
+                            {
+                                record.VoterEmployee = context.Employees
+                                    .AsNoTracking()
+                                    .FirstOrDefault(e => e.EmployeeId == record.VoterEmployeeId);
+                                    
+                                // 如果有员工，再加载其部门
+                                if (record.VoterEmployee != null && record.VoterEmployee.DepartmentId.HasValue)
+                                {
+                                    record.VoterEmployee.Department = context.Departments
+                                        .AsNoTracking()
+                                        .FirstOrDefault(d => d.DepartmentId == record.VoterEmployee.DepartmentId.Value);
+                                }
+                            }
+                            
+                            // 加载投票者(管理员)信息
+                            if (record.VoterAdminId.HasValue)
+                            {
+                                record.VoterAdmin = context.Admins
+                                    .AsNoTracking()
+                                    .FirstOrDefault(a => a.AdminId == record.VoterAdminId);
+                                    
+                                // 如果有管理员，再加载其部门
+                                if (record.VoterAdmin != null && record.VoterAdmin.DepartmentId.HasValue)
+                                {
+                                    record.VoterAdmin.Department = context.Departments
+                                        .AsNoTracking()
+                                        .FirstOrDefault(d => d.DepartmentId == record.VoterAdmin.DepartmentId.Value);
+                                }
+                            }
+                        }
                         
-                        // 获取按时间排序的投票记录
-                        var sortedRecords = nomination.VoteRecords
-                            .OrderByDescending(v => v.VoteTime)
-                            .ToList();
+                        System.Diagnostics.Debug.WriteLine($"从数据库加载到 {voteRecords.Count} 条投票记录");
                         
                         // 清空当前集合并添加新的记录
                         vm.Nomination.VoteRecords.Clear();
-                        foreach (var record in sortedRecords)
+                        foreach (var record in voteRecords)
                         {
                             vm.Nomination.VoteRecords.Add(record);
                         }
@@ -184,23 +212,32 @@ namespace SIASGraduate.Views.EditMessage.NominationDetailsWindows
         {
             try
             {
+                // 预先声明viewModel变量
+                NominationDetailsViewModel viewModel;
+                
                 using (var context = new DataBaseContext())
                 {
-                    // 使用Include加载提名关联的各种信息
+                    // 使用分步方式加载数据，避免NotMapped属性问题
+                    
+                    // 1. 首先获取基本的提名信息（只获取非导航属性）
                     var nomination = context.Nominations
-                        .Include(n => n.Award)
-                        .Include(n => n.Department)
-                        .Include(n => n.NominatedEmployee)
-                        .Include(n => n.NominatedAdmin)
-                        .Include(n => n.ProposerEmployee)
-                        .Include(n => n.ProposerAdmin)
-                        .Include(n => n.VoteRecords)
-                            .ThenInclude(v => v.VoterEmployee)
-                                .ThenInclude(e => e.Department)
-                        .Include(n => n.VoteRecords)
-                            .ThenInclude(v => v.VoterAdmin)
-                                .ThenInclude(a => a.Department)
-                        .FirstOrDefault(n => n.NominationId == nominationId);
+                        .AsNoTracking()
+                        .Where(n => n.NominationId == nominationId)
+                        .Select(n => new Nomination
+                        {
+                            NominationId = n.NominationId,
+                            AwardId = n.AwardId,
+                            DepartmentId = n.DepartmentId,
+                            NominatedEmployeeId = n.NominatedEmployeeId,
+                            NominatedAdminId = n.NominatedAdminId,
+                            ProposerEmployeeId = n.ProposerEmployeeId,
+                            ProposerAdminId = n.ProposerAdminId,
+                            Introduction = n.Introduction,
+                            NominateReason = n.NominateReason,
+                            CoverImage = n.CoverImage,
+                            NominationTime = n.NominationTime
+                        })
+                        .FirstOrDefault();
                         
                     if (nomination == null)
                     {
@@ -208,8 +245,101 @@ namespace SIASGraduate.Views.EditMessage.NominationDetailsWindows
                         return;
                     }
                     
+                    // 2. 单独加载各个关联实体
+                    // 加载奖项
+                    if (nomination.AwardId > 0)
+                    {
+                        nomination.Award = context.Awards
+                            .AsNoTracking()
+                            .FirstOrDefault(a => a.AwardId == nomination.AwardId);
+                    }
+                    
+                    // 加载部门
+                    if (nomination.DepartmentId.HasValue && nomination.DepartmentId.Value > 0)
+                    {
+                        nomination.Department = context.Departments
+                            .AsNoTracking()
+                            .FirstOrDefault(d => d.DepartmentId == nomination.DepartmentId.Value);
+                    }
+                    
+                    // 加载被提名员工
+                    if (nomination.NominatedEmployeeId.HasValue && nomination.NominatedEmployeeId.Value > 0)
+                    {
+                        nomination.NominatedEmployee = context.Employees
+                            .AsNoTracking()
+                            .FirstOrDefault(e => e.EmployeeId == nomination.NominatedEmployeeId.Value);
+                    }
+                    
+                    // 加载被提名管理员
+                    if (nomination.NominatedAdminId.HasValue && nomination.NominatedAdminId.Value > 0)
+                    {
+                        nomination.NominatedAdmin = context.Admins
+                            .AsNoTracking()
+                            .FirstOrDefault(a => a.AdminId == nomination.NominatedAdminId.Value);
+                    }
+                    
+                    // 加载提名人(员工)
+                    if (nomination.ProposerEmployeeId.HasValue && nomination.ProposerEmployeeId.Value > 0)
+                    {
+                        nomination.ProposerEmployee = context.Employees
+                            .AsNoTracking()
+                            .FirstOrDefault(e => e.EmployeeId == nomination.ProposerEmployeeId.Value);
+                    }
+                    
+                    // 加载提名人(管理员)
+                    if (nomination.ProposerAdminId.HasValue && nomination.ProposerAdminId.Value > 0)
+                    {
+                        nomination.ProposerAdmin = context.Admins
+                            .AsNoTracking()
+                            .FirstOrDefault(a => a.AdminId == nomination.ProposerAdminId.Value);
+                    }
+                    
+                    // 3. 单独加载投票记录
+                    var voteRecords = context.VoteRecords
+                        .AsNoTracking()
+                        .Where(v => v.NominationId == nominationId)
+                        .OrderByDescending(v => v.VoteTime)
+                        .ToList();
+                    
+                    // 4. 加载投票记录的关联实体
+                    foreach (var record in voteRecords)
+                    {
+                        if (record.VoterEmployeeId.HasValue)
+                        {
+                            record.VoterEmployee = context.Employees
+                                .AsNoTracking()
+                                .FirstOrDefault(e => e.EmployeeId == record.VoterEmployeeId);
+                                
+                            // 如果有员工，再加载其部门
+                            if (record.VoterEmployee != null && record.VoterEmployee.DepartmentId.HasValue)
+                            {
+                                record.VoterEmployee.Department = context.Departments
+                                    .AsNoTracking()
+                                    .FirstOrDefault(d => d.DepartmentId == record.VoterEmployee.DepartmentId.Value);
+                            }
+                        }
+                        
+                        if (record.VoterAdminId.HasValue)
+                        {
+                            record.VoterAdmin = context.Admins
+                                .AsNoTracking()
+                                .FirstOrDefault(a => a.AdminId == record.VoterAdminId);
+                                
+                            // 如果有管理员，再加载其部门
+                            if (record.VoterAdmin != null && record.VoterAdmin.DepartmentId.HasValue)
+                            {
+                                record.VoterAdmin.Department = context.Departments
+                                    .AsNoTracking()
+                                    .FirstOrDefault(d => d.DepartmentId == record.VoterAdmin.DepartmentId.Value);
+                            }
+                        }
+                    }
+                    
+                    // 5. 将加载的投票记录设置到提名对象
+                    nomination.VoteRecords = new System.Collections.ObjectModel.ObservableCollection<VoteRecord>(voteRecords);
+                    
                     // 设置数据上下文
-                    var viewModel = new NominationDetailsViewModel(nomination);
+                    viewModel = new NominationDetailsViewModel(nomination);
                     
                     // 设置超级管理员标志
                     SetSuperAdminFlag(viewModel);
@@ -235,36 +365,126 @@ namespace SIASGraduate.Views.EditMessage.NominationDetailsWindows
             
             try
             {
+                // 预先声明viewModel变量，避免在不同作用域重复声明
+                NominationDetailsViewModel viewModel;
+                
                 using (var context = new DataBaseContext())
                 {
-                    // 尝试加载完整的Nomination对象
+                    // 使用分步加载方式避免NotMapped属性问题
+                    
+                    // 1. 首先获取基本的提名信息，使用Select投影只获取非导航属性
                     var nomination = context.Nominations
-                        .Include(n => n.Award)
-                        .Include(n => n.Department)
-                        .Include(n => n.NominatedEmployee)
-                        .Include(n => n.NominatedAdmin)
-                        .Include(n => n.VoteRecords)
-                            .ThenInclude(v => v.VoterEmployee)
-                                .ThenInclude(e => e.Department)
-                        .Include(n => n.VoteRecords)
-                            .ThenInclude(v => v.VoterAdmin)
-                                .ThenInclude(a => a.Department)
-                        .FirstOrDefault(n => n.NominationId == voteDetail.NominationId);
+                        .AsNoTracking()
+                        .Where(n => n.NominationId == voteDetail.NominationId)
+                        .Select(n => new Nomination
+                        {
+                            NominationId = n.NominationId,
+                            AwardId = n.AwardId,
+                            DepartmentId = n.DepartmentId,
+                            NominatedEmployeeId = n.NominatedEmployeeId,
+                            NominatedAdminId = n.NominatedAdminId,
+                            ProposerEmployeeId = n.ProposerEmployeeId,
+                            ProposerAdminId = n.ProposerAdminId,
+                            Introduction = n.Introduction,
+                            NominateReason = n.NominateReason,
+                            CoverImage = n.CoverImage,
+                            NominationTime = n.NominationTime
+                        })
+                        .FirstOrDefault();
                         
-                    if (nomination != null)
+                    if (nomination == null)
                     {
-                        // 创建ViewModel并设置为数据上下文
-                        var viewModel = new NominationDetailsViewModel(nomination);
-                        
-                        // 设置超级管理员标志
+                        // 如果找不到数据，则直接使用DTO创建ViewModel
+                        viewModel = new NominationDetailsViewModel(voteDetail);
                         SetSuperAdminFlag(viewModel);
-                        
                         this.DataContext = viewModel;
+                        return;
                     }
-                    else
+                    
+                    // 2. 单独加载各个关联实体
+                    // 加载奖项
+                    if (nomination.AwardId > 0)
                     {
-                        MessageBox.Show("未找到对应的提名信息", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                        nomination.Award = context.Awards
+                            .AsNoTracking()
+                            .FirstOrDefault(a => a.AwardId == nomination.AwardId);
                     }
+                    
+                    // 加载部门
+                    if (nomination.DepartmentId.HasValue && nomination.DepartmentId.Value > 0)
+                    {
+                        nomination.Department = context.Departments
+                            .AsNoTracking()
+                            .FirstOrDefault(d => d.DepartmentId == nomination.DepartmentId.Value);
+                    }
+                    
+                    // 加载被提名员工
+                    if (nomination.NominatedEmployeeId.HasValue && nomination.NominatedEmployeeId.Value > 0)
+                    {
+                        nomination.NominatedEmployee = context.Employees
+                            .AsNoTracking()
+                            .FirstOrDefault(e => e.EmployeeId == nomination.NominatedEmployeeId.Value);
+                    }
+                    
+                    // 加载被提名管理员
+                    if (nomination.NominatedAdminId.HasValue && nomination.NominatedAdminId.Value > 0)
+                    {
+                        nomination.NominatedAdmin = context.Admins
+                            .AsNoTracking()
+                            .FirstOrDefault(a => a.AdminId == nomination.NominatedAdminId.Value);
+                    }
+                    
+                    // 3. 单独加载投票记录
+                    var voteRecords = context.VoteRecords
+                        .AsNoTracking()
+                        .Where(v => v.NominationId == voteDetail.NominationId)
+                        .OrderByDescending(v => v.VoteTime)
+                        .ToList();
+                    
+                    // 4. 加载投票记录的关联实体
+                    foreach (var record in voteRecords)
+                    {
+                        if (record.VoterEmployeeId.HasValue)
+                        {
+                            record.VoterEmployee = context.Employees
+                                .AsNoTracking()
+                                .FirstOrDefault(e => e.EmployeeId == record.VoterEmployeeId);
+                                
+                            // 如果有员工，再加载其部门
+                            if (record.VoterEmployee != null && record.VoterEmployee.DepartmentId.HasValue)
+                            {
+                                record.VoterEmployee.Department = context.Departments
+                                    .AsNoTracking()
+                                    .FirstOrDefault(d => d.DepartmentId == record.VoterEmployee.DepartmentId.Value);
+                            }
+                        }
+                        
+                        if (record.VoterAdminId.HasValue)
+                        {
+                            record.VoterAdmin = context.Admins
+                                .AsNoTracking()
+                                .FirstOrDefault(a => a.AdminId == record.VoterAdminId);
+                                
+                            // 如果有管理员，再加载其部门
+                            if (record.VoterAdmin != null && record.VoterAdmin.DepartmentId.HasValue)
+                            {
+                                record.VoterAdmin.Department = context.Departments
+                                    .AsNoTracking()
+                                    .FirstOrDefault(d => d.DepartmentId == record.VoterAdmin.DepartmentId.Value);
+                            }
+                        }
+                    }
+                    
+                    // 5. 设置投票记录到提名对象
+                    nomination.VoteRecords = new System.Collections.ObjectModel.ObservableCollection<VoteRecord>(voteRecords);
+                    
+                    // 设置数据上下文
+                    viewModel = new NominationDetailsViewModel(nomination);
+                    
+                    // 设置超级管理员标志
+                    SetSuperAdminFlag(viewModel);
+                    
+                    this.DataContext = viewModel;
                 }
             }
             catch (Exception ex)
