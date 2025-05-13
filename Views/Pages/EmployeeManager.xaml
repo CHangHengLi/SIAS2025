@@ -117,10 +117,6 @@
                         Header="员工账号" />
                     <GridViewColumn
                         Width="auto"
-                        DisplayMemberBinding="{Binding EmployeePassword}"
-                        Header="员工密码" />
-                    <GridViewColumn
-                        Width="auto"
                         DisplayMemberBinding="{Binding HireDate, Converter={StaticResource DateFormatConverter}}"
                         Header="入职日期" />
                     <GridViewColumn

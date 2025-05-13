@@ -71,11 +71,8 @@ namespace SIASGraduate.ViewModels.Pages
                 SetProperty(ref _selectedAward, value);
                 if (value != null)
                 {
-                    // 选中奖项后，重新加载提名以筛选结果
-                    LoadNominationsAsync();
-                    
-                    // 检查用户是否已对当前选择的奖项投过票
-                    CheckIfUserHasVotedAsync();
+                    // 选中奖项后，加载提名并检查投票状态
+                    LoadNominationsAndCheckVoteStatusAsync();
                 }
             }
         }
@@ -1151,6 +1148,22 @@ namespace SIASGraduate.ViewModels.Pages
                         
                         #region 更新UI状态
                         
+                        // 创建一个已达到最大投票数的奖项ID集合
+                        var maxVotedAwardIds = new HashSet<int>();
+                        foreach(var awardId in AwardVoteCount.Keys)
+                        {
+                            int maxVotes = 1;
+                            if (awardsDict.TryGetValue(awardId, out var award))
+                            {
+                                maxVotes = award.MaxVoteCount;
+                            }
+                            
+                            if (AwardVoteCount[awardId] >= maxVotes)
+                            {
+                                maxVotedAwardIds.Add(awardId);
+                            }
+                        }
+                        
                         Application.Current.Dispatcher.Invoke(() =>
                         {
                             // 更新状态消息
@@ -1185,40 +1198,34 @@ namespace SIASGraduate.ViewModels.Pages
                             
                             System.Diagnostics.Debug.WriteLine($"已投票奖项数: {VotedAwardIds.Count}, 当前奖项已投票次数: {(SelectedAward != null && AwardVoteCount.ContainsKey(SelectedAward.AwardId) ? AwardVoteCount[SelectedAward.AwardId] : 0)}");
                             
-                            // 更新所有当前显示提名的投票状态
-                            if (Nominations != null)
+                            // 更新所有当前显示提名的投票状态 - 直接批量更新，避免一个一个设置导致的UI闪烁
+                            if (Nominations != null && Nominations.Count > 0)
                             {
-                                // 创建一个用户已投票的提名ID集合
-                                var votedNominationIds = userVotes.Select(v => v.NominationId).ToHashSet();
+                                // 首先创建一个字典，将提名按奖项ID分组
+                                var nominationsByAward = Nominations
+                                    .GroupBy(n => n.AwardId)
+                                    .ToDictionary(g => g.Key, g => g.ToList());
                                 
-                                // 创建一个已达到最大投票数的奖项ID集合
-                                var maxVotedAwardIds = new HashSet<int>();
-                                foreach(var awardId in AwardVoteCount.Keys)
+                                // 批量更新已达到最大投票次数的奖项下的所有提名
+                                foreach (var awardId in maxVotedAwardIds)
                                 {
-                                    int maxVotes = 1;
-                                    if (awardsDict.TryGetValue(awardId, out var award))
-                                        {
-                                            maxVotes = award.MaxVoteCount;
-                                        }
-                                    
-                                    if (AwardVoteCount[awardId] >= maxVotes)
+                                    if (nominationsByAward.ContainsKey(awardId))
                                     {
-                                        maxVotedAwardIds.Add(awardId);
+                                        foreach (var nom in nominationsByAward[awardId])
+                                        {
+                                            // 统一设置为true，表示该奖项已达到最大投票次数
+                                            nom.IsUserVoted = true;
+                                        }
                                     }
                                 }
                                 
+                                // 批量更新未达到最大投票次数的奖项下的所有提名
                                 foreach (var nomination in Nominations)
                                 {
-                                    // 逻辑修改：如果该奖项已达到最大投票数，则所有该奖项的提名都标记为已投票状态（显示红色边框）
-                                    if (nomination.AwardId != null && maxVotedAwardIds.Contains(nomination.AwardId))
+                                    if (nomination.AwardId != null && !maxVotedAwardIds.Contains(nomination.AwardId))
                                     {
-                                        // 奖项已达到最大投票数，将所有相关提名标记为已投票状态
-                                        nomination.IsUserVoted = true;
-                                    }
-                                    else
-                                    {
-                                        // 根据用户是否对该提名投过票设置状态
-                                        nomination.IsUserVoted = votedNominationIds.Contains(nomination.NominationId);
+                                        // 统一设置为false，表示该奖项未达到最大投票次数
+                                        nomination.IsUserVoted = false;
                                     }
                                 }
                             }
@@ -1383,65 +1390,64 @@ namespace SIASGraduate.ViewModels.Pages
                                 AwardVoteCount[nomination.AwardId] = 1;
                             }
                             
-                        // 获取更新后的投票次数
+                            // 获取更新后的投票次数
                             int updatedVoteCount = AwardVoteCount[nomination.AwardId];
                             
-                        // 检查是否已达到最大投票次数
-                        bool hasReachedMaxVotes = (updatedVoteCount >= maxVoteCount);
-                        
-                        // 更新当前奖项的投票状态
-                        HasVotedCurrentAward = hasReachedMaxVotes;
-                        
-                        // 修正：为当前奖项的所有提名更新IsUserVoted状态
-                        if (hasReachedMaxVotes)
-                        {
-                            // 如果达到最大投票次数，将该奖项的所有提名标记为已投票状态
-                            foreach (var nom in Nominations.Where(n => n.AwardId == nomination.AwardId))
+                            // 检查是否已达到最大投票次数
+                            bool hasReachedMaxVotes = (updatedVoteCount >= maxVoteCount);
+                            
+                            // 更新当前奖项的投票状态
+                            HasVotedCurrentAward = hasReachedMaxVotes;
+                            
+                            // 更新UI和投票状态
+                            if (hasReachedMaxVotes)
                             {
-                                nom.IsUserVoted = true;
+                                // 如果达到最大投票次数，将该奖项的所有提名标记为已投票状态（显示红色边框）
+                                foreach (var nom in Nominations.Where(n => n.AwardId == nomination.AwardId))
+                                {
+                                    // 避免触发不必要的UI更新，只在状态真正改变时才设置
+                                    if (!nom.IsUserVoted)
+                                    {
+                                        nom.IsUserVoted = true;
+                                    }
+                                }
+                                
+                                // 添加到已投票奖项列表
+                                if (!VotedAwardIds.Contains(nomination.AwardId))
+                                {
+                                    VotedAwardIds.Add(nomination.AwardId);
+                                }
                             }
                             
-                            // 添加到已投票奖项列表
-                            if (!VotedAwardIds.Contains(nomination.AwardId))
-                            {
-                                VotedAwardIds.Add(nomination.AwardId);
-                            }
-                        }
-                        else
-                        {
-                            // 只更新当前提名的状态
-                            nomination.IsUserVoted = true;
-                        }
-                        
-                        // 更新状态信息
+                            // 更新状态信息
                             string nomineeName = nomination.NominatedEmployee?.EmployeeName ?? 
                                                nomination.NominatedAdmin?.AdminName ?? 
                                                "未知提名人";
                             
-                        // 更新状态消息
-                        if (hasReachedMaxVotes)
+                            // 更新状态消息
+                            if (hasReachedMaxVotes)
                             {
-                            StatusMessage = $"您已对 {nomineeName} 投票成功，已达到奖项 '{nomination.Award?.AwardName}' 的最大投票次数 {maxVoteCount}";
-                            HandyControl.Controls.Growl.SuccessGlobal($"投票成功！当前奖项 '{nomination.Award?.AwardName}' 能够进行的最大投票数量为：{maxVoteCount}，你已用完所有投票次数");
+                                StatusMessage = $"您已对 {nomineeName} 投票成功，已达到奖项 '{nomination.Award?.AwardName}' 的最大投票次数 {maxVoteCount}";
+                                HandyControl.Controls.Growl.SuccessGlobal($"投票成功！当前奖项 '{nomination.Award?.AwardName}' 能够进行的最大投票数量为：{maxVoteCount}，你已用完所有投票次数");
                             }
                             else
                             {
-                            int remainingVotes = maxVoteCount - updatedVoteCount;
-                            StatusMessage = $"您已对 {nomineeName} 投票成功，对奖项 '{nomination.Award?.AwardName}' 还有 {remainingVotes} 次投票机会";
-                            HandyControl.Controls.Growl.SuccessGlobal($"投票成功！当前奖项 '{nomination.Award?.AwardName}' 能够进行的最大投票数量为：{maxVoteCount}，你还剩余投票次数为：{remainingVotes}");
-                        }
-                        
-                        // 刷新命令状态
-                        VoteCommand.RaiseCanExecuteChanged();
-                });
-            }
-            catch (Exception ex)
-            {
+                                int remainingVotes = maxVoteCount - updatedVoteCount;
+                                StatusMessage = $"您已对 {nomineeName} 投票成功，对奖项 '{nomination.Award?.AwardName}' 还有 {remainingVotes} 次投票机会";
+                                HandyControl.Controls.Growl.SuccessGlobal($"投票成功！当前奖项 '{nomination.Award?.AwardName}' 能够进行的最大投票数量为：{maxVoteCount}，你还剩余投票次数为：{remainingVotes}");
+                            }
+                            
+                            // 刷新命令状态
+                            VoteCommand.RaiseCanExecuteChanged();
+                        });
+                    }
+                catch (Exception ex)
+                {
                     // 投票失败
-                StatusMessage = $"投票失败: {ex.Message}";
-                HandyControl.Controls.Growl.ErrorGlobal($"投票失败: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"投票失败: {ex}");
-            }
+                    StatusMessage = $"投票失败: {ex.Message}";
+                    HandyControl.Controls.Growl.ErrorGlobal($"投票失败: {ex.Message}");
+                    System.Diagnostics.Debug.WriteLine($"投票失败: {ex}");
+                }
             }
             
             #endregion
@@ -1676,5 +1682,17 @@ namespace SIASGraduate.ViewModels.Pages
         }
 
         #endregion
+
+        /// <summary>
+        /// 加载提名并按顺序检查投票状态，确保UI状态一致
+        /// </summary>
+        private async void LoadNominationsAndCheckVoteStatusAsync()
+        {
+            // 先加载提名
+            await LoadNominationsAsync();
+            
+            // 然后检查投票状态
+            await CheckIfUserHasVotedAsync();
+        }
     }
 }

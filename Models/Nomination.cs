@@ -181,7 +181,19 @@ namespace SIASGraduate.Models
         /// 当前用户是否已投票（不映射到数据库）
         /// </summary>
         [NotMapped]
-        public bool IsUserVoted { get; set; }
+        private bool _isUserVoted;
+        public bool IsUserVoted
+        {
+            get { return _isUserVoted; }
+            set
+            {
+                if (_isUserVoted != value)
+                {
+                    _isUserVoted = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
 
         /// <summary>
         /// 关联的投票记录

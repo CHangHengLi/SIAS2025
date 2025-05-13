@@ -585,7 +585,100 @@ namespace SIASGraduate.ViewModels.EditMessage.NominationDetailsWindows
         /// </summary>
         public NominationDelegateCommand<VoteRecord> DeleteVoteRecordCommand =>
             _deleteVoteRecordCommand ?? (_deleteVoteRecordCommand = new NominationDelegateCommand<VoteRecord>(ExecuteDeleteVoteRecordCommand, CanExecuteDeleteVoteRecordCommand));
+            
+        // 添加一键删除所有投票记录的命令
+        private NominationDelegateCommand _deleteAllVoteRecordsCommand;
+        /// <summary>
+        /// 一键删除所有投票记录的命令
+        /// </summary>
+        public NominationDelegateCommand DeleteAllVoteRecordsCommand =>
+            _deleteAllVoteRecordsCommand ?? (_deleteAllVoteRecordsCommand = new NominationDelegateCommand(ExecuteDeleteAllVoteRecordsCommand, CanExecuteDeleteAllVoteRecordsCommand));
         
+        /// <summary>
+        /// 检查是否可以执行一键删除所有投票记录的命令
+        /// </summary>
+        private bool CanExecuteDeleteAllVoteRecordsCommand()
+        {
+            // 只有超级管理员可以删除投票记录，且必须有投票记录
+            return IsSuperAdmin && Nomination?.VoteRecords != null && Nomination.VoteRecords.Count > 0;
+        }
+        
+        /// <summary>
+        /// 执行一键删除所有投票记录的命令
+        /// </summary>
+        private void ExecuteDeleteAllVoteRecordsCommand(object parameter)
+        {
+            // 确认是否要删除所有投票记录
+            if (Nomination?.VoteRecords == null || Nomination.VoteRecords.Count == 0)
+            {
+                MessageBox.Show("没有可删除的投票记录", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                return;
+            }
+            
+            int recordCount = Nomination.VoteRecords.Count;
+            
+            MessageBoxResult result = MessageBox.Show(
+                $"确定要删除此提名下的所有 {recordCount} 条投票记录吗？\n\n删除后每个投票用户将收到票数返还，他们可以重新投票。", 
+                "批量删除确认", 
+                MessageBoxButton.YesNo, 
+                MessageBoxImage.Warning);
+                
+            if (result == MessageBoxResult.Yes)
+            {
+                try
+                {
+                    using (var db = new DataBaseContext())
+                    {
+                        // 查找所有与当前提名相关的投票记录
+                        var votesToDelete = db.VoteRecords
+                            .Where(v => v.NominationId == Nomination.NominationId)
+                            .ToList();
+                        
+                        if (votesToDelete.Count > 0)
+                        {
+                            // 记录日志信息
+                            var operationDetail = $"超级管理员一键删除了提名 {Nomination.NominationId} 的所有投票记录，共 {votesToDelete.Count} 条";
+                            System.Diagnostics.Debug.WriteLine(operationDetail);
+                            
+                            // 删除所有投票记录
+                            db.VoteRecords.RemoveRange(votesToDelete);
+                            db.SaveChanges();
+                            
+                            // 清空提名对象的投票记录集合
+                            if (Nomination?.VoteRecords != null)
+                            {
+                                Nomination.VoteRecords.Clear();
+                            }
+                            
+                            // 更新投票数量属性
+                            VoteCount = 0;
+                            
+                            // 通知属性变更
+                            RaisePropertyChanged(nameof(EmployeeVoteCount));
+                            RaisePropertyChanged(nameof(AdminVoteCount));
+                            RaisePropertyChanged(nameof(TotalVoteCount));
+                            RaisePropertyChanged(nameof(VoteCount));
+                            RaisePropertyChanged(nameof(Nomination));
+                            
+                            // 发送投票更新事件
+                            _eventAggregator?.GetEvent<VoteRecordDeletedEvent>().Publish(Nomination.NominationId);
+                            
+                            // 显示成功消息
+                            MessageBox.Show($"已成功删除所有 {votesToDelete.Count} 条投票记录，用户已收到票数返还。", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
+                        }
+                        else
+                        {
+                            MessageBox.Show("未找到与此提名相关的投票记录", "提示", MessageBoxButton.OK, MessageBoxImage.Information);
+                        }
+                    }
+                }
+                catch (Exception ex)
+                {
+                    MessageBox.Show($"批量删除投票记录时出错: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                }
+            }
+        }
+
         /// <summary>
         /// 检查是否可以执行删除投票记录的命令
         /// </summary>
