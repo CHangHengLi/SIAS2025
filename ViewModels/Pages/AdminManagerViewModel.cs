@@ -385,6 +385,15 @@ namespace SIASGraduate.ViewModels.Pages
         }
         #endregion
 
+        #region 数据加载状态
+        private bool isLoading;
+        public bool IsLoading
+        {
+            get => isLoading;
+            set => SetProperty(ref isLoading, value);
+        }
+        #endregion
+
         #region 管理员更新时刷新视图
         private async void OnAdminUpdated()
         {
@@ -603,168 +612,231 @@ namespace SIASGraduate.ViewModels.Pages
 
         #region 删除员工时
 
-private void DeleteAdminWithRelatedRecords(Admin admin)
-{
-    try
-    {
-        using (var context = new DataBaseContext())
+        private async void OnDeleteAdmin(Admin admin)
         {
-            // 查找管理员
-            var dbAdmin = context.Admins.Find(admin.AdminId);
-            if (dbAdmin == null)
-                throw new Exception("未找到管理员记录");
-                
-            // 删除管理员作为被提名者的提名记录
-            var nominations = context.Nominations.Where(n => n.NominatedAdminId == admin.AdminId).ToList();
-            foreach (var nomination in nominations)
+            if (admin == null)
             {
-                // 删除提名关联的投票记录
-                var voteRecords = context.VoteRecords.Where(v => v.NominationId == nomination.NominationId).ToList();
-                if (voteRecords.Any())
-                    context.VoteRecords.RemoveRange(voteRecords);
-                
-                // 删除提名关联的评论记录
-                var commentRecords = context.CommentRecords.Where(c => c.NominationId == nomination.NominationId).ToList();
-                if (commentRecords.Any())
-                    context.CommentRecords.RemoveRange(commentRecords);
+                Growl.WarningGlobal("请选择要删除的管理员");
+                return;
             }
-            if (nominations.Any())
-                context.Nominations.RemoveRange(nominations);
-            
-            // 删除管理员作为提议人的提名记录
-            var proposedNominations = context.Nominations.Where(n => n.ProposerAdminId == admin.AdminId).ToList();
-            foreach (var nomination in proposedNominations)
-            {
-                // 删除提名关联的投票记录
-                var voteRecords = context.VoteRecords.Where(v => v.NominationId == nomination.NominationId).ToList();
-                if (voteRecords.Any())
-                    context.VoteRecords.RemoveRange(voteRecords);
-                
-                // 删除提名关联的评论记录
-                var commentRecords = context.CommentRecords.Where(c => c.NominationId == nomination.NominationId).ToList();
-                if (commentRecords.Any())
-                    context.CommentRecords.RemoveRange(commentRecords);
-            }
-            if (proposedNominations.Any())
-                context.Nominations.RemoveRange(proposedNominations);
-            
-            // 删除管理员作为被提名者的申报记录
-            var declarations = context.NominationDeclarations.Where(n => n.NominatedAdminId == admin.AdminId).ToList();
-            if (declarations.Any())
-                context.NominationDeclarations.RemoveRange(declarations);
-            
-            // 删除管理员作为申报人的申报记录
-            var declaredDeclarations = context.NominationDeclarations.Where(n => n.DeclarerAdminId == admin.AdminId).ToList();
-            if (declaredDeclarations.Any())
-                context.NominationDeclarations.RemoveRange(declaredDeclarations);
-            
-            // 删除管理员本身
-            context.Admins.Remove(dbAdmin);
-            context.SaveChanges();
-            
-            Growl.SuccessGlobal($"管理员 {admin.AdminName} 及其关联记录删除成功");
-            TempAdmins = Admins = new ObservableCollection<Admin>(context.Admins);
-            OnSearchAdmin();
-        }
-    }
-    catch (Exception ex)
-    {
-        throw new Exception($"删除管理员及关联记录时出错: {ex.Message}");
-    }
-}
 
-       private async void OnDeleteAdmin(Admin admin)
-{
-    if (admin == null)
-    {
-        Growl.WarningGlobal("请选择要删除的管理员");
-        return;
-    }
-
-    try
-    {
-        // 检查管理员是否有关联记录
-        using (var context = new DataBaseContext())
-        {
-            // 查询管理员作为被提名者的提名记录
-            int nominatedCount = context.Nominations.Count(n => n.NominatedAdminId == admin.AdminId);
-            // 查询管理员作为提议人的提名记录
-            int proposerCount = context.Nominations.Count(n => n.ProposerAdminId == admin.AdminId);
-            // 查询管理员作为被提名者的申报记录
-            int declaredCount = context.NominationDeclarations.Count(n => n.NominatedAdminId == admin.AdminId);
-            // 查询管理员作为申报人的申报记录
-            int declarerCount = context.NominationDeclarations.Count(n => n.DeclarerAdminId == admin.AdminId);
-            
-            int nominationCount = nominatedCount + proposerCount;
-            int declarationCount = declaredCount + declarerCount;
-            
-            // 如果有关联记录，显示特殊的确认对话框
-            if (nominationCount > 0 || declarationCount > 0)
+            try
             {
-                // 构建提示消息
-                string message = "";
-                if (nominationCount > 0 && declarationCount > 0)
+                // 检查管理员是否有关联记录
+                using (var context = new DataBaseContext())
                 {
-                    message = $"当前管理员有关联的奖项提名({nominationCount}条)和提名申报({declarationCount}条)，是否删除该管理员及其所有关联记录？";
+                    // 查询管理员作为被提名者的提名记录
+                    int nominatedCount = context.Nominations.Count(n => n.NominatedAdminId == admin.AdminId);
+                    // 查询管理员作为提议人的提名记录
+                    int proposerCount = context.Nominations.Count(n => n.ProposerAdminId == admin.AdminId);
+                    // 查询管理员作为被提名者的申报记录
+                    int declaredCount = context.NominationDeclarations.Count(n => n.NominatedAdminId == admin.AdminId);
+                    // 查询管理员作为申报人的申报记录
+                    int declarerCount = context.NominationDeclarations.Count(n => n.DeclarerAdminId == admin.AdminId);
+                    // 查询管理员作为投票者的投票记录
+                    int voterCount = context.VoteRecords.Count(v => v.VoterAdminId == admin.AdminId);
+                    
+                    int nominationCount = nominatedCount + proposerCount;
+                    int declarationCount = declaredCount + declarerCount;
+                    
+                    // 如果有关联记录，显示特殊的确认对话框
+                    if (nominationCount > 0 || declarationCount > 0 || voterCount > 0)
+                    {
+                        // 构建提示消息
+                        string message = "当前管理员有关联记录:";
+                        List<string> details = new List<string>();
+                        
+                        if (nominationCount > 0)
+                            details.Add($"奖项提名({nominationCount}条)");
+                        if (declarationCount > 0)
+                            details.Add($"提名申报({declarationCount}条)");
+                        if (voterCount > 0)
+                            details.Add($"投票记录({voterCount}条)");
+                            
+                        message += string.Join("、", details);
+                        message += "，是否删除该管理员及其所有关联记录？";
+                        
+                        // 显示Growl确认对话框
+                        Growl.AskGlobal(message, (result) =>
+                        {
+                            if (result)
+                            {
+                                try
+                                {
+                                    DeleteAdminWithRelatedRecordsAsync(admin);
+                                }
+                                catch (Exception ex)
+                                {
+                                    Growl.ErrorGlobal($"管理员删除失败: {ex.Message}");
+                                }
+                            }
+                            return true;
+                        });
+                        return;
+                    }
                 }
-                else if (nominationCount > 0)
-                {
-                    message = $"当前管理员有关联的奖项提名({nominationCount}条)，是否删除该管理员及其所有关联记录？";
-                }
-                else
-                {
-                    message = $"当前管理员有关联的提名申报({declarationCount}条)，是否删除该管理员及其所有关联记录？";
-                }
-                
-                // 显示Growl确认对话框
-                Growl.AskGlobal(message, (result) =>
+
+                // 如果没有关联记录，使用原有确认对话框
+                Growl.AskGlobal($"确认删除管理员 {admin.AdminName} 吗？此操作不可逆", (result) =>
                 {
                     if (result)
                     {
                         try
                         {
-                            DeleteAdminWithRelatedRecords(admin);
+                            // 对于没有关联记录的管理员，使用简单的直接删除
+                            using (var context = new DataBaseContext())
+                            {
+                                var dbAdmin = context.Admins.Find(admin.AdminId);
+                                if (dbAdmin != null)
+                                {
+                                    context.Admins.Remove(dbAdmin);
+                                    context.SaveChanges();
+                                    Growl.SuccessGlobal($"管理员 {admin.AdminName} 删除成功");
+                                    
+                                    // 刷新列表
+                                    Admins = new ObservableCollection<Admin>(context.Admins.ToList());
+                                    TempAdmins = new ObservableCollection<Admin>(Admins.Where(e => e.IsActive == true));
+                                    OnSearchAdmin();
+                                }
+                                else
+                                {
+                                    Growl.ErrorGlobal($"找不到管理员: ID={admin.AdminId}");
+                                }
+                            }
                         }
                         catch (Exception ex)
                         {
-                            Growl.ErrorGlobal($"管理员删除失败: {ex.Message}");
+                            logger.Error($"简单删除管理员失败，尝试级联删除: {ex.Message}");
+                            Growl.WarningGlobal("简单删除失败，尝试级联删除...");
+                            DeleteAdminWithRelatedRecordsAsync(admin);
                         }
                     }
                     return true;
                 });
-                return;
+            }
+            catch (Exception ex)
+            {
+                Growl.ErrorGlobal($"处理管理员删除时出错: {ex.Message}");
             }
         }
+        #endregion
 
-        // 如果没有关联记录，使用原有确认对话框
-        Growl.AskGlobal($"确认删除管理员 {admin.AdminName} 吗？此操作不可逆", (result) =>
+        #region 管理员级联删除
+        private async void DeleteAdminWithRelatedRecordsAsync(Admin admin)
         {
-            if (result)
+            try
             {
-                try
+                IsLoading = true;
+                logger.Info($"开始级联删除管理员记录: ID={admin.AdminId}, 名称={admin.AdminName}");
+                
+                bool success = await adminService.DeleteAdminWithRelatedRecords(admin.AdminId);
+                
+                if (success)
                 {
+                    logger.Info($"管理员级联删除成功: ID={admin.AdminId}");
+                    Growl.SuccessGlobal($"管理员 {admin.AdminName} 及其关联记录删除成功");
+                    
+                    // 刷新列表
                     using (var context = new DataBaseContext())
                     {
-                        context.Admins.Remove(admin);
-                        context.SaveChanges();
-                        Growl.SuccessGlobal($"管理员 {admin.AdminName} 删除成功");
-                        TempAdmins = Admins = new ObservableCollection<Admin>(context.Admins);
+                        Admins = new ObservableCollection<Admin>(context.Admins.ToList());
+                        TempAdmins = new ObservableCollection<Admin>(Admins.Where(e => e.IsActive == true));
                         OnSearchAdmin();
                     }
                 }
-                catch (Exception)
+                else
                 {
-                    Growl.ErrorGlobal("管理员删除失败");
+                    logger.Error($"级联删除管理员失败: ID={admin.AdminId}");
+                    Growl.ErrorGlobal($"管理员删除失败，请尝试更彻底的级联删除");
+                    TryForceDeleteAdminAsync(admin);
                 }
             }
-            return true;
-        });
-    }
-    catch (Exception ex)
-    {
-        Growl.ErrorGlobal($"处理管理员删除时出错: {ex.Message}");
-    }
-}
+            catch (Exception ex)
+            {
+                logger.Error($"删除管理员时出错: {ex.Message}");
+                Growl.ErrorGlobal($"删除管理员及关联记录时出错: {ex.Message}");
+                TryForceDeleteAdminAsync(admin);
+            }
+            finally
+            {
+                IsLoading = false;
+            }
+        }
+        #endregion
+
+        #region 尝试更彻底的删除
+        /// <summary>
+        /// 尝试强制删除管理员，绕过EF Core处理可能存在的问题
+        /// </summary>
+        private async void TryForceDeleteAdminAsync(Admin admin)
+        {
+            try
+            {
+                IsLoading = true;
+                Growl.InfoGlobal("正在尝试更彻底的级联删除...");
+                
+                // 显示确认对话框
+                Growl.AskGlobal("标准删除失败，是否尝试更彻底的级联删除？此操作将直接从数据库中删除所有关联记录，不可逆", (result) =>
+                {
+                    if (result)
+                    {
+                        ExecuteDirectSqlDeleteAsync(admin);
+                    }
+                    else
+                    {
+                        IsLoading = false;
+                        Growl.InfoGlobal("已取消彻底级联删除");
+                    }
+                    return true;
+                });
+            }
+            catch (Exception ex)
+            {
+                IsLoading = false;
+                logger.Error($"尝试彻底级联删除时发生异常: {ex.Message}");
+                Growl.ErrorGlobal($"处理删除请求时出错: {ex.Message}");
+            }
+        }
+
+        /// <summary>
+        /// 执行直接SQL语句删除
+        /// </summary>
+        private async void ExecuteDirectSqlDeleteAsync(Admin admin)
+        {
+            try
+            {
+                logger.Info($"开始执行管理员的彻底级联删除: ID={admin.AdminId}");
+                bool success = await adminService.ExecuteDirectSqlDelete(admin.AdminId);
+                
+                if (success)
+                {
+                    logger.Info($"管理员彻底级联删除成功: ID={admin.AdminId}");
+                    Growl.SuccessGlobal($"管理员 {admin.AdminName} 及其关联记录已成功删除");
+                    
+                    // 刷新列表
+                    using (var context = new DataBaseContext())
+                    {
+                        Admins = new ObservableCollection<Admin>(context.Admins.ToList());
+                        TempAdmins = new ObservableCollection<Admin>(Admins.Where(e => e.IsActive == true));
+                        OnSearchAdmin();
+                    }
+                }
+                else
+                {
+                    logger.Error($"管理员彻底级联删除失败: ID={admin.AdminId}");
+                    Growl.ErrorGlobal("彻底级联删除失败，请联系系统管理员");
+                }
+            }
+            catch (Exception ex)
+            {
+                logger.Error($"彻底级联删除管理员时出错: {ex.Message}");
+                Growl.ErrorGlobal($"彻底级联删除时出错: {ex.Message}");
+            }
+            finally
+            {
+                IsLoading = false;
+            }
+        }
         #endregion
 
         #region 员工(新增)更新时更新视图列表

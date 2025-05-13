@@ -11,5 +11,7 @@ namespace SIASGraduate.Services
         bool IsAdminAccountExist(string account);
         void AddAdmin(Admin newAdmin);
         bool ExportAdmins(List<Admin> admins, string filePath);
+        Task<bool> DeleteAdminWithRelatedRecords(int adminId);
+        Task<bool> ExecuteDirectSqlDelete(int adminId);
     }
 }
