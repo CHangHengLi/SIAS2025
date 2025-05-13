@@ -49,20 +49,25 @@
                 
                 <!-- 封面图片 -->
                 <Label Content="封面图片:" Margin="0,5"/>
-                <Grid Height="100" Margin="0,0,0,10">
-                    <Border BorderBrush="#CCCCCC" BorderThickness="1">
+                <StackPanel Margin="0,0,0,10">
+                    <!-- 图片预览区域 -->
+                    <Border Height="100" BorderBrush="#CCCCCC" BorderThickness="1" Margin="0,0,0,5">
                         <Image Source="{Binding CoverImagePreview}"
                                Stretch="Uniform"
                                Margin="2"/>
                     </Border>
+                    
+                    <!-- 选择图片按钮 -->
                     <Button Content="选择图片" 
                             Command="{Binding SelectImageCommand}"
-                            HorizontalAlignment="Right" 
-                            VerticalAlignment="Bottom"
-                            Margin="5"
-                            Width="80"
-                            Height="25"/>
-                </Grid>
+                            HorizontalAlignment="Center"
+                            Width="100"
+                            Height="28"
+                            Padding="10,0"
+                            Background="#4285F4"
+                            BorderBrush="#3367D6"
+                            Foreground="White"/>
+                </StackPanel>
                 
                 <!-- 按钮区域 -->
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Margin="0,10,0,0">

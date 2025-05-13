@@ -183,7 +183,7 @@ namespace SIASGraduate.ViewModels.Pages
 
             // 审核命令
             ApproveCommand = new DelegateCommand<NominationDeclaration>(OnApproveDeclaration);
-            RejectCommand = new DelegateCommand<NominationDeclaration>(OnDeclarationRejected);
+            RejectCommand = new DelegateCommand<NominationDeclaration>(OnRejectDeclaration);
 
             // 转为提名命令
             PromoteCommand = new DelegateCommand<NominationDeclaration>(OnPromoteDeclaration);
@@ -449,6 +449,9 @@ namespace SIASGraduate.ViewModels.Pages
 
             try
             {
+                // 记录当前选中项的ID，以便在数据加载后恢复选中状态
+                int? selectedDeclarationId = SelectedDeclaration?.DeclarationId;
+                
                 // 显示加载状态
                 IsLoading = true;
 
@@ -487,6 +490,35 @@ namespace SIASGraduate.ViewModels.Pages
                             lastLoadTime = DateTime.Now;
 
                             UpdateListViewData();
+                            
+                            // 恢复选中状态
+                            if (selectedDeclarationId.HasValue)
+                            {
+                                SelectedDeclaration = ListViewDeclarations.FirstOrDefault(d => d.DeclarationId == selectedDeclarationId);
+                                
+                                // 如果在当前页找不到，则尝试在整个数据集中查找
+                                if (SelectedDeclaration == null)
+                                {
+                                    var declarationInAllData = Declarations.FirstOrDefault(d => d.DeclarationId == selectedDeclarationId);
+                                    if (declarationInAllData != null)
+                                    {
+                                        // 计算该项应该在哪一页
+                                        var listIndex = Declarations.IndexOf(declarationInAllData);
+                                        if (listIndex >= 0)
+                                        {
+                                            int targetPage = (listIndex / PageSize) + 1;
+                                            // 只有在页码有效时才进行切换
+                                            if (targetPage > 0 && targetPage <= MaxPage && targetPage != CurrentPage)
+                                            {
+                                                CurrentPage = targetPage;
+                                                UpdateListViewData();
+                                                // 在新页面中再次查找并设置选中状态
+                                                SelectedDeclaration = ListViewDeclarations.FirstOrDefault(d => d.DeclarationId == selectedDeclarationId);
+                                            }
+                                        }
+                                    }
+                                }
+                            }
 
                             // 更新调试信息，确保加载的是正确类型的数据
                             System.Diagnostics.Debug.WriteLine($"加载完成，申报数据条数：{Declarations.Count}，类型: NominationDeclaration");
@@ -610,42 +642,72 @@ namespace SIASGraduate.ViewModels.Pages
         #endregion
 
         #region 搜索申报
-        private void OnSearchDeclaration()
+        private async void OnSearchDeclaration()
         {
             try
             {
                 if (Declarations == null) return;
 
-                // 首先根据状态筛选
-                var filteredByStatus = SelectedStatus.Key == -1
-                    ? Declarations.ToList()
-                    : Declarations.Where(d => d.Status == SelectedStatus.Key).ToList();
+                // 显示加载状态
+                IsLoading = true;
 
-                // 再根据关键词筛选
-                if (!string.IsNullOrWhiteSpace(SearchKeyword))
+                // 使用Task.Run在后台线程执行筛选操作
+                await Task.Run(() =>
                 {
-                    filteredByStatus = filteredByStatus.Where(d =>
-                        (d.Award?.AwardName?.Contains(SearchKeyword) ?? false) ||
-                        (d.NominatedEmployee?.EmployeeName?.Contains(SearchKeyword) ?? false) ||
-                        (d.NominatedAdmin?.AdminName?.Contains(SearchKeyword) ?? false) ||
-                        (d.Department?.DepartmentName?.Contains(SearchKeyword) ?? false) ||
-                        (d.Introduction?.Contains(SearchKeyword) ?? false) ||
-                        (d.DeclarationReason?.Contains(SearchKeyword) ?? false) ||
-                        (d.DeclarerEmployee?.EmployeeName?.Contains(SearchKeyword) ?? false) ||
-                        (d.DeclarerAdmin?.AdminName?.Contains(SearchKeyword) ?? false) ||
-                        (d.ReviewerEmployee?.EmployeeName?.Contains(SearchKeyword) ?? false) ||
-                        (d.ReviewerAdmin?.AdminName?.Contains(SearchKeyword) ?? false) ||
-                        (d.ReviewerSupAdmin?.SupAdminName?.Contains(SearchKeyword) ?? false)
-                    ).ToList();
-                }
+                    List<NominationDeclaration> filteredByStatus;
+                    
+                    // 首先根据状态筛选
+                    if (SelectedStatus.Key == -1)
+                        filteredByStatus = Declarations.ToList();
+                    else
+                        filteredByStatus = Declarations.Where(d => d.Status == SelectedStatus.Key).ToList();
 
-                TempViewDeclarations = new ObservableCollection<NominationDeclaration>(filteredByStatus);
-                CurrentPage = 1;
-                UpdateListViewData();
+                    // 再根据关键词筛选
+                    if (!string.IsNullOrWhiteSpace(SearchKeyword))
+                    {
+                        filteredByStatus = filteredByStatus.Where(d =>
+                            (d.Award?.AwardName?.Contains(SearchKeyword) ?? false) ||
+                            (d.NominatedEmployee?.EmployeeName?.Contains(SearchKeyword) ?? false) ||
+                            (d.NominatedAdmin?.AdminName?.Contains(SearchKeyword) ?? false) ||
+                            (d.Department?.DepartmentName?.Contains(SearchKeyword) ?? false) ||
+                            (d.Introduction?.Contains(SearchKeyword) ?? false) ||
+                            (d.DeclarationReason?.Contains(SearchKeyword) ?? false) ||
+                            (d.DeclarerEmployee?.EmployeeName?.Contains(SearchKeyword) ?? false) ||
+                            (d.DeclarerAdmin?.AdminName?.Contains(SearchKeyword) ?? false) ||
+                            (d.ReviewerEmployee?.EmployeeName?.Contains(SearchKeyword) ?? false) ||
+                            (d.ReviewerAdmin?.AdminName?.Contains(SearchKeyword) ?? false) ||
+                            (d.ReviewerSupAdmin?.SupAdminName?.Contains(SearchKeyword) ?? false)
+                        ).ToList();
+                    }
+
+                    // 在UI线程上更新集合
+                    App.Current.Dispatcher.Invoke(() =>
+                    {
+                        TempViewDeclarations = new ObservableCollection<NominationDeclaration>(filteredByStatus);
+                        CurrentPage = 1;
+                        UpdateListViewData();
+                        
+                        // 在完成搜索后显示结果数量
+                        if (filteredByStatus.Count == 0)
+                        {
+                            Growl.InfoGlobal($"没有找到符合条件的记录");
+                        }
+                        else
+                        {
+                            Growl.InfoGlobal($"找到 {filteredByStatus.Count} 条符合条件的记录");
+                        }
+                    });
+                });
             }
             catch (Exception ex)
             {
                 Growl.ErrorGlobal($"搜索申报失败: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"搜索异常详情: {ex}");
+            }
+            finally
+            {
+                // 隐藏加载状态
+                IsLoading = false;
             }
         }
         #endregion
@@ -794,7 +856,7 @@ namespace SIASGraduate.ViewModels.Pages
         #endregion
 
         #region 删除申报
-        private void OnDeleteDeclaration(NominationDeclaration declaration)
+        private async void OnDeleteDeclaration(NominationDeclaration declaration)
         {
             if (declaration == null) return;
 
@@ -833,116 +895,129 @@ namespace SIASGraduate.ViewModels.Pages
 
             try
             {
-                using (var context = new DataBaseContext())
+                // 显示加载状态
+                IsLoading = true;
+                
+                // 使用Task.Run在后台线程执行删除操作
+                await Task.Run(async () => 
                 {
-                    // 查询时加载关联实体，以便获取准确的奖项名称和被提名人姓名
-                    var entity = context.NominationDeclarations
-                        .Include(n => n.Award)
-                        .Include(n => n.NominatedEmployee)
-                        .Include(n => n.NominatedAdmin)
-                        .FirstOrDefault(n => n.DeclarationId == declaration.DeclarationId);
-
-                    if (entity != null)
+                    using (var context = new DataBaseContext())
                     {
-                        // 删除申报时保留日志记录
-                        // 将申报标记为已取消状态，而不是物理删除
-                        entity.Status = 4; // 设置为取消状态
+                        // 查询时加载关联实体，以便获取准确的奖项名称和被提名人姓名
+                        var entity = await context.NominationDeclarations
+                            .Include(n => n.Award)
+                            .Include(n => n.NominatedEmployee)
+                            .Include(n => n.NominatedAdmin)
+                            .FirstOrDefaultAsync(n => n.DeclarationId == declaration.DeclarationId);
 
-                        // 添加删除操作日志
-                        var log = new NominationLog
+                        if (entity != null)
                         {
-                            DeclarationId = entity.DeclarationId,
-                            OperationType = 6, // 删除操作
-                            OperationTime = DateTime.Now,
-                            Content = $"删除操作：{entity.Award?.AwardName ?? "未知奖项"}-{entity.NominatedName}的申报"
-                        };
+                            // 删除申报时保留日志记录
+                            // 将申报标记为已取消状态，而不是物理删除
+                            entity.Status = 4; // 设置为取消状态
 
-                        // 根据当前用户角色设置操作者ID
-                        switch (CurrentUser.RoleId)
-                        {
-                            case 1: // 超级管理员
-                                log.OperatorSupAdminId = CurrentUser.AdminId;
-                                log.OperatorAdminId = null;
-                                log.OperatorEmployeeId = null;
-                                break;
-                            case 2: // 管理员
-                                log.OperatorAdminId = CurrentUser.AdminId;
-                                log.OperatorSupAdminId = null;
-                                log.OperatorEmployeeId = null;
-                                break;
-                            case 3: // 普通员工
-                                log.OperatorEmployeeId = CurrentUser.EmployeeId;
-                                log.OperatorAdminId = null;
-                                log.OperatorSupAdminId = null;
-                                break;
+                            // 添加删除操作日志
+                            var log = new NominationLog
+                            {
+                                DeclarationId = entity.DeclarationId,
+                                OperationType = 6, // 删除操作
+                                OperationTime = DateTime.Now,
+                                Content = $"删除操作：{entity.Award?.AwardName ?? "未知奖项"}-{entity.NominatedName}的申报"
+                            };
+
+                            // 根据当前用户角色设置操作者ID
+                            switch (CurrentUser.RoleId)
+                            {
+                                case 1: // 超级管理员
+                                    log.OperatorSupAdminId = CurrentUser.AdminId;
+                                    log.OperatorAdminId = null;
+                                    log.OperatorEmployeeId = null;
+                                    break;
+                                case 2: // 管理员
+                                    log.OperatorAdminId = CurrentUser.AdminId;
+                                    log.OperatorSupAdminId = null;
+                                    log.OperatorEmployeeId = null;
+                                    break;
+                                case 3: // 普通员工
+                                    log.OperatorEmployeeId = CurrentUser.EmployeeId;
+                                    log.OperatorAdminId = null;
+                                    log.OperatorSupAdminId = null;
+                                    break;
+                            }
+
+                            context.NominationLogs.Add(log);
+                            await context.SaveChangesAsync();
+
+                            // 在UI线程上更新界面
+                            App.Current.Dispatcher.Invoke(() =>
+                            {
+                                Growl.SuccessGlobal("申报删除成功");
+
+                                // 从原始数据集合中移除
+                                var itemToRemove = Declarations.FirstOrDefault(d => d.DeclarationId == declaration.DeclarationId);
+                                if (itemToRemove != null)
+                                {
+                                    Declarations.Remove(itemToRemove);
+                                }
+
+                                // 从过滤后的数据集合中移除
+                                var tempItem = TempViewDeclarations.FirstOrDefault(d => d.DeclarationId == declaration.DeclarationId);
+                                if (tempItem != null)
+                                {
+                                    TempViewDeclarations.Remove(tempItem);
+                                }
+
+                                // 从当前显示的集合中移除
+                                var listItem = ListViewDeclarations.FirstOrDefault(d => d.DeclarationId == declaration.DeclarationId);
+                                if (listItem != null)
+                                {
+                                    ListViewDeclarations.Remove(listItem);
+                                }
+
+                                // 更新分页信息
+                                TotalRecords = TempViewDeclarations.Count;
+                                MaxPage = TotalRecords % PageSize == 0 ?
+                                    (TotalRecords / PageSize) :
+                                    ((TotalRecords / PageSize) + 1);
+
+                                // 如果当前页没有数据了但还有前一页，则自动跳转到前一页
+                                if (ListViewDeclarations.Count == 0 && CurrentPage > 1)
+                                {
+                                    CurrentPage--;
+                                    UpdateListViewData();
+                                }
+                                else if (MaxPage == 0)
+                                {
+                                    // 如果没有数据了，重置页码
+                                    CurrentPage = 1;
+                                    MaxPage = 1;
+                                    RefreshPaginationStatus();
+                                }
+                                else
+                                {
+                                    // 刷新当前页数据
+                                    UpdateListViewData();
+                                }
+
+                                // 发布删除事件
+                                eventAggregator.GetEvent<NominationDeclarationDeleteEvent>().Publish(declaration.DeclarationId);
+                            });
                         }
-
-                        context.NominationLogs.Add(log);
-                        context.SaveChanges();
-
-                        Growl.SuccessGlobal("申报删除成功");
-
-                        // 立即从UI集合中移除该项，而不是等待LoadDeclarationsAsync重新加载
-                        App.Current.Dispatcher.Invoke(() =>
-                        {
-                            // 从原始数据集合中移除
-                            var itemToRemove = Declarations.FirstOrDefault(d => d.DeclarationId == declaration.DeclarationId);
-                            if (itemToRemove != null)
-                            {
-                                Declarations.Remove(itemToRemove);
-                            }
-
-                            // 从过滤后的数据集合中移除
-                            var tempItem = TempViewDeclarations.FirstOrDefault(d => d.DeclarationId == declaration.DeclarationId);
-                            if (tempItem != null)
-                            {
-                                TempViewDeclarations.Remove(tempItem);
-                            }
-
-                            // 从当前显示的集合中移除
-                            var listItem = ListViewDeclarations.FirstOrDefault(d => d.DeclarationId == declaration.DeclarationId);
-                            if (listItem != null)
-                            {
-                                ListViewDeclarations.Remove(listItem);
-                            }
-
-                            // 更新分页信息
-                            TotalRecords = TempViewDeclarations.Count;
-                            MaxPage = TotalRecords % PageSize == 0 ?
-                                (TotalRecords / PageSize) :
-                                ((TotalRecords / PageSize) + 1);
-
-                            // 如果当前页没有数据了但还有前一页，则自动跳转到前一页
-                            if (ListViewDeclarations.Count == 0 && CurrentPage > 1)
-                            {
-                                CurrentPage--;
-                                UpdateListViewData();
-                            }
-                            else if (MaxPage == 0)
-                            {
-                                // 如果没有数据了，重置页码
-                                CurrentPage = 1;
-                                MaxPage = 1;
-                                RefreshPaginationStatus();
-                            }
-                            else
-                            {
-                                // 刷新当前页数据
-                                UpdateListViewData();
-                            }
-                        });
-
-                        // 发布删除事件
-                        eventAggregator.GetEvent<NominationDeclarationDeleteEvent>().Publish(declaration.DeclarationId);
                     }
-                }
+                });
             }
             catch (Exception ex)
             {
                 Growl.ErrorGlobal($"删除申报失败：{ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"删除异常详情: {ex}");
 
                 // 确保在出错时也会刷新数据
                 LoadDeclarationsAsync();
+            }
+            finally
+            {
+                // 隐藏加载状态
+                IsLoading = false;
             }
         }
         #endregion
@@ -985,51 +1060,64 @@ namespace SIASGraduate.ViewModels.Pages
             {
                 Title = "审核确认",
                 Width = 400,
-                Height = 250,
+                Height = 300,
                 WindowStartupLocation = WindowStartupLocation.CenterScreen,
                 ResizeMode = ResizeMode.NoResize
             };
 
-            var grid = new Grid { Margin = new Thickness(10) };
+            var grid = new Grid { Margin = new Thickness(20) };
             grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
             grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
             grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
 
-            var titleLabel = new Label
+            // 更美观的标题文本块
+            var titleTextBlock = new System.Windows.Controls.TextBlock
             {
-                Content = "确认通过此申报吗？",
-                FontSize = 16,
+                Text = "确认通过此申报吗？",
+                FontSize = 18,
                 FontWeight = FontWeights.Bold,
-                Margin = new Thickness(0, 0, 0, 10)
+                Margin = new Thickness(0, 0, 0, 15),
+                TextAlignment = TextAlignment.Center,
+                Foreground = new SolidColorBrush(MediaColor.FromRgb(0, 100, 0))
             };
 
-            var commentLabel = new Label
+            // 审核意见文本块，居中显示并去掉外边框
+            var commentTextBlock = new System.Windows.Controls.TextBlock
             {
-                Content = "审核意见：",
-                Margin = new Thickness(0, 5, 0, 5)
+                Text = "审核意见：",
+                FontSize = 14,
+                FontWeight = FontWeights.SemiBold,
+                Margin = new Thickness(0, 0, 0, 10),
+                TextAlignment = TextAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Center
             };
 
+            // 文本框添加边框和样式
             var commentTextBox = new System.Windows.Controls.TextBox
             {
-                Height = 80,
+                Height = 100,
                 TextWrapping = TextWrapping.Wrap,
                 AcceptsReturn = true,
-                VerticalScrollBarVisibility = ScrollBarVisibility.Auto
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                Padding = new Thickness(8),
+                FontSize = 14,
+                BorderThickness = new Thickness(1),
+                BorderBrush = new SolidColorBrush(MediaColor.FromRgb(180, 220, 180))
             };
 
             var buttonPanel = new StackPanel
             {
                 Orientation = Orientation.Horizontal,
                 HorizontalAlignment = HorizontalAlignment.Right,
-                Margin = new Thickness(0, 10, 0, 0)
+                Margin = new Thickness(0, 15, 0, 0)
             };
 
             var confirmButton = new Button
             {
                 Content = "确认通过",
-                Width = 80,
-                Height = 30,
+                Width = 100,
+                Height = 35,
                 Margin = new Thickness(0, 0, 10, 0),
                 Style = Application.Current.FindResource("LoginButtonStyle") as Style
             };
@@ -1038,158 +1126,504 @@ namespace SIASGraduate.ViewModels.Pages
             {
                 Content = "取消",
                 Width = 80,
-                Height = 30,
+                Height = 35,
                 Style = Application.Current.FindResource("LoginButtonStyle") as Style
             };
 
             buttonPanel.Children.Add(confirmButton);
             buttonPanel.Children.Add(cancelButton);
 
-            Grid.SetRow(titleLabel, 0);
-            Grid.SetRow(commentLabel, 1);
+            Grid.SetRow(titleTextBlock, 0);
+            Grid.SetRow(commentTextBlock, 1);
             Grid.SetRow(commentTextBox, 2);
             Grid.SetRow(buttonPanel, 3);
 
-            grid.Children.Add(titleLabel);
-            grid.Children.Add(commentLabel);
+            grid.Children.Add(titleTextBlock);
+            grid.Children.Add(commentTextBlock);
             grid.Children.Add(commentTextBox);
             grid.Children.Add(buttonPanel);
 
             dialog.Content = grid;
 
             // 绑定事件
-            confirmButton.Click += (s, e) =>
+            confirmButton.Click += async (s, e) =>
             {
                 try
                 {
-                    using (var context = new DataBaseContext())
+                    // 在UI线程获取TextBox的值，避免线程访问错误
+                    string reviewComment = commentTextBox.Text;
+                    
+                    // 显示加载状态
+                    IsLoading = true;
+                    
+                    // 异步执行审核操作
+                    await Task.Run(async () =>
                     {
-                        var entity = context.NominationDeclarations.Find(declaration.DeclarationId);
-                        if (entity != null)
+                        using (var context = new DataBaseContext())
                         {
-                            entity.Status = 1; // 已通过
-                            entity.ReviewComment = commentTextBox.Text;
-                            entity.ReviewTime = DateTime.Now;
-
-                            // 设置审核人
-                            switch (CurrentUser.RoleId)
+                            var entity = await context.NominationDeclarations.FindAsync(declaration.DeclarationId);
+                            if (entity != null)
                             {
-                                case 1: // 超级管理员
-                                    entity.ReviewerSupAdminId = CurrentUser.AdminId;
-                                    break;
-                                case 2: // 管理员
-                                    entity.ReviewerAdminId = CurrentUser.AdminId;
-                                    break;
+                                entity.Status = 1; // 已通过
+                                entity.ReviewComment = reviewComment; // 使用预先获取的文本值
+                                entity.ReviewTime = DateTime.Now;
+
+                                // 设置审核人
+                                switch (CurrentUser.RoleId)
+                                {
+                                    case 1: // 超级管理员
+                                        entity.ReviewerSupAdminId = CurrentUser.AdminId;
+                                        break;
+                                    case 2: // 管理员
+                                        entity.ReviewerAdminId = CurrentUser.AdminId;
+                                        break;
+                                }
+
+                                await context.SaveChangesAsync();
+
+                                // 添加审核日志
+                                var log = new NominationLog
+                                {
+                                    DeclarationId = entity.DeclarationId,
+                                    OperationType = 2, // 审核通过
+                                    OperationTime = DateTime.Now,
+                                    Content = $"审核意见：{reviewComment}" // 使用预先获取的文本值
+                                };
+
+                                // 添加操作日志
+                                switch (CurrentUser.RoleId)
+                                {
+                                    case 1: // 超级管理员
+                                        log.OperatorSupAdminId = CurrentUser.AdminId;
+                                        log.OperatorAdminId = null;
+                                        log.OperatorEmployeeId = null;
+                                        break;
+                                    case 2: // 管理员
+                                        log.OperatorAdminId = CurrentUser.AdminId;
+                                        log.OperatorSupAdminId = null;
+                                        log.OperatorEmployeeId = null;
+                                        break;
+                                }
+
+                                context.NominationLogs.Add(log);
+                                await context.SaveChangesAsync();
+
+                                // 在UI线程更新界面
+                                App.Current.Dispatcher.Invoke(() =>
+                                {
+                                    // 更新UI中的对象信息
+                                    declaration.Status = 1;
+                                    declaration.ReviewComment = reviewComment; // 使用预先获取的文本值
+                                    declaration.ReviewTime = DateTime.Now;
+                                    
+                                    // 根据当前用户角色设置审核人ID和实体
+                                    switch (CurrentUser.RoleId)
+                                    {
+                                        case 1: // 超级管理员
+                                            declaration.ReviewerSupAdminId = CurrentUser.AdminId;
+                                            // 从上下文加载最新的审核人信息
+                                            declaration.ReviewerSupAdmin = context.SupAdmins.FirstOrDefault(a => a.SupAdminId == CurrentUser.AdminId);
+                                            // 确保其他字段为空，防止冲突
+                                            declaration.ReviewerAdmin = null;
+                                            declaration.ReviewerAdminId = null;
+                                            declaration.ReviewerEmployee = null;
+                                            declaration.ReviewerEmployeeId = null;
+                                            break;
+                                        case 2: // 管理员
+                                            declaration.ReviewerAdminId = CurrentUser.AdminId;
+                                            // 从上下文加载最新的审核人信息
+                                            declaration.ReviewerAdmin = context.Admins.FirstOrDefault(a => a.AdminId == CurrentUser.AdminId);
+                                            // 确保其他字段为空，防止冲突
+                                            declaration.ReviewerSupAdmin = null;
+                                            declaration.ReviewerSupAdminId = null;
+                                            declaration.ReviewerEmployee = null;
+                                            declaration.ReviewerEmployeeId = null;
+                                            break;
+                                    }
+
+                                    // 触发属性变更通知
+                                    if (declaration is INotifyPropertyChanged notifyObj)
+                                    {
+                                        var method = notifyObj.GetType().GetMethod("OnPropertyChanged",
+                                            System.Reflection.BindingFlags.Instance |
+                                            System.Reflection.BindingFlags.NonPublic |
+                                            System.Reflection.BindingFlags.Public);
+
+                                        if (method != null)
+                                        {
+                                            // 通知关键属性已变更
+                                            method.Invoke(notifyObj, new object[] { "Status" });
+                                            method.Invoke(notifyObj, new object[] { "StatusText" });
+                                            method.Invoke(notifyObj, new object[] { "ReviewComment" });
+                                            method.Invoke(notifyObj, new object[] { "ReviewTime" });
+                                            method.Invoke(notifyObj, new object[] { "ReviewerName" });
+                                        }
+                                    }
+
+                                    // 发布申报审核通过事件
+                                    eventAggregator.GetEvent<NominationDeclarationApproveEvent>().Publish(declaration);
+                                    
+                                    // 关闭对话框
+                                    dialog.Close();
+                                    
+                                    // 显示成功提示
+                                    Growl.SuccessGlobal("申报已通过审核");
+                                });
                             }
-
-                            context.SaveChanges();
-
-                            // 添加审核日志
-                            var log = new NominationLog
-                            {
-                                DeclarationId = entity.DeclarationId,
-                                OperationType = 2, // 审核通过
-                                OperationTime = DateTime.Now,
-                                Content = $"审核意见：{commentTextBox.Text}"
-                            };
-
-                            // 添加操作日志
-                            switch (CurrentUser.RoleId)
-                            {
-                                case 1: // 超级管理员
-                                    log.OperatorSupAdminId = CurrentUser.AdminId;
-                                    log.OperatorAdminId = null;
-                                    log.OperatorEmployeeId = null;
-                                    break;
-                                case 2: // 管理员
-                                    log.OperatorAdminId = CurrentUser.AdminId;
-                                    log.OperatorSupAdminId = null;
-                                    log.OperatorEmployeeId = null;
-                                    break;
-                            }
-
-                            context.NominationLogs.Add(log);
-                            context.SaveChanges();
-
-                            declaration.Status = 1;
-                            declaration.ReviewComment = commentTextBox.Text;
-                            declaration.ReviewTime = DateTime.Now;
-
-                            // 发布审核通过事件
-                            eventAggregator.GetEvent<NominationDeclarationApproveEvent>().Publish(declaration);
-
-                            Growl.SuccessGlobal("审核通过成功");
-                            LoadDeclarationsAsync();
                         }
-                    }
+                    });
                 }
                 catch (Exception ex)
                 {
                     Growl.ErrorGlobal($"审核操作失败：{ex.Message}");
+                    System.Diagnostics.Debug.WriteLine($"审核异常详情: {ex}");
                 }
-
-                dialog.Close();
+                finally
+                {
+                    IsLoading = false;
+                }
             };
 
-            cancelButton.Click += (s, e) => dialog.Close();
+            cancelButton.Click += (s, e) =>
+            {
+                dialog.Close();
+            };
 
             dialog.ShowDialog();
         }
 
-        private async void OnDeclarationRejected(NominationDeclaration declaration)
+        private void OnDeclarationRejected(NominationDeclaration declaration)
         {
-            if (IsLoading) return;
+            // 处理申报审核拒绝事件
+            if (declaration == null) return;
 
-            try
+            // 在UI线程上更新
+            App.Current.Dispatcher.Invoke(() =>
             {
-                // 记录当前选中项
-                var selectedId = SelectedDeclaration?.DeclarationId;
+                // 更新原始数据集合
+                var originalItem = Declarations.FirstOrDefault(d => d.DeclarationId == declaration.DeclarationId);
+                if (originalItem != null)
+                {
+                    originalItem.Status = declaration.Status;
+                    originalItem.ReviewComment = declaration.ReviewComment;
+                    originalItem.ReviewTime = declaration.ReviewTime;
+                    originalItem.ReviewerSupAdminId = declaration.ReviewerSupAdminId;
+                    originalItem.ReviewerAdminId = declaration.ReviewerAdminId;
+                    originalItem.ReviewerEmployeeId = declaration.ReviewerEmployeeId;
+                    originalItem.ReviewerSupAdmin = declaration.ReviewerSupAdmin;
+                    originalItem.ReviewerAdmin = declaration.ReviewerAdmin;
+                    originalItem.ReviewerEmployee = declaration.ReviewerEmployee;
 
-                // 开始加载
-                IsLoading = true;
-
-                // 完全刷新数据
-                await Task.Run(async () => {
-                    using (var context = new DataBaseContext())
+                    // 触发属性变更通知
+                    if (originalItem is INotifyPropertyChanged notifyObj)
                     {
-                        var allDeclarations = await context.NominationDeclarations
-                            .AsNoTracking()
-                            .Where(d => d.Status != 4) // 明确排除已取消的记录
-                            .Include(d => d.Award)
-                            .Include(d => d.Department)
-                            .Include(d => d.NominatedEmployee)
-                            .Include(d => d.NominatedAdmin)
-                            .Include(d => d.DeclarerEmployee)
-                            .Include(d => d.DeclarerAdmin)
-                            .Include(d => d.DeclarerSupAdmin)
-                            .ToListAsync();
+                        var method = notifyObj.GetType().GetMethod("OnPropertyChanged",
+                            System.Reflection.BindingFlags.Instance |
+                            System.Reflection.BindingFlags.NonPublic |
+                            System.Reflection.BindingFlags.Public);
 
-                        Application.Current.Dispatcher.Invoke(() => {
-                            // 更新申报集合
-                            Declarations = new ObservableCollection<NominationDeclaration>(allDeclarations);
-
-                            // 应用当前筛选条件
-                            OnSearchDeclaration();
-
-                            // 尝试恢复选中状态
-                            if (selectedId.HasValue)
-                            {
-                                SelectedDeclaration = ListViewDeclarations.FirstOrDefault(d => d.DeclarationId == selectedId);
-                            }
-
-                            System.Diagnostics.Debug.WriteLine("申报拒绝事件处理完成，已刷新界面");
-                        });
+                        if (method != null)
+                        {
+                            // 通知关键属性已变更
+                            method.Invoke(notifyObj, new object[] { "Status" });
+                            method.Invoke(notifyObj, new object[] { "StatusText" });
+                            method.Invoke(notifyObj, new object[] { "ReviewComment" });
+                            method.Invoke(notifyObj, new object[] { "ReviewTime" });
+                            method.Invoke(notifyObj, new object[] { "ReviewerName" });
                         }
-                });
+                    }
+                }
+
+                // 处理临时集合和视图更新
+                if (SelectedStatus.Key != -1 && declaration.Status != SelectedStatus.Key)
+                {
+                    // 如果不符合当前筛选条件，从临时集合中移除
+                    var tempItem = TempViewDeclarations.FirstOrDefault(d => d.DeclarationId == declaration.DeclarationId);
+                    if (tempItem != null)
+                    {
+                        TempViewDeclarations.Remove(tempItem);
+                        // 更新分页信息
+                        TotalRecords = TempViewDeclarations.Count;
+                        MaxPage = TotalRecords % PageSize == 0 ? (TotalRecords / PageSize) : ((TotalRecords / PageSize) + 1);
+                        UpdateListViewData();
+                    }
+                }
+                else
+                {
+                    // 符合筛选条件，更新视图
+                    UpdateListViewData();
+                }
+            });
+        }
+
+        // 添加新的拒绝申报方法，用于处理拒绝命令
+        private void OnRejectDeclaration(NominationDeclaration declaration)
+        {
+            if (declaration == null) return;
+
+            // 验证状态
+            if (declaration.Status != 0)
+            {
+                Growl.WarningGlobal("只能审核待审核状态的申报");
+                return;
+            }
+
+            // 验证权限
+            if (CurrentUser.RoleId > 2)
+            {
+                Growl.WarningGlobal("您没有权限进行审核操作");
+                return;
+            }
+
+            // 管理员不能审核自己创建的申报
+            if (CurrentUser.RoleId == 2 && declaration.DeclarerAdminId == CurrentUser.AdminId)
+            {
+                Growl.WarningGlobal("您不能审核自己创建的申报");
+                return;
+            }
+
+            // 管理员不能审核任何角色为管理员的提名申报
+            if (CurrentUser.RoleId == 2 && declaration.DeclarerAdminId != null)
+            {
+                Growl.WarningGlobal("管理员的提名申报只能由超级管理员审核");
+                return;
+            }
+
+            // 弹出审核确认对话框
+            var dialog = new WindowNS
+            {
+                Title = "审核确认",
+                Width = 400,
+                Height = 300,
+                WindowStartupLocation = WindowStartupLocation.CenterScreen,
+                ResizeMode = ResizeMode.NoResize
+            };
+
+            var grid = new Grid { Margin = new Thickness(20) };
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+            // 更美观的标题文本块
+            var titleTextBlock = new System.Windows.Controls.TextBlock
+            {
+                Text = "确认拒绝此申报吗？",
+                FontSize = 18,
+                FontWeight = FontWeights.Bold,
+                Margin = new Thickness(0, 0, 0, 15),
+                TextAlignment = TextAlignment.Center,
+                Foreground = new SolidColorBrush(MediaColor.FromRgb(180, 0, 0))
+            };
+
+            // 审核意见文本块，居中显示并去掉外边框
+            var commentTextBlock = new System.Windows.Controls.TextBlock
+            {
+                Text = "拒绝理由：",
+                FontSize = 14,
+                FontWeight = FontWeights.SemiBold,
+                Margin = new Thickness(0, 0, 0, 10),
+                TextAlignment = TextAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Center
+            };
+
+            // 文本框添加边框和样式
+            var commentTextBox = new System.Windows.Controls.TextBox
+            {
+                Height = 100,
+                TextWrapping = TextWrapping.Wrap,
+                AcceptsReturn = true,
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                Padding = new Thickness(8),
+                FontSize = 14,
+                BorderThickness = new Thickness(1),
+                BorderBrush = new SolidColorBrush(MediaColor.FromRgb(220, 180, 180))
+            };
+
+            var buttonPanel = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = HorizontalAlignment.Right,
+                Margin = new Thickness(0, 15, 0, 0)
+            };
+
+            var confirmButton = new Button
+            {
+                Content = "确认拒绝",
+                Width = 100,
+                Height = 35,
+                Margin = new Thickness(0, 0, 10, 0),
+                Style = Application.Current.FindResource("LoginButtonStyle") as Style
+            };
+
+            var cancelButton = new Button
+            {
+                Content = "取消",
+                Width = 80,
+                Height = 35,
+                Style = Application.Current.FindResource("LoginButtonStyle") as Style
+            };
+
+            buttonPanel.Children.Add(confirmButton);
+            buttonPanel.Children.Add(cancelButton);
+
+            Grid.SetRow(titleTextBlock, 0);
+            Grid.SetRow(commentTextBlock, 1);
+            Grid.SetRow(commentTextBox, 2);
+            Grid.SetRow(buttonPanel, 3);
+
+            grid.Children.Add(titleTextBlock);
+            grid.Children.Add(commentTextBlock);
+            grid.Children.Add(commentTextBox);
+            grid.Children.Add(buttonPanel);
+
+            dialog.Content = grid;
+
+            // 绑定事件
+            confirmButton.Click += async (s, e) =>
+            {
+                try
+                {
+                    // 在UI线程获取TextBox的值，避免线程访问错误
+                    string rejectReason = commentTextBox.Text;
+                    
+                    // 显示加载状态
+                    IsLoading = true;
+                    
+                    // 异步执行审核操作
+                    await Task.Run(async () =>
+                    {
+                        using (var context = new DataBaseContext())
+                        {
+                            var entity = await context.NominationDeclarations.FindAsync(declaration.DeclarationId);
+                            if (entity != null)
+                            {
+                                entity.Status = 2; // 已拒绝
+                                entity.ReviewComment = rejectReason;
+                                entity.ReviewTime = DateTime.Now;
+
+                                // 设置审核人
+                                switch (CurrentUser.RoleId)
+                                {
+                                    case 1: // 超级管理员
+                                        entity.ReviewerSupAdminId = CurrentUser.AdminId;
+                                        break;
+                                    case 2: // 管理员
+                                        entity.ReviewerAdminId = CurrentUser.AdminId;
+                                        break;
+                                }
+
+                                await context.SaveChangesAsync();
+
+                                // 添加审核日志
+                                var log = new NominationLog
+                                {
+                                    DeclarationId = entity.DeclarationId,
+                                    OperationType = 3, // 审核拒绝
+                                    OperationTime = DateTime.Now,
+                                    Content = $"拒绝理由：{rejectReason}"
+                                };
+
+                                // 添加操作日志
+                                switch (CurrentUser.RoleId)
+                                {
+                                    case 1: // 超级管理员
+                                        log.OperatorSupAdminId = CurrentUser.AdminId;
+                                        log.OperatorAdminId = null;
+                                        log.OperatorEmployeeId = null;
+                                        break;
+                                    case 2: // 管理员
+                                        log.OperatorAdminId = CurrentUser.AdminId;
+                                        log.OperatorSupAdminId = null;
+                                        log.OperatorEmployeeId = null;
+                                        break;
+                                }
+
+                                context.NominationLogs.Add(log);
+                                await context.SaveChangesAsync();
+
+                                // 在UI线程更新界面
+                                App.Current.Dispatcher.Invoke(() =>
+                                {
+                                    // 更新UI中的对象信息
+                                    declaration.Status = 2;
+                                    declaration.ReviewComment = commentTextBox.Text;
+                                    declaration.ReviewTime = DateTime.Now;
+
+                                    // 根据当前用户角色设置审核人ID和实体
+                                    switch (CurrentUser.RoleId)
+                                    {
+                                        case 1: // 超级管理员
+                                            declaration.ReviewerSupAdminId = CurrentUser.AdminId;
+                                            // 从上下文加载最新的审核人信息
+                                            declaration.ReviewerSupAdmin = context.SupAdmins.FirstOrDefault(a => a.SupAdminId == CurrentUser.AdminId);
+                                            // 确保其他字段为空，防止冲突
+                                            declaration.ReviewerAdmin = null;
+                                            declaration.ReviewerAdminId = null;
+                                            declaration.ReviewerEmployee = null;
+                                            declaration.ReviewerEmployeeId = null;
+                                            break;
+                                        case 2: // 管理员
+                                            declaration.ReviewerAdminId = CurrentUser.AdminId;
+                                            // 从上下文加载最新的审核人信息
+                                            declaration.ReviewerAdmin = context.Admins.FirstOrDefault(a => a.AdminId == CurrentUser.AdminId);
+                                            // 确保其他字段为空，防止冲突
+                                            declaration.ReviewerSupAdmin = null;
+                                            declaration.ReviewerSupAdminId = null;
+                                            declaration.ReviewerEmployee = null;
+                                            declaration.ReviewerEmployeeId = null;
+                                            break;
+                                    }
+
+                                    // 触发属性变更通知
+                                    if (declaration is INotifyPropertyChanged notifyObj)
+                                    {
+                                        var method = notifyObj.GetType().GetMethod("OnPropertyChanged",
+                                            System.Reflection.BindingFlags.Instance |
+                                            System.Reflection.BindingFlags.NonPublic |
+                                            System.Reflection.BindingFlags.Public);
+
+                                        if (method != null)
+                                        {
+                                            // 通知关键属性已变更
+                                            method.Invoke(notifyObj, new object[] { "Status" });
+                                            method.Invoke(notifyObj, new object[] { "StatusText" });
+                                            method.Invoke(notifyObj, new object[] { "ReviewComment" });
+                                            method.Invoke(notifyObj, new object[] { "ReviewTime" });
+                                            method.Invoke(notifyObj, new object[] { "ReviewerName" });
+                                        }
+                                    }
+
+                                    // 发布申报审核拒绝事件
+                                    eventAggregator.GetEvent<NominationDeclarationRejectEvent>().Publish(declaration);
+
+                                    // 关闭对话框
+                                    dialog.Close();
+                                    
+                                    // 显示成功提示
+                                    Growl.SuccessGlobal("申报已拒绝");
+                                });
+                            }
+                        }
+                    });
                 }
                 catch (Exception ex)
                 {
-                System.Diagnostics.Debug.WriteLine($"处理申报拒绝事件时出错: {ex.Message}");
+                    Growl.ErrorGlobal($"拒绝操作失败：{ex.Message}");
+                    System.Diagnostics.Debug.WriteLine($"拒绝异常详情: {ex}");
                 }
-            finally
+                finally
+                {
+                    IsLoading = false;
+                }
+            };
+
+            cancelButton.Click += (s, e) =>
             {
-                IsLoading = false;
-            }
+                dialog.Close();
+            };
+
+            dialog.ShowDialog();
         }
         #endregion
 
@@ -1198,197 +1632,548 @@ namespace SIASGraduate.ViewModels.Pages
         {
             if (declaration == null) return;
 
-            // 验证状态
-            if (declaration.Status != 1)
+            // 验证状态 - 允许待审核和已通过的申报转为提名
+            if (declaration.Status != 0 && declaration.Status != 1)
             {
-                Growl.WarningGlobal("只能将已通过审核的申报转为正式提名");
+                Growl.WarningGlobal("只能将待审核或已通过状态的申报转为提名");
                 return;
             }
 
             // 验证权限
             if (CurrentUser.RoleId > 2)
             {
-                Growl.WarningGlobal("您没有权限进行此操作");
+                Growl.WarningGlobal("您没有权限进行审核操作");
                 return;
             }
 
-            // 管理员不能将任何角色为管理员的提名申报转为正式提名
+            // 管理员不能审核自己创建的申报
+            if (CurrentUser.RoleId == 2 && declaration.DeclarerAdminId == CurrentUser.AdminId)
+            {
+                Growl.WarningGlobal("您不能审核自己创建的申报");
+                return;
+            }
+
+            // 管理员不能审核任何角色为管理员的提名申报
             if (CurrentUser.RoleId == 2 && declaration.DeclarerAdminId != null)
             {
-                Growl.WarningGlobal("管理员的提名申报只能由超级管理员转为正式提名");
+                Growl.WarningGlobal("管理员的提名申报只能由超级管理员审核");
                 return;
             }
 
-            // 确认转为提名
-            System.Windows.MessageBoxResult result = System.Windows.MessageBox.Show(
-                "确定要将此申报转为正式提名吗？此操作不可撤销，并将检查此奖项是否已有提名。",
-                "转为提名确认",
-                System.Windows.MessageBoxButton.OKCancel);
-
-            if (result != System.Windows.MessageBoxResult.OK)
-                return;
-
-            try
+            // 弹出审核确认对话框
+            var dialog = new WindowNS
             {
-                using (var context = new DataBaseContext())
-                {
-                    // 检查该奖项是否已有提名，避重复提名
-                    bool hasExistingNomination = context.Nominations
-                        .Any(n => n.AwardId == declaration.AwardId &&
-                                 ((n.NominatedEmployeeId != null && n.NominatedEmployeeId == declaration.NominatedEmployeeId) ||
-                                  (n.NominatedAdminId != null && n.NominatedAdminId == declaration.NominatedAdminId)));
+                Title = "审核确认",
+                Width = 400,
+                Height = 300,
+                WindowStartupLocation = WindowStartupLocation.CenterScreen,
+                ResizeMode = ResizeMode.NoResize
+            };
 
+            var grid = new Grid { Margin = new Thickness(20) };
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+            grid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
+            grid.RowDefinitions.Add(new RowDefinition { Height = GridLength.Auto });
+
+            // 更美观的标题文本块
+            var titleTextBlock = new System.Windows.Controls.TextBlock
+            {
+                Text = "确认转为提名吗？",
+                FontSize = 18,
+                FontWeight = FontWeights.Bold,
+                Margin = new Thickness(0, 0, 0, 15),
+                TextAlignment = TextAlignment.Center,
+                Foreground = new SolidColorBrush(MediaColor.FromRgb(0, 100, 0))
+            };
+
+            // 审核意见文本块，居中显示并去掉外边框
+            var commentTextBlock = new System.Windows.Controls.TextBlock
+            {
+                Text = "审核意见：",
+                FontSize = 14,
+                FontWeight = FontWeights.SemiBold,
+                Margin = new Thickness(0, 0, 0, 10),
+                TextAlignment = TextAlignment.Center,
+                HorizontalAlignment = HorizontalAlignment.Center
+            };
+
+            // 文本框添加边框和样式
+            var commentTextBox = new System.Windows.Controls.TextBox
+            {
+                Height = 100,
+                TextWrapping = TextWrapping.Wrap,
+                AcceptsReturn = true,
+                VerticalScrollBarVisibility = ScrollBarVisibility.Auto,
+                Padding = new Thickness(8),
+                FontSize = 14,
+                BorderThickness = new Thickness(1),
+                BorderBrush = new SolidColorBrush(MediaColor.FromRgb(180, 220, 180))
+            };
+
+            var buttonPanel = new StackPanel
+            {
+                Orientation = Orientation.Horizontal,
+                HorizontalAlignment = HorizontalAlignment.Right,
+                Margin = new Thickness(0, 15, 0, 0)
+            };
+
+            var confirmButton = new Button
+            {
+                Content = "确认转为提名",
+                Width = 120,
+                Height = 35,
+                Margin = new Thickness(0, 0, 10, 0),
+                Style = Application.Current.FindResource("LoginButtonStyle") as Style
+            };
+
+            var cancelButton = new Button
+            {
+                Content = "取消",
+                Width = 80,
+                Height = 35,
+                Style = Application.Current.FindResource("LoginButtonStyle") as Style
+            };
+
+            buttonPanel.Children.Add(confirmButton);
+            buttonPanel.Children.Add(cancelButton);
+
+            Grid.SetRow(titleTextBlock, 0);
+            Grid.SetRow(commentTextBlock, 1);
+            Grid.SetRow(commentTextBox, 2);
+            Grid.SetRow(buttonPanel, 3);
+
+            grid.Children.Add(titleTextBlock);
+            grid.Children.Add(commentTextBlock);
+            grid.Children.Add(commentTextBox);
+            grid.Children.Add(buttonPanel);
+
+            dialog.Content = grid;
+
+            // 绑定事件
+            confirmButton.Click += async (s, e) =>
+            {
+                try
+                {
+                    // 在UI线程获取TextBox的值，避免线程访问错误
+                    string promoteComment = commentTextBox.Text;
+                    
+                    // 显示加载状态
+                    IsLoading = true;
+                    
+                    // 异步执行审核操作
+                    await Task.Run(async () =>
+                    {
+                        using (var context = new DataBaseContext())
+                        {
+                            // 获取申报实体
+                            var entity = await context.NominationDeclarations.FindAsync(declaration.DeclarationId);
+                            if (entity != null)
+                            {
+                                // 只有待审核状态才需要先进行通过处理
+                                if (entity.Status == 0)
+                                {
+                                                                        entity.Status = 1; // 已通过
+                                    entity.ReviewComment = promoteComment;
+                                    entity.ReviewTime = DateTime.Now;
+                                }
+
+                                // 设置审核人（如果是待审核状态或审核人未设置）
+                                if (entity.Status == 0 || (entity.ReviewerSupAdminId == null && entity.ReviewerAdminId == null))
+                                {
+                                    switch (CurrentUser.RoleId)
+                                    {
+                                        case 1: // 超级管理员
+                                            entity.ReviewerSupAdminId = CurrentUser.AdminId;
+                                            break;
+                                        case 2: // 管理员
+                                            entity.ReviewerAdminId = CurrentUser.AdminId;
+                                            break;
+                                    }
+                                }
+
+                                await context.SaveChangesAsync();
+
+                                // 添加审核日志
+                                var log = new NominationLog
+                                {
+                                    DeclarationId = entity.DeclarationId,
+                                    OperationType = 4, // 转为提名
+                                    OperationTime = DateTime.Now,
+                                    Content = $"审核意见：{promoteComment}"
+                                };
+
+                                // 添加操作日志
+                                switch (CurrentUser.RoleId)
+                                {
+                                    case 1: // 超级管理员
+                                        log.OperatorSupAdminId = CurrentUser.AdminId;
+                                        log.OperatorAdminId = null;
+                                        log.OperatorEmployeeId = null;
+                                        break;
+                                    case 2: // 管理员
+                                        log.OperatorAdminId = CurrentUser.AdminId;
+                                        log.OperatorSupAdminId = null;
+                                        log.OperatorEmployeeId = null;
+                                        break;
+                                }
+
+                                context.NominationLogs.Add(log);
+                                await context.SaveChangesAsync();
+
+                                // 调用转为提名的实际实现
+                                try 
+                                {
+                                    // 尝试使用EF Core创建提名
+                                    PromoteWithEFCore(entity);
+                                }
+                                catch (Exception ex)
+                                {
+                                    System.Diagnostics.Debug.WriteLine($"使用EF Core转为提名失败：{ex.Message}，尝试使用SQL方式");
+                                    
+                                    // 如果EF Core失败，尝试使用SQL
+                                    PromoteWithSQL(entity);
+                                }
+
+                                // 在UI线程更新界面
+                                App.Current.Dispatcher.Invoke(() =>
+                                {
+                                    // 更新UI中的对象信息
+                                    declaration.Status = 1;
+                                    declaration.ReviewComment = promoteComment;
+                                    declaration.ReviewTime = DateTime.Now;
+                                    
+                                    // 根据当前用户角色设置审核人ID和实体
+                                    switch (CurrentUser.RoleId)
+                                    {
+                                        case 1: // 超级管理员
+                                            declaration.ReviewerSupAdminId = CurrentUser.AdminId;
+                                            // 从上下文加载最新的审核人信息
+                                            declaration.ReviewerSupAdmin = context.SupAdmins.FirstOrDefault(a => a.SupAdminId == CurrentUser.AdminId);
+                                            // 确保其他字段为空，防止冲突
+                                            declaration.ReviewerAdmin = null;
+                                            declaration.ReviewerAdminId = null;
+                                            declaration.ReviewerEmployee = null;
+                                            declaration.ReviewerEmployeeId = null;
+                                            break;
+                                        case 2: // 管理员
+                                            declaration.ReviewerAdminId = CurrentUser.AdminId;
+                                            // 从上下文加载最新的审核人信息
+                                            declaration.ReviewerAdmin = context.Admins.FirstOrDefault(a => a.AdminId == CurrentUser.AdminId);
+                                            // 确保其他字段为空，防止冲突
+                                            declaration.ReviewerSupAdmin = null;
+                                            declaration.ReviewerSupAdminId = null;
+                                            declaration.ReviewerEmployee = null;
+                                            declaration.ReviewerEmployeeId = null;
+                                            break;
+                                    }
+
+                                    // 触发属性变更通知
+                                    if (declaration is INotifyPropertyChanged notifyObj)
+                                    {
+                                        var method = notifyObj.GetType().GetMethod("OnPropertyChanged",
+                                            System.Reflection.BindingFlags.Instance |
+                                            System.Reflection.BindingFlags.NonPublic |
+                                            System.Reflection.BindingFlags.Public);
+
+                                        if (method != null)
+                                        {
+                                            // 通知关键属性已变更
+                                            method.Invoke(notifyObj, new object[] { "Status" });
+                                            method.Invoke(notifyObj, new object[] { "StatusText" });
+                                            method.Invoke(notifyObj, new object[] { "ReviewComment" });
+                                            method.Invoke(notifyObj, new object[] { "ReviewTime" });
+                                            method.Invoke(notifyObj, new object[] { "ReviewerName" });
+                                        }
+                                    }
+
+                                    // 发布申报转为提名事件
+                                    eventAggregator.GetEvent<NominationDeclarationPromoteEvent>().Publish(declaration);
+                                    
+                                    // 发布提名数据变更事件，刷新提名列表
+                                    eventAggregator.GetEvent<NominationDataChangedEvent>().Publish();
+                                    
+                                    // 关闭对话框
+                                    dialog.Close();
+                                    
+                                    // 显示成功提示
+                                    Growl.SuccessGlobal("申报已成功转为提名");
+                                });
+                            }
+                        }
+                    });
+                }
+                catch (Exception ex)
+                {
+                    Growl.ErrorGlobal($"转为提名操作失败：{ex.Message}");
+                    System.Diagnostics.Debug.WriteLine($"转为提名异常详情: {ex}");
+                }
+                finally
+                {
+                    IsLoading = false;
+                }
+            };
+
+            cancelButton.Click += (s, e) =>
+            {
+                dialog.Close();
+            };
+
+            dialog.ShowDialog();
+        }
+
+        // 使用EF Core方式转为提名
+        private void PromoteWithEFCore(NominationDeclaration declaration)
+        {
+            using (var context = new DataBaseContext())
+            {
+                // 使用CreateExecutionStrategy创建一个执行策略
+                var strategy = context.Database.CreateExecutionStrategy();
+                
+                strategy.Execute(() =>
+                {
+                    // 检查该奖项是否已有提名，避免重复提名
+                    bool hasExistingNomination = false;
+                    
+                    // 这个检查需要放在Execute内部的事务中
+                    using (var checkTransaction = context.Database.BeginTransaction())
+                    {
+                        hasExistingNomination = context.Nominations
+                            .Any(n => n.AwardId == declaration.AwardId &&
+                                     ((n.NominatedEmployeeId != null && n.NominatedEmployeeId == declaration.NominatedEmployeeId) ||
+                                      (n.NominatedAdminId != null && n.NominatedAdminId == declaration.NominatedAdminId)));
+                        
+                        checkTransaction.Commit();
+                    }
+                    
                     if (hasExistingNomination)
                     {
-                        Growl.WarningGlobal("该奖项已有提名，不能重复提名");
-                        return;
+                        throw new InvalidOperationException("该奖项已有同一人的提名记录");
                     }
-
-                    // 创建新提名
-                    var nomination = new Nomination
+                    
+                    // 创建新的提名记录
+                    using (var transaction = context.Database.BeginTransaction())
                     {
-                        AwardId = declaration.AwardId,
-                        NominatedEmployeeId = declaration.NominatedEmployeeId,
-                        NominatedAdminId = declaration.NominatedAdminId,
-                        DepartmentId = declaration.DepartmentId,
-                        Introduction = declaration.Introduction,
-                        NominateReason = declaration.DeclarationReason,
-                        CoverImage = declaration.CoverImage,
-                        NominationTime = DateTime.Now
-                    };
-
-                    // 根据当前用户角色设置提议人
-                    switch (CurrentUser.RoleId)
-                    {
-                        case 1: // 超级管理员
-                            nomination.ProposerSupAdminId = CurrentUser.AdminId;
-                            break;
-                        case 2: // 管理员
-                            nomination.ProposerAdminId = CurrentUser.AdminId;
-                            break;
-                    }
-
-                    // 添加额外逻辑：将原申报人信息也保留到提名记录中
-                    // 仅当当前没有设置提名人时才进行设置（避免覆盖当前管理员作为提名人的情况）
-                    if (nomination.ProposerEmployeeId == null && nomination.ProposerAdminId == null && nomination.ProposerSupAdminId == null)
-                    {
-                        nomination.ProposerEmployeeId = declaration.DeclarerEmployeeId;
-                        nomination.ProposerAdminId = declaration.DeclarerAdminId;
-                        nomination.ProposerSupAdminId = declaration.DeclarerSupAdminId;
-                    }
-
-                    context.Nominations.Add(nomination);
-                    context.SaveChanges();
-
-                    // 更新申报状态为已转为提名
-                    var entity = context.NominationDeclarations.Find(declaration.DeclarationId);
-                    if (entity != null)
-                    {
-                        entity.IsPromoted = true;
-                        entity.PromotedNominationId = nomination.NominationId;
-                        context.SaveChanges();
-
-                        // 添加操作日志
-                        var log = new NominationLog
+                        try
                         {
-                            DeclarationId = entity.DeclarationId,
-                            OperationType = 4, // 转为提名
-                            OperationTime = DateTime.Now,
-                            Content = $"已转为提名ID：{nomination.NominationId}"
-                        };
-
-                        // 添加操作日志
-                        switch (CurrentUser.RoleId)
-                        {
-                            case 1: // 超级管理员
-                                log.OperatorSupAdminId = CurrentUser.AdminId;
-                                log.OperatorAdminId = null;
-                                log.OperatorEmployeeId = null;
-                                break;
-                            case 2: // 管理员
-                                log.OperatorAdminId = CurrentUser.AdminId;
-                                log.OperatorSupAdminId = null;
-                                log.OperatorEmployeeId = null;
-                                break;
+                            // 清除缓存中的跟踪数据，以避免冲突
+                            context.ChangeTracker.Clear();
+                            
+                            // 确保使用新的无跟踪实例来创建提名记录
+                            var newNomination = new Nomination
+                            {
+                                AwardId = declaration.AwardId,
+                                NominatedEmployeeId = declaration.NominatedEmployeeId,
+                                NominatedAdminId = declaration.NominatedAdminId,
+                                DepartmentId = declaration.DepartmentId,
+                                Introduction = declaration.Introduction,
+                                NominateReason = declaration.DeclarationReason, // 确保使用正确的属性名
+                                NominationTime = DateTime.Now,
+                                ProposerEmployeeId = declaration.DeclarerEmployeeId,
+                                ProposerAdminId = declaration.DeclarerAdminId,
+                                ProposerSupAdminId = declaration.DeclarerSupAdminId,
+                                // 设置CoverImage
+                                CoverImage = declaration.CoverImage
+                            };
+                            
+                            // 标记为新增，避免EF Core尝试更新
+                            context.Entry(newNomination).State = EntityState.Added;
+                            
+                            // 保存提名记录
+                            context.SaveChanges();
+                            
+                            // 添加操作日志
+                            var log = new NominationLog
+                            {
+                                DeclarationId = declaration.DeclarationId,
+                                OperationType = 4, // 转为提名
+                                OperationTime = DateTime.Now,
+                                Content = $"申报已转为提名，提名ID: {newNomination.NominationId}"
+                            };
+                            
+                            // 设置日志操作人
+                            switch (CurrentUser.RoleId)
+                            {
+                                case 1: // 超级管理员
+                                    log.OperatorSupAdminId = CurrentUser.AdminId;
+                                    break;
+                                case 2: // 管理员
+                                    log.OperatorAdminId = CurrentUser.AdminId;
+                                    break;
+                            }
+                            
+                            // 标记日志为新增
+                            context.Entry(log).State = EntityState.Added;
+                            context.NominationLogs.Add(log);
+                            
+                            // 更新申报记录，标记为已转为提名
+                            var declarationEntity = context.NominationDeclarations.Find(declaration.DeclarationId);
+                            if (declarationEntity != null)
+                            {
+                                declarationEntity.IsPromoted = true;
+                                declarationEntity.PromotedNominationId = newNomination.NominationId;
+                            }
+                            
+                            context.SaveChanges();
+                            transaction.Commit();
+                            
+                            System.Diagnostics.Debug.WriteLine($"成功转为提名，提名ID: {newNomination.NominationId}");
                         }
-
-                        context.NominationLogs.Add(log);
-                        context.SaveChanges();
-
-                        declaration.IsPromoted = true;
-                        declaration.PromotedNominationId = nomination.NominationId;
-
-                        // 发布转为提名事件
-                        eventAggregator.GetEvent<NominationDeclarationPromoteEvent>().Publish(declaration);
-
-                        Growl.SuccessGlobal("已成功转为正式提名");
-                        LoadDeclarationsAsync();
+                        catch (Exception ex)
+                        {
+                            transaction.Rollback();
+                            System.Diagnostics.Debug.WriteLine($"转为提名事务失败: {ex.Message}");
+                            throw;
+                        }
                     }
-                }
+                });
             }
-            catch (Exception ex)
+        }
+
+        // 使用SQL方式转为提名
+        private void PromoteWithSQL(NominationDeclaration declaration)
+        {
+            using (var context = new DataBaseContext())
             {
-                Growl.ErrorGlobal($"转为提名失败：{ex.Message}");
+                // 使用SQL直接插入提名记录
+                var sql = @"
+                    DECLARE @NominationId INT;
+                    
+                    BEGIN TRY
+                        BEGIN TRANSACTION;
+                        
+                        -- 检查是否已存在提名
+                        IF EXISTS (
+                            SELECT 1 FROM Nominations 
+                            WHERE AwardId = @AwardId 
+                                AND ((NominatedEmployeeId IS NOT NULL AND NominatedEmployeeId = @NominatedEmployeeId)
+                                OR (NominatedAdminId IS NOT NULL AND NominatedAdminId = @NominatedAdminId))
+                        )
+                        BEGIN
+                            RAISERROR('该奖项已有同一人的提名记录', 16, 1);
+                        END
+                        
+                        -- 插入提名记录
+                        INSERT INTO Nominations (
+                            AwardId, NominatedEmployeeId, NominatedAdminId, DepartmentId,
+                            Introduction, NominateReason, NominationTime, 
+                            ProposerEmployeeId, ProposerAdminId, ProposerSupAdminId,
+                            CoverImage
+                        )
+                        VALUES (
+                            @AwardId, @NominatedEmployeeId, @NominatedAdminId, @DepartmentId,
+                            @Introduction, @NominateReason, GETDATE(),
+                            @ProposerEmployeeId, @ProposerAdminId, @ProposerSupAdminId,
+                            @CoverImage
+                        );
+                        
+                        -- 获取新插入的ID
+                        SET @NominationId = SCOPE_IDENTITY();
+                        
+                        -- 更新申报记录，标记为已转为提名
+                        UPDATE NominationDeclarations
+                        SET IsPromoted = 1, PromotedNominationId = @NominationId
+                        WHERE DeclarationId = @DeclarationId;
+                        
+                        -- 插入日志
+                        INSERT INTO NominationLogs (
+                            DeclarationId, OperationType, OperationTime, Content,
+                            OperatorSupAdminId, OperatorAdminId, OperatorEmployeeId
+                        )
+                        VALUES (
+                            @DeclarationId, 4, GETDATE(), 
+                            '申报已转为提名，提名ID: ' + CAST(@NominationId AS NVARCHAR(20)),
+                            @OperatorSupAdminId, @OperatorAdminId, @OperatorEmployeeId
+                        );
+                        
+                        COMMIT TRANSACTION;
+                        
+                        -- 返回新提名ID
+                        SELECT @NominationId AS NewNominationId;
+                    END TRY
+                    BEGIN CATCH
+                        IF @@TRANCOUNT > 0
+                            ROLLBACK TRANSACTION;
+                        
+                        -- 重新抛出错误
+                        THROW;
+                    END CATCH
+                ";
+                
+                var parameters = new List<Microsoft.Data.SqlClient.SqlParameter>
+                {
+                    new Microsoft.Data.SqlClient.SqlParameter("@AwardId", declaration.AwardId),
+                    new Microsoft.Data.SqlClient.SqlParameter("@NominatedEmployeeId", declaration.NominatedEmployeeId ?? (object)DBNull.Value),
+                    new Microsoft.Data.SqlClient.SqlParameter("@NominatedAdminId", declaration.NominatedAdminId ?? (object)DBNull.Value),
+                    new Microsoft.Data.SqlClient.SqlParameter("@DepartmentId", declaration.DepartmentId),
+                    new Microsoft.Data.SqlClient.SqlParameter("@Introduction", declaration.Introduction ?? (object)DBNull.Value),
+                    new Microsoft.Data.SqlClient.SqlParameter("@NominateReason", declaration.DeclarationReason ?? (object)DBNull.Value),
+                    new Microsoft.Data.SqlClient.SqlParameter("@DeclarationId", declaration.DeclarationId),
+                    new Microsoft.Data.SqlClient.SqlParameter("@ProposerEmployeeId", declaration.DeclarerEmployeeId ?? (object)DBNull.Value),
+                    new Microsoft.Data.SqlClient.SqlParameter("@ProposerAdminId", declaration.DeclarerAdminId ?? (object)DBNull.Value),
+                    new Microsoft.Data.SqlClient.SqlParameter("@ProposerSupAdminId", declaration.DeclarerSupAdminId ?? (object)DBNull.Value),
+                    new Microsoft.Data.SqlClient.SqlParameter("@OperatorSupAdminId", CurrentUser.RoleId == 1 ? CurrentUser.AdminId : (object)DBNull.Value),
+                    new Microsoft.Data.SqlClient.SqlParameter("@OperatorAdminId", CurrentUser.RoleId == 2 ? CurrentUser.AdminId : (object)DBNull.Value),
+                    new Microsoft.Data.SqlClient.SqlParameter("@OperatorEmployeeId", DBNull.Value),
+                    new Microsoft.Data.SqlClient.SqlParameter("@CoverImage", declaration.CoverImage ?? (object)DBNull.Value)
+                };
+                
+                try
+                {
+                    // 执行SQL
+                    var result = context.Database.ExecuteSqlRaw(sql, parameters.ToArray());
+                    System.Diagnostics.Debug.WriteLine($"SQL执行结果: {result}");
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"SQL执行失败: {ex.Message}");
+                    throw;
+                }
             }
         }
         #endregion
 
         #region 查看日志
-        private async void OnViewLog()
+        private void OnViewLog()
         {
             try
             {
                 // 创建日志查看窗口
-                var logViewer = new NominationDeclarationLogWindow
+                var logWindow = new NominationDeclarationLogWindow();
+                var viewModel = new NominationDeclarationLogViewModel();
+                
+                if (SelectedDeclaration == null)
                 {
-                    Width = 800,
-                    Height = 600,
-                    WindowStartupLocation = WindowStartupLocation.CenterScreen
-                };
-
-                // 获取日志ViewModel
-                if (logViewer.DataContext is NominationDeclarationLogViewModel viewModel)
-                {
-                    if (SelectedDeclaration != null)
-                    {
-                        // 设置查看特定申报的日志
-                        viewModel.NominationDeclarationId = SelectedDeclaration.DeclarationId;
-
-                        // 设置窗口的关联数据
-                        viewModel.Award = SelectedDeclaration.Award;
-                        viewModel.NominatedName = GetNomineeName(SelectedDeclaration);
-                        viewModel.Department = SelectedDeclaration.Department;
-                        viewModel.StatusText = GetStatusText(SelectedDeclaration.Status);
-
-                        // 设置窗口标题
-                        logViewer.Title = $"申报记录({SelectedDeclaration.DeclarationId})的日志";
-                    }
-                    else
-                    {
-                        // 设置查看所有日志
-                        viewModel.NominationDeclarationId = -1;
-                        logViewer.Title = "所有申报日志";
-
-                        // 清空相关数据
-                        viewModel.Award = null;
-                        viewModel.NominatedName = "全部";
-                        viewModel.Department = null;
-                        viewModel.StatusText = "全部";
-                    }
+                    // 没有选中申报项，查看所有日志
+                    viewModel.NominationDeclarationId = -1; // 设置为-1表示查看所有日志
+                    viewModel.IsAllLogs = true;
+                    logWindow.Title = "所有申报日志";
                 }
-
-                // 先显示窗口，避免界面卡顿
-                logViewer.Show();
-
-                // 窗口显示后再异步加载数据，提高界面响应性
-                if (logViewer.DataContext is NominationDeclarationLogViewModel vm)
+                else
                 {
-                    // 使用Task.Run在后台启动加载过程
-                    Task.Run(async () =>
-                    {
-                        await vm.LoadLogsAsync();
-                    });
+                    // 设置查看的申报ID
+                    viewModel.NominationDeclarationId = SelectedDeclaration.DeclarationId;
+                    
+                    // 传递完整的申报项信息
+                    viewModel.Award = SelectedDeclaration.Award;
+                    viewModel.NominatedName = SelectedDeclaration.NominatedName;
+                    viewModel.Department = SelectedDeclaration.Department;
+                    viewModel.StatusText = SelectedDeclaration.StatusText;
+                    
+                    // 设置窗口的标题
+                    string nominatedName = SelectedDeclaration.NominatedName ?? "未知";
+                    string awardName = SelectedDeclaration.Award?.AwardName ?? "未知奖项";
+                    logWindow.Title = $"{awardName} - {nominatedName} 的申报日志";
                 }
+                
+                // 加载日志
+                viewModel.LoadLogsAsync();
+                
+                // 设置数据上下文
+                logWindow.DataContext = viewModel;
+                
+                // 显示窗口
+                logWindow.ShowDialog();
             }
             catch (Exception ex)
             {
@@ -1399,151 +2184,87 @@ namespace SIASGraduate.ViewModels.Pages
         #endregion
 
         #region 查看图片
-        private bool _isViewingImage = false;
-
         private void OnViewImage(NominationDeclaration declaration)
         {
-            if (_isViewingImage || declaration == null || declaration.CoverImage == null || declaration.CoverImage.Length == 0)
+            if (declaration == null)
             {
-                Growl.WarningGlobal("没有可查看的图片");
+                Growl.WarningGlobal("请选择要查看图片的申报");
                 return;
             }
 
             try
             {
-                _isViewingImage = true;
-
-                // 创建一个新窗口来展示图片
-                var imageWindow = new WindowNS
+                // 检查是否有图片
+                if (declaration.CoverImage == null || declaration.CoverImage.Length == 0)
                 {
-                    Title = $"申报图片 - {declaration.NominatedName} - ID: {declaration.DeclarationId}",
-                    Width = 700,
-                    Height = 600,
-                    WindowStartupLocation = WindowStartupLocation.CenterScreen,
-                    ResizeMode = ResizeMode.NoResize,
-                    Background = new SolidColorBrush(MediaColor.FromRgb(240, 240, 240))
-                };
-
-                // 创建主布局
-                var mainGrid = new Grid();
-                var rowDef1 = new RowDefinition();
-                rowDef1.Height = System.Windows.GridLength.Auto;
-                mainGrid.RowDefinitions.Add(rowDef1);
-                mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
-
-                // 创建顶部信息面板
-                var infoBorder = new Border
-                {
-                    Background = new SolidColorBrush(MediaColor.FromRgb(230, 230, 230)),
-                    Padding = new Thickness(10),
-                    Margin = new Thickness(10, 10, 10, 5),
-                    BorderBrush = new SolidColorBrush(MediaColor.FromRgb(200, 200, 200)),
-                    BorderThickness = new Thickness(1),
-                    Width = 650
-                };
-
-                var infoPanel = new StackPanel { Margin = new Thickness(5) };
-
-                // 添加申报信息文本
-                infoPanel.Children.Add(new TextBlock
-                {
-                    Text = $"奖项: {declaration.Award?.AwardName ?? "未知"}",
-                    FontWeight = FontWeights.Bold,
-                    Margin = new Thickness(0, 0, 0, 5),
-                    FontSize = 14
-                });
-
-                infoPanel.Children.Add(new TextBlock
-                {
-                    Text = $"申报对象: {declaration.NominatedName}",
-                    Margin = new Thickness(0, 0, 0, 5)
-                });
-
-                infoPanel.Children.Add(new TextBlock
-                {
-                    Text = $"部门: {declaration.Department?.DepartmentName ?? "未知"}",
-                    Margin = new Thickness(0, 0, 0, 5)
-                });
-
-                infoPanel.Children.Add(new TextBlock
-                {
-                    Text = $"状态: {declaration.StatusText}",
-                    Margin = new Thickness(0, 0, 0, 5)
-                });
-
-                if (!string.IsNullOrEmpty(declaration.Introduction))
-                {
-                    infoPanel.Children.Add(new TextBlock
-                    {
-                        Text = $"简介: {declaration.Introduction}",
-                        TextWrapping = TextWrapping.Wrap,
-                        Margin = new Thickness(0, 0, 0, 5)
-                    });
+                    Growl.InfoGlobal("当前申报没有上传图片");
+                    return;
                 }
 
-                infoBorder.Child = infoPanel;
-                Grid.SetRow(infoBorder, 0);
-                mainGrid.Children.Add(infoBorder);
+                // 创建图片查看窗口
+                var imageWindow = new WindowNS
+                {
+                    Title = "查看申报图片",
+                    Width = 800,
+                    Height = 600,
+                    WindowStartupLocation = WindowStartupLocation.CenterScreen,
+                    ResizeMode = ResizeMode.CanResize
+                };
 
+                // 创建容器
+                var grid = new Grid();
+                
                 // 创建图片控件
                 var image = new System.Windows.Controls.Image
                 {
-                    Source = new System.Windows.Media.Imaging.BitmapImage(),
                     Stretch = Stretch.Uniform,
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center,
-                    MaxWidth = 640,
-                    MaxHeight = 390
+                    Margin = new Thickness(10)
                 };
 
-                // 将字节数组转换为图像源
-                using (var ms = new System.IO.MemoryStream(declaration.CoverImage))
+                // 转换字节数组为图片
+                using (var ms = new MemoryStream(declaration.CoverImage))
                 {
                     var bitmap = new System.Windows.Media.Imaging.BitmapImage();
                     bitmap.BeginInit();
                     bitmap.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
                     bitmap.StreamSource = ms;
                     bitmap.EndInit();
+                    bitmap.Freeze(); // UI线程访问
                     image.Source = bitmap;
                 }
 
-                // 创建图片容器
-                var dockPanel = new DockPanel
+                // 添加关闭按钮
+                var buttonPanel = new StackPanel
                 {
-                    LastChildFill = true,
-                    HorizontalAlignment = HorizontalAlignment.Center,
-                    VerticalAlignment = VerticalAlignment.Center
+                    Orientation = Orientation.Horizontal,
+                    HorizontalAlignment = HorizontalAlignment.Right,
+                    VerticalAlignment = VerticalAlignment.Bottom,
+                    Margin = new Thickness(0, 0, 10, 10)
                 };
 
-                var imageBorder = new Border
+                var closeButton = new Button
                 {
-                    Child = image,
-                    BorderBrush = new SolidColorBrush(MediaColor.FromRgb(200, 200, 200)),
-                    BorderThickness = new Thickness(1),
-                    Padding = new Thickness(5),
-                    Background = new SolidColorBrush(Colors.White),
-                    Margin = new Thickness(10),
-                    Width = 650,
-                    Height = 400,
-                    HorizontalAlignment = HorizontalAlignment.Center
+                    Content = "关闭",
+                    Width = 80,
+                    Height = 30,
+                    Margin = new Thickness(0, 0, 10, 0)
                 };
 
-                dockPanel.Children.Add(imageBorder);
-                Grid.SetRow(dockPanel, 1);
-                mainGrid.Children.Add(dockPanel);
+                closeButton.Click += (s, e) => imageWindow.Close();
+                buttonPanel.Children.Add(closeButton);
 
-                // 设置窗口内容
-                imageWindow.Content = mainGrid;
+                // 添加控件到窗口
+                grid.Children.Add(image);
+                grid.Children.Add(buttonPanel);
+                imageWindow.Content = grid;
 
-                // 窗口关闭时重置标志位
-                imageWindow.Closed += (s, e) => _isViewingImage = false;
-
+                // 显示窗口
                 imageWindow.ShowDialog();
             }
             catch (Exception ex)
             {
-                _isViewingImage = false;
-                Growl.ErrorGlobal($"查看图片失败：{ex.Message}");
+                Growl.ErrorGlobal($"查看图片失败: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"查看图片异常: {ex}");
             }
         }
         #endregion
@@ -1551,143 +2272,409 @@ namespace SIASGraduate.ViewModels.Pages
         #region 导出数据
         private void OnExportData()
         {
-            // 记录开始时间，用于计算耗时
-            var startTime = DateTime.Now;
-            System.Diagnostics.Debug.WriteLine($"开始导出申报数据: {startTime:yyyy-MM-dd HH:mm:ss}");
-
-            // 检查是否有数据可导出
-            if (ListViewDeclarations == null || ListViewDeclarations.Count == 0)
+            try
             {
-                Growl.WarningGlobal("当前没有数据可导出");
-                return;
-            }
-
-            var saveFileDialog = new SaveFileDialog
-            {
-                Filter = "CSV文件|*.csv",
-                Title = "导出申报数据",
-                FileName = $"申报数据_{DateTime.Now:yyyyMMdd_HHmmss}"
-            };
-
-            if (saveFileDialog.ShowDialog() == true)
-            {
-                try
+                if (TempViewDeclarations == null || TempViewDeclarations.Count == 0)
                 {
-                    // 显示加载状态
+                    Growl.WarningGlobal("没有数据可导出");
+                    return;
+                }
+
+                // 创建保存文件对话框
+                var saveFileDialog = new SaveFileDialog
+                {
+                    Filter = "CSV文件 (*.csv)|*.csv",
+                    DefaultExt = ".csv",
+                    Title = "导出申报数据",
+                    FileName = $"申报数据_{DateTime.Now:yyyyMMdd_HHmmss}"
+                };
+
+                if (saveFileDialog.ShowDialog() == true)
+                {
                     IsLoading = true;
 
-                    // CSV导出
-                    ExportToCsv(saveFileDialog.FileName);
+                    // 导出CSV
+                    ExportToCSV(saveFileDialog.FileName);
 
-                    // 计算耗时
-                    var endTime = DateTime.Now;
-                    var timeSpan = endTime - startTime;
-
-                    // 成功提示，显示导出记录数和耗时
-                    Growl.SuccessGlobal($"成功导出 {ListViewDeclarations.Count} 条申报数据，耗时: {timeSpan.TotalSeconds:0.00} 秒");
-                    System.Diagnostics.Debug.WriteLine($"申报数据导出完成: {endTime:yyyy-MM-dd HH:mm:ss}, 耗时: {timeSpan.TotalSeconds:0.00} 秒, 记录数: {ListViewDeclarations.Count}");
-                }
-                catch (Exception ex)
-                {
-                    System.Diagnostics.Debug.WriteLine($"导出申报数据失败: {ex}");
-                    Growl.ErrorGlobal($"导出失败: {ex.Message}");
-                }
-                finally
-                {
-                    // 关闭加载状态
                     IsLoading = false;
+                    Growl.SuccessGlobal("数据导出成功");
                 }
-            }
-        }
-
-
-        // CSV导出方法
-        private void ExportToCsv(string filePath)
-        {
-            try 
-        {
-            // 使用UTF8编码，确保中文正确显示
-            using (var writer = new StreamWriter(filePath, false, Encoding.UTF8))
-            {
-                // 写入CSV头部
-                writer.WriteLine("申报ID,奖项名称,部门,被提名人,申报原因,申报人,申报时间,状态,审核人,审核时间");
-
-                // 写入每一行数据
-                foreach (var declaration in ListViewDeclarations)
-                {
-                    // 处理CSV中的特殊字符，如逗号、换行符等
-                    string reason = declaration.DeclarationReason?.Replace("\"", "\"\"").Replace(",", "，") ?? "";
-                        
-                        // 确保所有字段都有有效值
-                        string awardName = declaration.Award?.AwardName?.Replace("\"", "\"\"") ?? "未设置";
-                        string departmentName = declaration.Department?.DepartmentName?.Replace("\"", "\"\"") ?? "未设置";
-                        string nominatedName = declaration.NominatedName?.Replace("\"", "\"\"") ?? "未设置";
-                        string declarerName = declaration.DeclarerName?.Replace("\"", "\"\"") ?? "未设置";
-                        string statusText = declaration.StatusText?.Replace("\"", "\"\"") ?? "未知";
-                        string reviewerName = declaration.ReviewerName?.Replace("\"", "\"\"") ?? "";
-
-                    writer.WriteLine(
-                        $"{declaration.DeclarationId}," +
-                            $"\"{awardName}\"," +
-                            $"\"{departmentName}\"," +
-                            $"\"{nominatedName}\"," +
-                        $"\"{reason}\"," +
-                            $"\"{declarerName}\"," +
-                        $"{declaration.DeclarationTime:yyyy-MM-dd HH:mm:ss}," +
-                            $"\"{statusText}\"," +
-                            $"\"{reviewerName}\"," +
-                        $"{(declaration.ReviewTime.HasValue ? declaration.ReviewTime.Value.ToString("yyyy-MM-dd HH:mm:ss") : "")}");
-                }
-                }
-                
-                Growl.SuccessGlobal($"成功导出{ListViewDeclarations.Count}条申报记录到: {filePath}");
             }
             catch (Exception ex)
             {
-                Growl.ErrorGlobal($"导出失败: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"导出申报数据出错: {ex.Message}\n{ex.StackTrace}");
+                IsLoading = false;
+                Growl.ErrorGlobal($"导出数据失败: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"导出数据异常: {ex}");
+            }
+        }
+
+        private void ExportToCSV(string fileName)
+        {
+            // 创建CSV内容
+            var sb = new StringBuilder();
+            
+            // 添加表头
+            sb.AppendLine("申报ID,奖项,被提名人,所属部门,申报理由,申报人,申报时间,状态,审核人,审核时间,审核意见");
+            
+            // 添加数据行
+            foreach (var d in TempViewDeclarations)
+            {
+                // 转义字段中的逗号、引号和换行符
+                string EscapeCSV(string field)
+                {
+                    if (string.IsNullOrEmpty(field)) return "";
+                    
+                    // 如果包含逗号、引号或换行符，则用引号包裹并将内部引号转换为两个引号
+                    if (field.Contains(",") || field.Contains("\"") || field.Contains("\n") || field.Contains("\r"))
+                    {
+                        return "\"" + field.Replace("\"", "\"\"") + "\"";
+                    }
+                    return field;
+                }
+                
+                sb.AppendLine(string.Join(",",
+                    d.DeclarationId,
+                    EscapeCSV(d.Award?.AwardName ?? "未知"),
+                    EscapeCSV(d.NominatedName ?? "未知"),
+                    EscapeCSV(d.Department?.DepartmentName ?? "未知"),
+                    EscapeCSV(d.DeclarationReason ?? ""),
+                    EscapeCSV(d.DeclarerName ?? "未知"),
+                    EscapeCSV(d.DeclarationTime.ToString("yyyy-MM-dd HH:mm:ss")),
+                    EscapeCSV(d.StatusText ?? "未知"),
+                    EscapeCSV(d.ReviewerName ?? "-"),
+                    EscapeCSV(d.ReviewTime.HasValue ? d.ReviewTime.Value.ToString("yyyy-MM-dd HH:mm:ss") : "-"),
+                    EscapeCSV(d.ReviewComment ?? "-")
+                ));
+            }
+            
+            // 写入文件
+            File.WriteAllText(fileName, sb.ToString(), Encoding.UTF8);
+        }
+        #endregion
+
+        #region 刷新数据
+        private async void OnRefreshData()
+        {
+            try
+            {
+                // 显示加载状态
+                IsLoading = true;
+                
+                // 清除缓存标志
+                lastLoadTime = DateTime.MinValue;
+                
+                // 保存当前选中项ID，以便在刷新后恢复选中状态
+                int? selectedId = SelectedDeclaration?.DeclarationId;
+                
+                // 重新加载数据
+                await Task.Run(() => 
+                {
+                    App.Current.Dispatcher.Invoke(() =>
+                    {
+                        LoadDeclarationsAsync();
+                        
+                        // 显示刷新成功提示
+                        Growl.InfoGlobal("数据已刷新");
+                    });
+                });
+                
+                // 恢复选中状态
+                if (selectedId.HasValue)
+                {
+                    SelectedDeclaration = ListViewDeclarations.FirstOrDefault(d => d.DeclarationId == selectedId);
+                }
+            }
+            catch (Exception ex)
+            {
+                Growl.ErrorGlobal($"刷新数据失败: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"刷新数据异常: {ex}");
+            }
+            finally
+            {
+                // 隐藏加载状态
+                IsLoading = false;
             }
         }
         #endregion
 
-        #region 分页功能
-        private void OnPreviewTextInput(string input)
+        #region 分页相关方法
+        private void UpdateListViewData()
         {
-            if (string.IsNullOrEmpty(input))
-                return;
-
-            int length = input.Length - LastInput.Length;
-            for (int i = 0; i < length; i++)
+            try
             {
-                var isDigit = char.IsDigit(input[^1]);
-                if (!isDigit)
-                {
-                    SearchText = searchText[..^1];
-                }
+                // 将临时集合按页数进行划分，只显示当前页的数据
+                int start = (CurrentPage - 1) * PageSize;
+                var displayData = TempViewDeclarations
+                    .Skip(start)
+                    .Take(PageSize)
+                    .ToList();
+
+                // 使用ObservableCollection更新UI
+                ListViewDeclarations = new ObservableCollection<NominationDeclaration>(displayData);
+
+                // 更新分页状态
+                RefreshPaginationStatus();
+            }
+            catch (Exception ex)
+            {
+                Growl.ErrorGlobal($"更新列表视图数据失败: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"更新列表视图数据异常: {ex}");
+            }
+        }
+
+        private void RefreshPaginationStatus()
+        {
+            // 计算总页数
+            TotalRecords = TempViewDeclarations.Count;
+            MaxPage = TotalRecords % PageSize == 0 ? (TotalRecords / PageSize) : ((TotalRecords / PageSize) + 1);
+            if (MaxPage == 0) MaxPage = 1; // 至少有一页，即使没有数据
+
+            // 确保当前页在有效范围内
+            if (CurrentPage > MaxPage)
+            {
+                CurrentPage = MaxPage;
+            }
+            else if (CurrentPage < 1)
+            {
+                CurrentPage = 1;
             }
 
-            if (string.IsNullOrEmpty(SearchText))
-            {
-                LastInput = string.Empty;
-                return;
-            }
+            // 更新分页按钮状态
+            IsFirstPage = CurrentPage == 1;
+            IsLastPage = CurrentPage == MaxPage;
+            IsPreviousEnabled = CurrentPage > 1;
+            IsNextEnabled = CurrentPage < MaxPage;
+        }
+        #endregion
 
-            bool isNumber = int.TryParse(SearchText, out int number);
-            if (isNumber)
+        #region 文本输入预览
+        private void OnPreviewTextInput(string text)
+        {
+            if (string.IsNullOrEmpty(text))
+                return;
+
+            // 检查是否为数字输入
+            bool isNumeric = int.TryParse(text, out _);
+            
+            // 保存上一次输入
+            LastInput = text;
+            
+            // 仅允许在搜索框中输入数字
+            if (!isNumeric)
             {
-                if (int.Parse(SearchText) > MaxPage)
-                {
-                    SearchText = MaxPage.ToString();
-                }
+                // 可以在这里添加提示或其他处理
+                System.Diagnostics.Debug.WriteLine("输入预览: 非数字输入 - " + text);
             }
             else
             {
-                SearchText = string.Empty;
+                System.Diagnostics.Debug.WriteLine("输入预览: 数字输入 - " + text);
+            }
+        }
+        #endregion
+
+        #region 其他辅助方法
+        private void SetProperty<T>(ref T storage, T value, [System.Runtime.CompilerServices.CallerMemberName] string propertyName = null)
+        {
+            if (EqualityComparer<T>.Default.Equals(storage, value))
+            {
+                return;
             }
 
-            LastInput = SearchText;
+            storage = value;
+            OnPropertyChanged(propertyName);
         }
 
+        protected virtual void OnPropertyChanged([System.Runtime.CompilerServices.CallerMemberName] string propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+        #endregion
+
+        #region INotifyPropertyChanged Implementation
+        public event PropertyChangedEventHandler PropertyChanged;
+        #endregion
+
+        #region 事件处理方法
+        private void OnDeclarationAdded()
+        {
+            // 申报添加事件处理（无参数）
+            // 强制刷新数据
+            App.Current.Dispatcher.Invoke(() =>
+            {
+                // 强制清除缓存并重新加载数据
+                lastLoadTime = DateTime.MinValue;
+                LoadDeclarationsAsync();
+            });
+        }
+
+        private void OnDeclarationUpdated()
+        {
+            // 申报更新事件处理（无参数）
+            // 强制刷新数据
+            App.Current.Dispatcher.Invoke(() =>
+            {
+                // 强制清除缓存并重新加载数据
+                lastLoadTime = DateTime.MinValue;
+                LoadDeclarationsAsync();
+            });
+        }
+
+        private void OnDeclarationDeleted(int declarationId)
+        {
+            // 处理删除申报事件
+            // 在UI线程上更新
+            App.Current.Dispatcher.Invoke(() =>
+            {
+                // 从原始数据集合中移除
+                var originalItem = Declarations.FirstOrDefault(d => d.DeclarationId == declarationId);
+                if (originalItem != null)
+                {
+                    Declarations.Remove(originalItem);
+                }
+
+                // 从临时集合中移除
+                var tempItem = TempViewDeclarations.FirstOrDefault(d => d.DeclarationId == declarationId);
+                if (tempItem != null)
+                {
+                    TempViewDeclarations.Remove(tempItem);
+                    // 更新分页信息
+                    TotalRecords = TempViewDeclarations.Count;
+                    MaxPage = TotalRecords % PageSize == 0 ? (TotalRecords / PageSize) : ((TotalRecords / PageSize) + 1);
+                }
+
+                // 从当前显示集合中移除
+                var listItem = ListViewDeclarations?.FirstOrDefault(d => d.DeclarationId == declarationId);
+                if (listItem != null)
+                {
+                    ListViewDeclarations.Remove(listItem);
+                }
+
+                // 如果当前页没有数据了但还有前一页，自动跳转到前一页
+                if (ListViewDeclarations?.Count == 0 && CurrentPage > 1)
+                {
+                    CurrentPage--;
+                }
+
+                // 更新视图集合
+                UpdateListViewData();
+            });
+        }
+
+        private void OnDeclarationApproved(NominationDeclaration declaration)
+        {
+            // 处理申报审核通过事件
+            if (declaration == null) return;
+
+            // 在UI线程上更新
+            App.Current.Dispatcher.Invoke(() =>
+            {
+                // 更新原始数据集合
+                var originalItem = Declarations.FirstOrDefault(d => d.DeclarationId == declaration.DeclarationId);
+                if (originalItem != null)
+                {
+                    originalItem.Status = declaration.Status;
+                    originalItem.ReviewComment = declaration.ReviewComment;
+                    originalItem.ReviewTime = declaration.ReviewTime;
+                    originalItem.ReviewerSupAdminId = declaration.ReviewerSupAdminId;
+                    originalItem.ReviewerAdminId = declaration.ReviewerAdminId;
+                    originalItem.ReviewerEmployeeId = declaration.ReviewerEmployeeId;
+                    originalItem.ReviewerSupAdmin = declaration.ReviewerSupAdmin;
+                    originalItem.ReviewerAdmin = declaration.ReviewerAdmin;
+                    originalItem.ReviewerEmployee = declaration.ReviewerEmployee;
+
+                    // 触发属性变更通知
+                    if (originalItem is INotifyPropertyChanged notifyObj)
+                    {
+                        var method = notifyObj.GetType().GetMethod("OnPropertyChanged",
+                            System.Reflection.BindingFlags.Instance |
+                            System.Reflection.BindingFlags.NonPublic |
+                            System.Reflection.BindingFlags.Public);
+
+                        if (method != null)
+                        {
+                            // 通知关键属性已变更
+                            method.Invoke(notifyObj, new object[] { "Status" });
+                            method.Invoke(notifyObj, new object[] { "StatusText" });
+                            method.Invoke(notifyObj, new object[] { "ReviewComment" });
+                            method.Invoke(notifyObj, new object[] { "ReviewTime" });
+                            method.Invoke(notifyObj, new object[] { "ReviewerName" });
+                        }
+                    }
+                }
+
+                // 处理临时集合和视图更新
+                if (SelectedStatus.Key != -1 && declaration.Status != SelectedStatus.Key)
+                {
+                    // 如果不符合当前筛选条件，从临时集合中移除
+                    var tempItem = TempViewDeclarations.FirstOrDefault(d => d.DeclarationId == declaration.DeclarationId);
+                    if (tempItem != null)
+                    {
+                        TempViewDeclarations.Remove(tempItem);
+                        // 更新分页信息
+                        TotalRecords = TempViewDeclarations.Count;
+                        MaxPage = TotalRecords % PageSize == 0 ? (TotalRecords / PageSize) : ((TotalRecords / PageSize) + 1);
+                        UpdateListViewData();
+                    }
+                }
+                else
+                {
+                    // 符合筛选条件，更新视图
+                    UpdateListViewData();
+                }
+            });
+        }
+
+        private void OnDeclarationPromoted(NominationDeclaration declaration)
+        {
+            // 处理申报转为提名事件
+            if (declaration == null) return;
+
+            // 在UI线程上更新
+            App.Current.Dispatcher.Invoke(() =>
+            {
+                // 更新原始数据集合
+                var originalItem = Declarations.FirstOrDefault(d => d.DeclarationId == declaration.DeclarationId);
+                if (originalItem != null)
+                {
+                    // 更新状态为已通过
+                    originalItem.Status = 1;
+                    
+                    // 处理临时集合和视图更新
+                    if (SelectedStatus.Key != -1 && originalItem.Status != SelectedStatus.Key)
+                    {
+                        // 如果不符合当前筛选条件，从临时集合中移除
+                        var tempItem = TempViewDeclarations.FirstOrDefault(d => d.DeclarationId == declaration.DeclarationId);
+                        if (tempItem != null)
+                        {
+                            TempViewDeclarations.Remove(tempItem);
+                            // 更新分页信息
+                            TotalRecords = TempViewDeclarations.Count;
+                            MaxPage = TotalRecords % PageSize == 0 ? (TotalRecords / PageSize) : ((TotalRecords / PageSize) + 1);
+                            UpdateListViewData();
+                        }
+                    }
+                    else
+                    {
+                        // 符合筛选条件，更新视图
+                        UpdateListViewData();
+                    }
+                }
+            });
+        }
+
+        private void OnNominationDataChanged()
+        {
+            // 处理提名数据变更事件，重新加载数据
+            App.Current.Dispatcher.Invoke(() =>
+            {
+                // 强制清除缓存并重新加载数据
+                lastLoadTime = DateTime.MinValue;
+                LoadDeclarationsAsync();
+            });
+        }
+        #endregion
+
+        #region 分页和选择控制方法
         private void PreviousPage()
         {
             if (CurrentPage > 1)
@@ -1708,642 +2695,44 @@ namespace SIASGraduate.ViewModels.Pages
 
         private void JumpPage()
         {
-            if (string.IsNullOrEmpty(SearchText))
+            int pageNum;
+            if (int.TryParse(SearchText, out pageNum))
             {
-                Growl.WarningGlobal("请输入要跳转的页码");
-                return;
+                if (pageNum >= 1 && pageNum <= MaxPage)
+                {
+                    CurrentPage = pageNum;
+                    UpdateListViewData();
+                }
+                else
+                {
+                    Growl.WarningGlobal($"页码范围为 1-{MaxPage}");
+                }
             }
-
-            if (!int.TryParse(SearchText, out int targetPage))
+            else
             {
                 Growl.WarningGlobal("请输入有效的页码");
-                return;
             }
-
-            if (targetPage < 1 || targetPage > MaxPage)
-            {
-                Growl.WarningGlobal($"页码必须在1到{MaxPage}之间");
-                return;
-            }
-
-            CurrentPage = targetPage;
-            UpdateListViewData();
         }
 
         private void PageSizeChanged()
         {
-            CurrentPage = 1;
+            // 更新页大小，重新计算最大页数
+            TotalRecords = TempViewDeclarations.Count;
+            MaxPage = TotalRecords % PageSize == 0 ? (TotalRecords / PageSize) : ((TotalRecords / PageSize) + 1);
+            
+            // 确保当前页码有效
+            if (CurrentPage > MaxPage)
+            {
+                CurrentPage = MaxPage > 0 ? MaxPage : 1;
+            }
+            
             UpdateListViewData();
         }
 
-        private void UpdateListViewData()
-        {
-            if (TempViewDeclarations == null || TempViewDeclarations.Count == 0)
-            {
-                ListViewDeclarations = new ObservableCollection<NominationDeclaration>();
-                CurrentPage = 1;
-                MaxPage = 1;
-                TotalRecords = 0;
-                return;
-            }
-
-            // 确保当前页不超过最大页数
-            if (CurrentPage > MaxPage && MaxPage > 0)
-            {
-                CurrentPage = MaxPage;
-            }
-
-            // 计算起始索引和结束索引
-            int startIndex = (CurrentPage - 1) * PageSize;
-
-            // 使用Take/Skip优化内存使用，而不是创建新的列表
-            var pagedData = TempViewDeclarations
-                .Skip(startIndex)
-                .Take(PageSize)
-                .ToList();
-
-            ListViewDeclarations = new ObservableCollection<NominationDeclaration>(pagedData);
-
-            RefreshPaginationStatus();
-        }
-
-        // 刷新分页状态
-        private void RefreshPaginationStatus()
-        {
-            // 更新页码相关UI状态
-            IsFirstPage = CurrentPage == 1;
-            IsPreviousEnabled = CurrentPage > 1;
-            IsNextEnabled = CurrentPage < MaxPage;
-            IsLastPage = CurrentPage == MaxPage;
-        }
-        #endregion
-
-        #region 事件处理
-        private async void OnDeclarationAdded()
-        {
-            if (IsLoading) return;
-
-            try
-            {
-                // 记录当前选中项
-                var selectedId = SelectedDeclaration?.DeclarationId;
-
-                // 开始加载
-                IsLoading = true;
-
-                // 完全刷新数据
-                await Task.Run(async () => {
-                    using (var context = new DataBaseContext())
-                    {
-                        var allDeclarations = await context.NominationDeclarations
-                            .AsNoTracking()
-                            .Where(d => d.Status != 4) // 明确过滤掉已取消的记录
-                            .Include(d => d.Award)
-                            .Include(d => d.Department)
-                            .Include(d => d.NominatedEmployee)
-                            .Include(d => d.NominatedAdmin)
-                            .Include(d => d.DeclarerEmployee)
-                            .Include(d => d.DeclarerAdmin)
-                            .Include(d => d.DeclarerSupAdmin)
-                            .Include(d => d.ReviewerEmployee)
-                            .Include(d => d.ReviewerAdmin)
-                            .Include(d => d.ReviewerSupAdmin)
-                            .ToListAsync();
-
-                        Application.Current.Dispatcher.Invoke(() => {
-                            // 更新申报集合
-                            Declarations = new ObservableCollection<NominationDeclaration>(allDeclarations);
-
-                            // 应用当前筛选条件
-                            OnSearchDeclaration();
-
-                            // 尝试恢复选中状态
-                            if (selectedId.HasValue)
-                            {
-                                SelectedDeclaration = ListViewDeclarations.FirstOrDefault(d => d.DeclarationId == selectedId);
-                            }
-
-                            System.Diagnostics.Debug.WriteLine($"申报添加事件处理完成，已刷新界面，加载的数据类型: NominationDeclaration，数量: {allDeclarations.Count}");
-                        });
-                    }
-                });
-
-                // 提示用户
-                Growl.InfoGlobal("有新申报已添加，列表已更新");
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"处理申报添加事件时出错: {ex.Message}");
-            }
-            finally
-            {
-                IsLoading = false;
-            }
-        }
-
-        private async void OnDeclarationUpdated()
-        {
-            if (IsLoading) return;
-
-            try
-            {
-                // 记录当前选中项
-                var selectedId = SelectedDeclaration?.DeclarationId;
-
-                // 开始加载
-                IsLoading = true;
-
-                // 完全刷新数据
-                await Task.Run(async () => {
-                    using (var context = new DataBaseContext())
-                    {
-                        var allDeclarations = await context.NominationDeclarations
-                            .AsNoTracking()
-                            .Where(d => d.Status != 4) // 明确过滤掉已取消的记录
-                            .Include(d => d.Award)
-                            .Include(d => d.Department)
-                            .Include(d => d.NominatedEmployee)
-                            .Include(d => d.NominatedAdmin)
-                            .Include(d => d.DeclarerEmployee)
-                            .Include(d => d.DeclarerAdmin)
-                            .Include(d => d.DeclarerSupAdmin)
-                            .Include(d => d.ReviewerEmployee)
-                            .Include(d => d.ReviewerAdmin)
-                            .Include(d => d.ReviewerSupAdmin)
-                            .ToListAsync();
-
-                        Application.Current.Dispatcher.Invoke(() => {
-                            // 更新申报集合
-                            Declarations = new ObservableCollection<NominationDeclaration>(allDeclarations);
-
-                            // 应用当前筛选条件
-                            OnSearchDeclaration();
-
-                            // 尝试恢复选中状态
-                            if (selectedId.HasValue)
-                            {
-                                SelectedDeclaration = ListViewDeclarations.FirstOrDefault(d => d.DeclarationId == selectedId);
-                            }
-
-                            System.Diagnostics.Debug.WriteLine($"申报更新事件处理完成，已刷新界面，加载的数据类型: NominationDeclaration，数量: {allDeclarations.Count}");
-                        });
-                    }
-                });
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"处理申报更新事件时出错: {ex.Message}");
-            }
-            finally
-            {
-                IsLoading = false;
-            }
-        }
-
-        private async void OnDeclarationDeleted(int declarationId)
-        {
-            if (IsLoading) return;
-
-            try
-            {
-                // 开始加载
-                IsLoading = true;
-
-                // 完全刷新数据
-                await Task.Run(async () => {
-                    using (var context = new DataBaseContext())
-                    {
-                        var allDeclarations = await context.NominationDeclarations
-                            .AsNoTracking()
-                            .Where(d => d.Status != 4) // 明确过滤掉已取消的记录
-                            .Include(d => d.Award)
-                            .Include(d => d.Department)
-                            .Include(d => d.NominatedEmployee)
-                            .Include(d => d.NominatedAdmin)
-                            .Include(d => d.DeclarerEmployee)
-                            .Include(d => d.DeclarerAdmin)
-                            .Include(d => d.DeclarerSupAdmin)
-                            .Include(d => d.ReviewerEmployee)
-                            .Include(d => d.ReviewerAdmin)
-                            .Include(d => d.ReviewerSupAdmin)
-                            .ToListAsync();
-
-                        Application.Current.Dispatcher.Invoke(() => {
-                            // 更新申报集合
-                            Declarations = new ObservableCollection<NominationDeclaration>(allDeclarations);
-
-                            // 应用当前筛选条件
-                            OnSearchDeclaration();
-
-                            // 清除当前选择
-                            SelectedDeclaration = null;
-
-                            System.Diagnostics.Debug.WriteLine($"申报删除事件处理完成，已刷新界面，删除ID: {declarationId}，加载的数据类型: NominationDeclaration，数量: {allDeclarations.Count}");
-                        });
-                    }
-                });
-
-                // 提示用户
-                Growl.InfoGlobal($"编号为 {declarationId} 的申报已被删除，列表已更新");
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"处理申报删除事件时出错: {ex.Message}");
-            }
-            finally
-            {
-                IsLoading = false;
-            }
-        }
-
-        private async void OnDeclarationApproved(NominationDeclaration declaration)
-        {
-            if (IsLoading) return;
-
-            try
-            {
-                // 记录当前选中项
-                var selectedId = SelectedDeclaration?.DeclarationId;
-
-                // 开始加载
-                IsLoading = true;
-
-                // 完全刷新数据
-                await Task.Run(async () => {
-                    using (var context = new DataBaseContext())
-                    {
-                        var allDeclarations = await context.NominationDeclarations
-                            .AsNoTracking()
-                            .Where(d => d.Status != 4) // 明确排除已取消的记录
-                            .Include(d => d.Award)
-                            .Include(d => d.Department)
-                            .Include(d => d.NominatedEmployee)
-                            .Include(d => d.NominatedAdmin)
-                            .Include(d => d.DeclarerEmployee)
-                            .Include(d => d.DeclarerAdmin)
-                            .Include(d => d.DeclarerSupAdmin)
-                            .ToListAsync();
-
-                        Application.Current.Dispatcher.Invoke(() => {
-                            // 更新申报集合
-                            Declarations = new ObservableCollection<NominationDeclaration>(allDeclarations);
-
-                            // 应用当前筛选条件
-                            OnSearchDeclaration();
-
-                            // 尝试恢复选中状态
-                            if (selectedId.HasValue)
-                            {
-                                SelectedDeclaration = ListViewDeclarations.FirstOrDefault(d => d.DeclarationId == selectedId);
-                            }
-
-                            System.Diagnostics.Debug.WriteLine($"申报审批通过事件处理完成，已刷新界面，加载的数据类型: NominationDeclaration，数量: {allDeclarations.Count}");
-                        });
-                    }
-                });
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"处理申报审批通过事件时出错: {ex.Message}");
-            }
-            finally
-            {
-                IsLoading = false;
-            }
-        }
-
-                // 已删除重复的OnDeclarationRejected方法
-
-        private async void OnDeclarationPromoted(NominationDeclaration declaration)
-        {
-            if (IsLoading) return;
-
-            try
-            {
-                // 记录当前选中项
-                var selectedId = SelectedDeclaration?.DeclarationId;
-
-                // 开始加载
-                IsLoading = true;
-
-                // 完全刷新数据
-                await Task.Run(async () => {
-                    using (var context = new DataBaseContext())
-                    {
-                        var allDeclarations = await context.NominationDeclarations
-                            .AsNoTracking()
-                            .Where(d => d.Status != 4) // 明确排除已取消的记录
-                            .Include(d => d.Award)
-                            .Include(d => d.Department)
-                            .Include(d => d.NominatedEmployee)
-                            .Include(d => d.NominatedAdmin)
-                            .Include(d => d.DeclarerEmployee)
-                            .Include(d => d.DeclarerAdmin)
-                            .Include(d => d.DeclarerSupAdmin)
-                            .ToListAsync();
-
-                        Application.Current.Dispatcher.Invoke(() => {
-                            // 更新申报集合
-                            Declarations = new ObservableCollection<NominationDeclaration>(allDeclarations);
-
-                            // 应用当前筛选条件
-                            OnSearchDeclaration();
-
-                            // 尝试恢复选中状态
-                            if (selectedId.HasValue)
-                            {
-                                SelectedDeclaration = ListViewDeclarations.FirstOrDefault(d => d.DeclarationId == selectedId);
-                            }
-
-                            System.Diagnostics.Debug.WriteLine("申报升级事件处理完成，已刷新界面");
-                        });
-                    }
-                });
-
-                // 显示提示
-                Growl.InfoGlobal($"申报 {declaration.DeclarationId} 已转为正式提名，列表已更新");
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"处理申报升级事件时出错: {ex.Message}");
-            }
-            finally
-            {
-                IsLoading = false;
-            }
-        }
-
-        private async void OnNominationDataChanged()
-        {
-            if (IsLoading) return;
-
-            try
-            {
-                // 记录当前选中项
-                var selectedId = SelectedDeclaration?.DeclarationId;
-
-                // 开始加载
-                IsLoading = true;
-
-                // 完全刷新数据
-                await Task.Run(async () => {
-                    using (var context = new DataBaseContext())
-                    {
-                        // 明确只查询NominationDeclarations表
-                        var allDeclarations = await context.NominationDeclarations
-                            .AsNoTracking()
-                            .Where(d => d.Status != 4) // 明确过滤掉已取消的记录
-                            .Include(d => d.Award)
-                            .Include(d => d.Department)
-                            .Include(d => d.NominatedEmployee)
-                            .Include(d => d.NominatedAdmin)
-                            .Include(d => d.DeclarerEmployee)
-                            .Include(d => d.DeclarerAdmin)
-                            .Include(d => d.DeclarerSupAdmin)
-                            .Include(d => d.ReviewerEmployee)
-                            .Include(d => d.ReviewerAdmin)
-                            .Include(d => d.ReviewerSupAdmin)
-                            .ToListAsync();
-
-                        Application.Current.Dispatcher.Invoke(() => {
-                            // 更新申报集合
-                            Declarations = new ObservableCollection<NominationDeclaration>(allDeclarations);
-
-                            // 应用当前筛选条件
-                            OnSearchDeclaration();
-
-                            // 尝试恢复选中状态
-                            if (selectedId.HasValue)
-                            {
-                                SelectedDeclaration = ListViewDeclarations.FirstOrDefault(d => d.DeclarationId == selectedId);
-                            }
-
-                            System.Diagnostics.Debug.WriteLine($"提名数据变更事件处理完成，已刷新界面，加载的数据类型: NominationDeclaration，数量: {allDeclarations.Count}");
-                        });
-                    }
-                });
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"处理提名数据变更事件时出错: {ex.Message}");
-            }
-            finally
-            {
-                IsLoading = false;
-            }
-        }
-        #endregion
-
-        #region INotifyPropertyChanged
-        public event PropertyChangedEventHandler PropertyChanged;
-
-        protected virtual void OnPropertyChanged([CallerMemberName] string propertyName = null)
-        {
-            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
-        }
-
-        // 添加SetProperty方法实现
-        protected bool SetProperty<T>(ref T storage, T value, [CallerMemberName] string propertyName = null)
-        {
-            if (EqualityComparer<T>.Default.Equals(storage, value))
-                return false;
-
-            storage = value;
-            OnPropertyChanged(propertyName);
-            return true;
-        }
-        #endregion
-
-        #region Helper Methods
-        private string GetNomineeName(NominationDeclaration declaration)
-        {
-            if (declaration.NominatedEmployee != null)
-            {
-                return declaration.NominatedEmployee.EmployeeName;
-            }
-            else if (declaration.NominatedAdmin != null)
-            {
-                return declaration.NominatedAdmin.AdminName;
-            }
-            else
-            {
-                return "未知";
-            }
-        }
-
-        private string GetStatusText(int status)
-        {
-            switch (status)
-            {
-                case 0:
-                    return "待审核";
-                case 1:
-                    return "已通过";
-                case 2:
-                    return "已拒绝";
-                case 4:
-                    return "已取消";
-                default:
-                    return "未知状态";
-            }
-        }
-        #endregion
-
-        #region Clear Selection
         private void ClearSelection()
         {
-            // 检查是否有选中的申报项
-            if (SelectedDeclaration != null)
-            {
-                // 保存被取消选择的申报名称，用于提示
-                string nominationName = SelectedDeclaration.NominatedName;
-
-                // 取消选择
-                SelectedDeclaration = null;
-
-                // 显示取消选择成功的提示
-                Growl.InfoGlobal($"已取消选择【{nominationName}】的申报项");
-            }
+            SelectedDeclaration = null;
         }
         #endregion
-
-        #region 自动刷新数据
-        // 将自动刷新数据更改为手动刷新数据
-        private async void OnRefreshData()
-        {
-            try
-            {
-                // 如果当前正在加载数据，则忽略刷新请求
-                if (IsLoading)
-                {
-                    Growl.InfoGlobal("正在加载数据，请稍候...");
-                    return;
-                }
-
-                // 记录当前选中的申报
-                var selectedDeclarationId = SelectedDeclaration?.DeclarationId;
-
-                // 显示加载状态
-                IsLoading = true;
-
-                // 显示正在刷新的提示
-                Growl.InfoGlobal("正在刷新数据...");
-                System.Diagnostics.Debug.WriteLine($"手动刷新数据开始: {DateTime.Now:yyyy-MM-dd HH:mm:ss}");
-
-                // 重新加载数据
-                await Task.Run(async () => {
-                    using (var context = new DataBaseContext())
-                    {
-                        // 获取所有申报数据，注意只查询NominationDeclarations表
-                        var allDeclarations = await context.NominationDeclarations
-                            .AsNoTracking() // 提高性能
-                            .Where(d => d.Status != 4) // 排除已取消的记录
-                            .Include(d => d.Award)
-                            .Include(d => d.Department)
-                            .Include(d => d.NominatedEmployee)
-                            .Include(d => d.NominatedAdmin)
-                            .Include(d => d.DeclarerEmployee)
-                            .Include(d => d.DeclarerAdmin)
-                            .Include(d => d.DeclarerSupAdmin)
-                            .Include(d => d.ReviewerEmployee)
-                            .Include(d => d.ReviewerAdmin)
-                            .Include(d => d.ReviewerSupAdmin)
-                            .ToListAsync();
-
-                        // 更新缓存时间
-                        lastLoadTime = DateTime.Now;
-
-                        // 在UI线程上更新数据集合
-                        Application.Current.Dispatcher.Invoke(() => {
-                            try
-                            {
-                                // 如果视图被销毁或不再活动，则停止更新UI
-                                if (!IsViewActive) return;
-
-                                // 判断数据是否有变化
-                                bool hasChanges = Declarations == null ||
-                                                  Declarations.Count != allDeclarations.Count ||
-                                                  Declarations.Any(d => !allDeclarations.Any(ad => ad.DeclarationId == d.DeclarationId));
-
-                                // 更新申报集合(不管有没有变化，都刷新以确保界面最新)
-                                Declarations = new ObservableCollection<NominationDeclaration>(allDeclarations);
-
-                                // 应用当前筛选条件
-                                OnSearchDeclaration();
-
-                                // 恢复之前选中的申报
-                                if (selectedDeclarationId.HasValue)
-                                {
-                                    SelectedDeclaration = ListViewDeclarations.FirstOrDefault(d => d.DeclarationId == selectedDeclarationId);
-                                }
-
-                                // 输出调试信息
-                                if (hasChanges)
-                                {
-                                    System.Diagnostics.Debug.WriteLine($"手动刷新完成，申报数据条数：{Declarations.Count}，发现数据变化");
-                                    Growl.SuccessGlobal($"刷新完成，数据已更新");
-                                }
-                                else
-                                {
-                                    System.Diagnostics.Debug.WriteLine($"手动刷新完成，申报数据条数：{Declarations.Count}，数据无变化");
-                                    Growl.SuccessGlobal("刷新完成，数据已是最新");
-                                }
-                            }
-                            catch (Exception ex)
-                            {
-                                System.Diagnostics.Debug.WriteLine($"数据刷新UI更新时出错: {ex.Message}");
-                                Growl.ErrorGlobal($"数据刷新失败: {ex.Message}");
-                            }
-                        });
-                    }
-                });
-            }
-            catch (Exception ex)
-            {
-                System.Diagnostics.Debug.WriteLine($"刷新数据时出错: {ex.Message}");
-                Growl.ErrorGlobal($"刷新数据失败: {ex.Message}");
-            }
-            finally
-            {
-                IsLoading = false;
-            }
-        }
-
-        // 兼容旧的自动刷新调用，直接转发到手动刷新
-        private void AutoRefreshData()
-        {
-            OnRefreshData();
-        }
-        #endregion
-
-        // 添加视图活动状态属性
-        private bool _isViewActive = true;
-        public bool IsViewActive
-        {
-            get => _isViewActive;
-            set => SetProperty(ref _isViewActive, value);
-        }
-
-        public void Cleanup()
-        {
-            // 标记视图不再活动
-            IsViewActive = false;
-
-            // 清理计时器资源
-            timer?.Stop();
-            timer = null;
-
-            autoRefreshTimer?.Stop();
-            autoRefreshTimer = null;
-
-            // 移除事件订阅
-            eventAggregator.GetEvent<NominationDeclarationAddEvent>().Unsubscribe(OnDeclarationAdded);
-            eventAggregator.GetEvent<NominationDeclarationUpdateEvent>().Unsubscribe(OnDeclarationUpdated);
-            eventAggregator.GetEvent<NominationDeclarationDeleteEvent>().Unsubscribe(OnDeclarationDeleted);
-            eventAggregator.GetEvent<NominationDeclarationApproveEvent>().Unsubscribe(OnDeclarationApproved);
-            eventAggregator.GetEvent<NominationDeclarationRejectEvent>().Unsubscribe(OnDeclarationRejected);
-            eventAggregator.GetEvent<NominationDeclarationPromoteEvent>().Unsubscribe(OnDeclarationPromoted);
-            eventAggregator.GetEvent<NominationDataChangedEvent>().Unsubscribe(OnNominationDataChanged);
-        }
     }
 }

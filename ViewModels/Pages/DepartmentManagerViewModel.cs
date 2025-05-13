@@ -312,6 +312,9 @@ namespace SIASGraduate.ViewModels.Pages
                                     TempDepartments = Departments = new ObservableCollection<Department>(context.Departments);
                                 }
                                 OnSearchDepartment();
+                                
+                                // 发布部门删除事件，通知其他视图更新
+                                eventAggregator.GetEvent<DepartmentDeletedEvent>().Publish();
                             }
                             else
                             {

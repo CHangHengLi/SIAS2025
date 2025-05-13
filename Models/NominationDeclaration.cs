@@ -205,20 +205,31 @@ namespace SIASGraduate.Models
         {
             get
             {
-                // 状态为0表示待审核，直接返回"未审核"
+                // 1. 状态为0表示待审核，直接返回"未审核"
                 if (Status == 0) return "未审核";
                 
-                // 状态非0但缺少审核人信息，返回更明确的信息
-                if (ReviewerSupAdmin == null && ReviewerAdmin == null && ReviewerEmployee == null)
+                // 2. 如果有明确设置审核人ID，但未加载关联实体，尝试获取更简洁的信息
+                if ((ReviewerSupAdminId.HasValue || ReviewerAdminId.HasValue || ReviewerEmployeeId.HasValue) && 
+                    ReviewerSupAdmin == null && ReviewerAdmin == null && ReviewerEmployee == null)
+                {
+                    // 只返回ID，不显示角色前缀
+                    if (ReviewerSupAdminId.HasValue) return $"ID:{ReviewerSupAdminId}";
+                    if (ReviewerAdminId.HasValue) return $"ID:{ReviewerAdminId}";
+                    if (ReviewerEmployeeId.HasValue) return $"ID:{ReviewerEmployeeId}";
+                }
+                
+                // 3. 状态非0但缺少审核人信息，返回更明确的信息
+                if (!ReviewerSupAdminId.HasValue && !ReviewerAdminId.HasValue && !ReviewerEmployeeId.HasValue)
                 {
                     return Status == 1 ? "系统自动通过" : (Status == 2 ? "系统自动拒绝" : "未知审核人");
                 }
                 
-                // 有审核人信息时返回审核人名称
+                // 4. 有审核人信息时直接返回名称，不加角色前缀
                 if (ReviewerSupAdmin != null) return ReviewerSupAdmin.SupAdminName ?? "未知";
                 if (ReviewerAdmin != null) return ReviewerAdmin.AdminName ?? "未知";
                 if (ReviewerEmployee != null) return ReviewerEmployee.EmployeeName ?? "未知";
                 
+                // 5. 兜底情况，仍然显示未知审核人
                 return "未知审核人";
             }
         }

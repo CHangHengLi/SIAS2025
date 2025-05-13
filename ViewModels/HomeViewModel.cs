@@ -247,11 +247,11 @@ namespace SIASGraduate.ViewModels
             #endregion
             
             #region 登录状态检查
-            // 初始化登录状态检查定时器，每30秒检查一次
+            // 初始化登录状态检查定时器，但不立即启动
+            // 将在 Loaded 方法中启动，确保用户已登录
             _loginCheckTimer = new DispatcherTimer();
             _loginCheckTimer.Interval = TimeSpan.FromSeconds(30);
             _loginCheckTimer.Tick += CheckLoginStatus;
-            _loginCheckTimer.Start();
             #endregion
 
             #region LiveCharts
@@ -342,6 +342,13 @@ namespace SIASGraduate.ViewModels
             UpdateDisplayName(); //获取并设置显示姓名
             Password = CurrentUser.Password; //获取当前用户密码
             RoleId = CurrentUser.RoleId; //1.超级管理员 2.管理员 3.雇员
+            
+            // 用户已成功登录，启动登录状态检查定时器
+            if (!string.IsNullOrEmpty(CurrentUser.Account) && !string.IsNullOrEmpty(CurrentUser.UserName))
+            {
+                _loginCheckTimer.Start();
+            }
+            
             if (RoleId == 1)
             {
                 IsButtonVisible = Visibility.Visible; EmployeeManagerButtonIsEnable = true;
@@ -465,6 +472,12 @@ namespace SIASGraduate.ViewModels
         {
             try
             {
+                // 首先检查当前是否有用户登录，如果没有则不执行后续检查
+                if (string.IsNullOrEmpty(CurrentUser.Account) || string.IsNullOrEmpty(CurrentUser.UserName))
+                {
+                    return; // 没有用户登录，直接返回
+                }
+
                 // 验证当前用户信息是否有效
                 if (!IsLoginValid())
                 {

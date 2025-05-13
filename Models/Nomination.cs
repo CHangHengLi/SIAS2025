@@ -48,6 +48,7 @@ namespace SIASGraduate.Models
         /// 提报对象-管理员
         /// </summary>
         public int? NominatedAdminId { get; set; }
+        [ForeignKey("NominatedAdminId")]
         public virtual Admin? NominatedAdmin { get; set; }
 
         /// <summary>
@@ -102,6 +103,7 @@ namespace SIASGraduate.Models
         /// 提议人-超级管理员
         /// </summary>
         public int? ProposerSupAdminId { get; set; }
+        [ForeignKey("ProposerSupAdminId")]
         public virtual SupAdmin? ProposerSupAdmin { get; set; }
 
         /// <summary>
@@ -182,6 +184,7 @@ namespace SIASGraduate.Models
         /// </summary>
         [NotMapped]
         private bool _isUserVoted;
+        [NotMapped] // 再次标记确保属性不被映射
         public bool IsUserVoted
         {
             get { return _isUserVoted; }

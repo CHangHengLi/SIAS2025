@@ -204,11 +204,8 @@
                         Background="#4285F4"
                         BorderBrush="#3367D6"
                         Command="{Binding SelectImageCommand}"
-                        Foreground="White">
-                        <StackPanel Orientation="Horizontal">
-                            <TextBlock Text="选择图片" VerticalAlignment="Center"/>
-                        </StackPanel>
-                    </Button>
+                        Foreground="White"
+                        Content="选择图片"/>
                 </StackPanel>
 
                 <!--  按钮区域  -->

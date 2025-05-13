@@ -11,7 +11,7 @@
     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
     xmlns:prism="http://prismlibrary.com/"
     xmlns:viewmodels="clr-namespace:SIASGraduate.ViewModels.Pages"
-    d:DesignHeight="450"
+    d:DesignHeight="480"
     d:DesignWidth="800"
     prism:ViewModelLocator.AutoWireViewModel="True"
     mc:Ignorable="d">
@@ -112,8 +112,8 @@
                     Margin="10,0"
                     Command="{Binding RefreshDataCommand}"
                     Content="刷新"
-                    ToolTip="手动刷新数据"
-                    Style="{DynamicResource HomeEditButtonStyle}" />
+                    Style="{DynamicResource HomeEditButtonStyle}"
+                    ToolTip="手动刷新数据" />
             </StackPanel>
             <!--  中间层数据展示  -->
             <Grid Grid.Row="1" Grid.Column="0">

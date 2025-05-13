@@ -66,6 +66,10 @@ namespace SIASGraduate.ViewModels.Pages
             eventAggregator.GetEvent<EmployeeExportDataEvent>().Subscribe(OnExportData);
             // 添加对EmployeeRemovedEvent的订阅
             eventAggregator.GetEvent<EmployeeRemovedEvent>().Subscribe(OnDataChanged);
+            // 添加对部门删除事件的订阅，当部门被删除时也更新员工列表
+            eventAggregator.GetEvent<DepartmentDeletedEvent>().Subscribe(OnDataChanged);
+            // 添加对部门更新事件的订阅，当部门信息更新时也更新员工列表
+            eventAggregator.GetEvent<DepartmentUpdatedEvent>().Subscribe(OnDataChanged);
             #endregion
 
             #region 数据的导入和导出

@@ -36,6 +36,7 @@
     <None Remove="Images\投票入口.jpg" />
     <None Remove="Images\投票入口.png" />
     <None Remove="Images\投票结果.png" />
+    <None Remove="Images\提名申报.png" />
     <None Remove="Images\管理员管理.png" />
     <None Remove="Images\部门管理.png" />
     <None Remove="Images\默认头像.png" />
@@ -92,6 +93,9 @@
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Resource>
     <Resource Include="Images\投票结果.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Images\提名申报.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Resource>
     <Resource Include="Images\管理员管理.png">
