@@ -4,6 +4,8 @@ using CsvHelper;
 using CsvHelper.Configuration;
 using System.Globalization;
 using System.IO;
+using Microsoft.EntityFrameworkCore;
+using System.Data.Common;
 
 namespace SIASGraduate.Services
 {
@@ -117,49 +119,69 @@ namespace SIASGraduate.Services
             {
                 using (var context = new DataBaseContext())
                 {
-                    // 1. 查找要删除的部门
+                    // 首先检查部门是否存在
                     var department = context.Departments.Find(departmentId);
                     if (department == null)
                         return false;
 
-                    // 2. 查找并更新所有引用该部门的员工记录
-                    var employees = context.Employees.Where(e => e.DepartmentId == departmentId).ToList();
-                    foreach (var employee in employees)
+                    // 获取数据库连接
+                    var connection = context.Database.GetDbConnection();
+                    if (connection.State != System.Data.ConnectionState.Open)
                     {
-                        employee.DepartmentId = null;
-                        employee.Department = null;
+                        connection.Open();
                     }
 
-                    // 3. 查找并更新所有引用该部门的管理员记录
-                    var admins = context.Admins.Where(a => a.DepartmentId == departmentId).ToList();
-                    foreach (var admin in admins)
+                    using (var command = connection.CreateCommand())
                     {
-                        admin.DepartmentId = null;
-                        admin.Department = null;
+                        // 开始事务
+                        using (var transaction = connection.BeginTransaction())
+                        {
+                            try
+                            {
+                                command.Transaction = transaction;
+
+                                // 添加参数，防止SQL注入
+                                var parameter = command.CreateParameter();
+                                parameter.ParameterName = "@departmentId";
+                                parameter.Value = departmentId;
+                                command.Parameters.Add(parameter);
+
+                                // 1. 更新Employee表中的对应部门ID为NULL
+                                command.CommandText = "UPDATE Employees SET DepartmentId = NULL WHERE DepartmentId = @departmentId";
+                                command.ExecuteNonQuery();
+
+                                // 2. 更新Admin表中的对应部门ID为NULL
+                                command.CommandText = "UPDATE Admins SET DepartmentId = NULL WHERE DepartmentId = @departmentId";
+                                command.ExecuteNonQuery();
+
+                                // 3. 更新Nominations表中的对应部门ID为NULL
+                                command.CommandText = "UPDATE Nominations SET DepartmentId = NULL WHERE DepartmentId = @departmentId";
+                                command.ExecuteNonQuery();
+
+                                // 4. 删除部门
+                                command.CommandText = "DELETE FROM Departments WHERE DepartmentId = @departmentId";
+                                int result = command.ExecuteNonQuery();
+
+                                // 提交事务
+                                transaction.Commit();
+
+                                return result > 0;
+                            }
+                            catch (Exception ex)
+                            {
+                                // 回滚事务
+                                transaction.Rollback();
+                                System.Diagnostics.Debug.WriteLine($"删除部门时发生错误: {ex.Message}");
+                                throw;
+                            }
+                        }
                     }
-
-                    // 4. 查找并更新所有引用该部门的奖项提名记录
-                    var nominations = context.Nominations.Where(n => n.DepartmentId == departmentId).ToList();
-                    foreach (var nomination in nominations)
-                    {
-                        nomination.DepartmentId = null;
-                        nomination.Department = null;
-                    }
-
-                    // 5. 保存对所有相关实体的修改
-                    context.SaveChanges();
-
-                    // 6. 删除部门
-                    context.Departments.Remove(department);
-                    context.SaveChanges();
-
-                    return true;
                 }
             }
             catch (Exception ex)
             {
-                // 处理异常
-                Console.WriteLine(ex.Message);
+                // 处理并记录异常
+                System.Diagnostics.Debug.WriteLine($"删除部门异常: {ex.Message}");
                 return false;
             }
         }

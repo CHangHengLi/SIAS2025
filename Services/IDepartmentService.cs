@@ -9,5 +9,6 @@ namespace SIASGraduate.Services
         bool ExportDepartments(List<Department> departments, string filePath);
         bool DepartmentNameExists(string departmentName);
         void AddDepartment(Department addDepartment);
+        bool DeleteDepartment(int departmentId);
     }
 }

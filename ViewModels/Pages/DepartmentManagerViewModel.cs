@@ -294,26 +294,33 @@ namespace SIASGraduate.ViewModels.Pages
             bool isExist = await Task.Run(() => { return department != null; });
             if (isExist)
             {
-                var context = new DataBaseContext(); // Move context creation outside the using block
                 Growl.AskGlobal("确认删除该部门吗?此操作不可逆", (result) =>
                 {
                     if (result)
                     {
                         try
                         {
-                            context.Departments.Remove(department);
-                            context.SaveChanges();
-                            Growl.SuccessGlobal("部门删除成功");
-                            TempDepartments = Departments = new ObservableCollection<Department>(context.Departments);
-                            OnSearchDepartment();
+                            // 使用departmentService进行删除操作
+                            bool success = departmentService.DeleteDepartment(department.DepartmentId);
+                            
+                            if (success)
+                            {
+                                Growl.SuccessGlobal("部门删除成功");
+                                // 刷新部门列表
+                                using (var context = new DataBaseContext())
+                                {
+                                    TempDepartments = Departments = new ObservableCollection<Department>(context.Departments);
+                                }
+                                OnSearchDepartment();
+                            }
+                            else
+                            {
+                                Growl.ErrorGlobal("部门删除失败");
+                            }
                         }
-                        catch (Exception)
+                        catch (Exception ex)
                         {
-                            Growl.ErrorGlobal("部门删除失败");
-                        }
-                        finally
-                        {
-                            context.Dispose(); // Dispose context after callback execution
+                            Growl.ErrorGlobal($"部门删除失败: {ex.Message}");
                         }
                     }
                     return true;
