@@ -1,11 +1,9 @@
-using SIASGraduate.Context;
-using SIASGraduate.Models;
-using CsvHelper;
-using CsvHelper.Configuration;
 using System.Globalization;
 using System.IO;
+using CsvHelper;
 using Microsoft.EntityFrameworkCore;
-using System.Data.Common;
+using SIASGraduate.Context;
+using SIASGraduate.Models;
 
 namespace SIASGraduate.Services
 {

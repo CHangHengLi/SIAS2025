@@ -241,19 +241,19 @@
                     <!--  添加徽章  -->
                     <StackPanel>
                         <hc:Shield
-                            Margin="10,10,10,20"
+                            Margin="5"
                             VerticalAlignment="Top"
                             Command="hc:ControlCommands.OpenLink"
                             CommandParameter="https://gitee.com/LiChangHeng5424/SIAS2025"
-                            Status="ChangHeng"
+                            Status="🔗"
                             Subject="Gitee"
                             Color="#1182c3" />
                         <hc:Shield
-                            Margin="10,10,10,20"
+                            Margin="5"
                             VerticalAlignment="Top"
                             Command="hc:ControlCommands.OpenLink"
                             CommandParameter="https://github.com/CHangHengLi/SIAS2025"
-                            Status="ChangHeng"
+                            Status="🔗"
                             Subject="GitHub"
                             Color="#1182c3" />
                     </StackPanel>

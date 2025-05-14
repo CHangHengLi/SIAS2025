@@ -1,4 +1,3 @@
-using System;
 using System.Globalization;
 using System.Windows.Data;
 
@@ -15,16 +14,16 @@ namespace SIASGraduate.Converter
             {
                 // 获取原始宽度
                 double originalWidth = System.Convert.ToDouble(value);
-                
+
                 // 获取百分比
                 double percentage = System.Convert.ToDouble(parameter);
-                
+
                 // 计算结果宽度
                 double result = originalWidth * percentage;
-                
+
                 // 调试输出
                 System.Diagnostics.Debug.WriteLine($"原始宽度: {originalWidth}, 百分比: {percentage}, 结果宽度: {result}");
-                
+
                 return result;
             }
             catch (Exception ex)
@@ -39,4 +38,4 @@ namespace SIASGraduate.Converter
             throw new NotImplementedException("WidthPercentageConverter不支持反向转换");
         }
     }
-} 
+}

@@ -1,11 +1,11 @@
+using System.Collections.ObjectModel;
+using HandyControl.Controls;
+using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 using SIASGraduate.Context;
 using SIASGraduate.Event;
 using SIASGraduate.Models;
 using SIASGraduate.Services;
-using HandyControl.Controls;
-using Microsoft.Data.SqlClient;
-using Microsoft.EntityFrameworkCore;
-using System.Collections.ObjectModel;
 
 namespace SIASGraduate.ViewModels.EditMessage.AdminManager
 {
@@ -66,7 +66,7 @@ namespace SIASGraduate.ViewModels.EditMessage.AdminManager
             set { SetProperty(ref baseName, value); }
         }
         #endregion
-        
+
         #region 存储原始账号
         private string baseAccount;
         public string BaseAccount
@@ -93,7 +93,7 @@ namespace SIASGraduate.ViewModels.EditMessage.AdminManager
             set { SetProperty(ref updateAdmin, value); }
         }
         #endregion
-        
+
         #region 管理员账号
         private string account;
         public string Account
@@ -154,7 +154,7 @@ namespace SIASGraduate.ViewModels.EditMessage.AdminManager
         public bool? IsActive
         {
             get { return isActive; }
-            set 
+            set
             {
                 // 如果从在职变为离职状态
                 if (isActive == true && value == false)
@@ -276,21 +276,21 @@ namespace SIASGraduate.ViewModels.EditMessage.AdminManager
                     HandyControl.Controls.Growl.Warning("密码长度必须在6-20位之间");
                     return;
                 }
-                
+
                 // 禁用保存按钮
                 IsSaveEnabled = false;
-                
+
                 System.Diagnostics.Debug.WriteLine($"开始保存操作: AdminId={AdminId}, Name={AdminName}, Role={RoleId}");
-                
+
                 // 记住当前命令对象，用于稍后重新启用
                 var saveCommand = SaveCommand;
                 var cancelCommand = CancelCommand;
-                
+
                 // 显示加载消息并禁用按钮
                 Growl.InfoGlobal("正在处理中...");
                 IsSaveEnabled = false;
                 IsCancelEnabled = false;
-                
+
                 try
                 {
                     // 执行实际的保存操作
@@ -322,11 +322,11 @@ namespace SIASGraduate.ViewModels.EditMessage.AdminManager
                     // 确保按钮重新启用
                     IsSaveEnabled = true;
                     IsCancelEnabled = true;
-                    
+
                     // 通知UI更新按钮状态
                     saveCommand?.RaiseCanExecuteChanged();
                     cancelCommand?.RaiseCanExecuteChanged();
-                    
+
                     System.Diagnostics.Debug.WriteLine("保存操作完成，已重新启用按钮");
                 }
             }
@@ -348,7 +348,7 @@ namespace SIASGraduate.ViewModels.EditMessage.AdminManager
                 using var context = new DataBaseContext();
                 // 获取执行策略
                 var strategy = context.Database.CreateExecutionStrategy();
-                
+
                 // 使用执行策略包装事务操作
                 await strategy.ExecuteAsync(async () =>
                 {
@@ -376,38 +376,42 @@ namespace SIASGraduate.ViewModels.EditMessage.AdminManager
                             context.Employees.Add(employee);
                             context.Admins.Remove(currentAdmin);
                             await context.SaveChangesAsync();
-                            
+
                             // 提交事务
                             await transaction.CommitAsync();
-                            
+
                             // 清空编辑区域
                             regionManager.Regions["AdminEditRegion"].RemoveAll();
-                            
+
                             // 发布事件通知列表更新，在UI线程中执行
-                            App.Current.Dispatcher.Invoke(() => {
+                            App.Current.Dispatcher.Invoke(() =>
+                            {
                                 Growl.SuccessGlobal("管理员已成功转为员工");
                                 // 使用优先级较低的事件，避免UI阻塞
-                                Task.Delay(100).ContinueWith(_ => {
+                                Task.Delay(100).ContinueWith(_ =>
+                                {
                                     eventAggregator.GetEvent<AdminUpdateEvent>().Publish();
                                     eventAggregator.GetEvent<EmployeeAddedEvent>().Publish();
                                 });
                             });
-                            
+
                             return;
                         }
 
                         await context.SaveChangesAsync();
                         await transaction.CommitAsync();
-                        
+
                         Growl.SuccessGlobal("修改成功");
-                        
+
                         // 发布事件通知列表更新
-                        App.Current.Dispatcher.Invoke(() => {
-                            Task.Delay(100).ContinueWith(_ => {
+                        App.Current.Dispatcher.Invoke(() =>
+                        {
+                            Task.Delay(100).ContinueWith(_ =>
+                            {
                                 eventAggregator.GetEvent<AdminUpdateEvent>().Publish();
                             });
                         });
-                        
+
                         // 清空编辑区域，确保导航页面关闭
                         regionManager.Regions["AdminEditRegion"].RemoveAll();
                     }
@@ -497,10 +501,10 @@ namespace SIASGraduate.ViewModels.EditMessage.AdminManager
             {
                 // 记录开始转移相关记录
                 System.Diagnostics.Debug.WriteLine($"开始转移管理员(ID:{adminId})相关记录到员工(ID:{employeeId})");
-                
+
                 // 检查并处理真实存在的相关表
                 // 本方法将根据实际数据库模型进行适当处理
-                
+
                 // 保存所有更改
                 await context.SaveChangesAsync();
                 System.Diagnostics.Debug.WriteLine("所有相关记录转移完成");
@@ -513,7 +517,7 @@ namespace SIASGraduate.ViewModels.EditMessage.AdminManager
                 {
                     System.Diagnostics.Debug.WriteLine($"内部异常: {ex.InnerException.Message}");
                 }
-                
+
                 // 重新抛出异常，以便事务可以回滚
                 throw new Exception("转移管理员相关记录到员工时出错", ex);
             }
@@ -524,7 +528,7 @@ namespace SIASGraduate.ViewModels.EditMessage.AdminManager
         private void HandleDbUpdateException(DbUpdateException dbEx)
         {
             System.Diagnostics.Debug.WriteLine($"数据库更新错误: {dbEx.Message}");
-            
+
             if (dbEx.InnerException is SqlException sqlEx)
             {
                 // 处理SQL特定错误
@@ -557,14 +561,14 @@ namespace SIASGraduate.ViewModels.EditMessage.AdminManager
                 Growl.Error($"数据库更新错误: {dbEx.Message}");
             }
         }
-        
+
         private void LogAndShowError(string message, Exception ex)
         {
             System.Diagnostics.Debug.WriteLine($"{message}: {ex.Message}");
             if (ex.InnerException != null)
             {
                 System.Diagnostics.Debug.WriteLine($"内部异常: {ex.InnerException.Message}");
-                
+
                 if (ex.InnerException.InnerException != null)
                 {
                     System.Diagnostics.Debug.WriteLine($"二级内部异常: {ex.InnerException.InnerException.Message}");

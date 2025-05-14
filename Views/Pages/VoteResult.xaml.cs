@@ -1,8 +1,8 @@
+using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Input;
 using SIASGraduate.Models;
 using SIASGraduate.ViewModels.Pages;
-using System.Windows;
-using System.Windows.Input;
 
 namespace SIASGraduate.Views.Pages
 {

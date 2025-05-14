@@ -1,4 +1,4 @@
 namespace SIASGraduate.Event
 {
-   public class AwardAddEvent : PubSubEvent { }
+    public class AwardAddEvent : PubSubEvent { }
 }

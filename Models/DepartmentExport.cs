@@ -9,7 +9,7 @@ namespace SIASGraduate.Models
     {
         [Name("部门编号")]
         public int DepartmentId { get; set; }
-        
+
         [Name("部门名称")]
         public string DepartmentName { get; set; }
     }

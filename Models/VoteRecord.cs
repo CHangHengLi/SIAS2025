@@ -1,10 +1,5 @@
-using System;
-using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 
 namespace SIASGraduate.Models
 {
@@ -67,13 +62,13 @@ namespace SIASGraduate.Models
         /// 投票时间
         /// </summary>
         public DateTime VoteTime { get; set; } = DateTime.Now;
-        
+
         /// <summary>
         /// 投票时间别名（向后兼容）
         /// </summary>
         [NotMapped]
-        public DateTime VoteDate 
-        { 
+        public DateTime VoteDate
+        {
             get { return VoteTime; }
             set { VoteTime = value; }
         }

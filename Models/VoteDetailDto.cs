@@ -1,9 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
 namespace _2025毕业设计.Models
 {
     /// <summary>
@@ -55,15 +49,15 @@ namespace _2025毕业设计.Models
         /// 得票数
         /// </summary>
         public int VoteCount { get; set; }
-        
+
         /// <summary>
         /// 员工票数
         /// </summary>
         public int EmployeeVoteCount { get; set; }
-        
+
         /// <summary>
         /// 管理员票数
         /// </summary>
         public int AdminVoteCount { get; set; }
     }
-} 
+}

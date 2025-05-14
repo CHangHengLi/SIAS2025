@@ -1,4 +1,3 @@
-using System;
 using System.Globalization;
 using System.Windows.Data;
 
@@ -17,7 +16,7 @@ namespace SIASGraduate.Converter
             {
                 return parameter ?? "0"; // 默认值为0
             }
-            
+
             // 否则返回原值
             return value;
         }
@@ -27,4 +26,4 @@ namespace SIASGraduate.Converter
             throw new NotImplementedException();
         }
     }
-} 
+}

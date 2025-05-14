@@ -9,7 +9,7 @@ namespace SIASGraduate.Common
         public static int? AdminId { get; set; } //当前登录管理员Id
         public static int? EmployeeId { get; set; } //当前登录员工Id
         public static string Account { get; set; } //当前登录用户账号
-        
+
         /// <summary>
         /// 清除当前用户信息
         /// </summary>

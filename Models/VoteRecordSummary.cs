@@ -1,7 +1,3 @@
-using System;
-using System.Collections.Generic;
-using System.Linq;
-
 namespace SIASGraduate.Models
 {
     /// <summary>
@@ -116,4 +112,4 @@ namespace SIASGraduate.Models
             return result.OrderByDescending(s => s.LastVoteTime).ToList();
         }
     }
-} 
+}

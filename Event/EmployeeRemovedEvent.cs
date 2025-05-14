@@ -1,5 +1,3 @@
-using Prism.Events;
-
 namespace SIASGraduate.Event
 {
     /// <summary>
@@ -8,4 +6,4 @@ namespace SIASGraduate.Event
     public class EmployeeRemovedEvent : PubSubEvent
     {
     }
-} 
+}

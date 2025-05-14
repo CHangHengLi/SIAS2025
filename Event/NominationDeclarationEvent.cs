@@ -43,4 +43,4 @@ namespace SIASGraduate.Event
     public class NominationDeclarationPromoteEvent : PubSubEvent<NominationDeclaration>
     {
     }
-} 
+}

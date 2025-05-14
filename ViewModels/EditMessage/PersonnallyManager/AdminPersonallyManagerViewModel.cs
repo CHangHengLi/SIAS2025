@@ -1,13 +1,12 @@
+using System.IO;
+using System.Windows.Input;
+using System.Windows.Media.Imaging;
+using HandyControl.Controls;
+using Microsoft.IdentityModel.Tokens;
 using SIASGraduate.Common;
 using SIASGraduate.Context;
 using SIASGraduate.Models;
 using SIASGraduate.Services;
-using SIASGraduate.Converter;
-using HandyControl.Controls;
-using Microsoft.IdentityModel.Tokens;
-using System.IO;
-using System.Windows.Input;
-using System.Windows.Media.Imaging;
 using ConverterImage = SIASGraduate.Converter.ConVerterImage;
 
 namespace SIASGraduate.ViewModels.EditMessage.PersonnallyManager
@@ -58,19 +57,19 @@ namespace SIASGraduate.ViewModels.EditMessage.PersonnallyManager
             {
                 // 优先根据Account查找，如果找不到再根据UserName查找
                 CurrentAdmin = null;
-                
+
                 // 如果Account有值，优先尝试用Account查询
                 if (!string.IsNullOrEmpty(CurrentUser.Account))
                 {
                     CurrentAdmin = context.Admins.FirstOrDefault(a => a.Account == CurrentUser.Account);
                 }
-                
+
                 // 如果通过Account没找到，再尝试用UserName查询
                 if (CurrentAdmin == null && !string.IsNullOrEmpty(CurrentUser.UserName))
                 {
                     CurrentAdmin = context.Admins.FirstOrDefault(a => a.AdminName == CurrentUser.UserName);
                 }
-                
+
                 // 如果还是没找到，创建一个新对象
                 if (CurrentAdmin == null)
                 {
@@ -82,7 +81,7 @@ namespace SIASGraduate.ViewModels.EditMessage.PersonnallyManager
                         AdminImage = CurrentUser.Image
                     };
                 }
-                
+
                 // 确保Account属性已设置（防止数据库中的记录没有Account值）
                 if (string.IsNullOrEmpty(CurrentAdmin.Account))
                 {
@@ -106,14 +105,14 @@ namespace SIASGraduate.ViewModels.EditMessage.PersonnallyManager
                     Growl.Warning("姓名或密码不能为空");
                     return;
                 }
-                
+
                 // 验证密码长度
                 if (CurrentAdmin.AdminPassword.Length < 6 || CurrentAdmin.AdminPassword.Length > 20)
                 {
                     Growl.Warning("密码长度必须在6-20位之间");
                     return;
                 }
-                
+
                 // 如果用户名没有变化，直接更新
                 if (CurrentAdmin.AdminName == CurrentUser.UserName)
                 {
@@ -131,13 +130,13 @@ namespace SIASGraduate.ViewModels.EditMessage.PersonnallyManager
                     Growl.Success("修改成功");
                     return;
                 }
-                
+
                 // 检查用户名是否已存在，排除当前用户自己
                 bool nameExists = await Task.Run(() =>
                 {
                     // 检查超级管理员中是否有同名用户
                     bool existsInSupAdmin = supAdminService.IsSupAdminNameExist(CurrentAdmin.AdminName);
-                    
+
                     // 检查管理员中是否有同名用户（排除自己）
                     bool existsInAdmin = false;
                     using (var tempContext = new DataBaseContext())
@@ -145,19 +144,19 @@ namespace SIASGraduate.ViewModels.EditMessage.PersonnallyManager
                         existsInAdmin = tempContext.Admins
                             .Any(a => a.AdminName == CurrentAdmin.AdminName && a.AdminId != CurrentAdmin.AdminId);
                     }
-                    
+
                     // 检查员工中是否有同名用户
                     bool existsInEmployee = employeeService.IsEmployeeNameExist(CurrentAdmin.AdminName);
-                    
+
                     return existsInSupAdmin || existsInAdmin || existsInEmployee;
                 });
-                
+
                 if (nameExists)
                 {
                     Growl.Warning("用户名已存在");
                     return;
                 }
-                
+
                 if (ByteImage != null)
                 {
                     CurrentAdmin.AdminImage = ByteImage;

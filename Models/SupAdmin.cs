@@ -37,7 +37,7 @@ namespace SIASGraduate.Models
         /// 超级管理员权限级别
         /// </summary>
         public int? RoleId { get; set; } = 1;
-        
+
         /// <summary>
         /// 用于显示的名称
         /// </summary>

@@ -1,7 +1,4 @@
 using System.Windows.Controls;
-using SIASGraduate.ViewModels.EditMessage.NominationDeclarationManager;
-using HandyControl.Controls;
-using HandyControl.Data;
 
 namespace SIASGraduate.Views.EditMessage.NominationDeclarationManager
 {
@@ -15,4 +12,4 @@ namespace SIASGraduate.Views.EditMessage.NominationDeclarationManager
             InitializeComponent();
         }
     }
-} 
+}

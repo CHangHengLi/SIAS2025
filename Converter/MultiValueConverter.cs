@@ -1,4 +1,3 @@
-using System;
 using System.Globalization;
 using System.Windows.Data;
 
@@ -16,7 +15,7 @@ namespace SIASGraduate.Converter
         {
             if (values == null || values.Length < 2)
                 return null;
-                
+
             // 创建键值对，用于传递控件引用和事件参数
             return new System.Collections.Generic.KeyValuePair<object, object>(values[0], values[1]);
         }
@@ -29,4 +28,4 @@ namespace SIASGraduate.Converter
             throw new NotImplementedException();
         }
     }
-} 
+}

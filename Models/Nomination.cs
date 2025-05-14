@@ -81,7 +81,7 @@ namespace SIASGraduate.Models
         /// 提议人-员工ID
         /// </summary>
         public int? ProposerEmployeeId { get; set; }
-        
+
         /// <summary>
         /// 提议人-员工
         /// </summary>
@@ -92,7 +92,7 @@ namespace SIASGraduate.Models
         /// 提议人-管理员ID
         /// </summary>
         public int? ProposerAdminId { get; set; }
-        
+
         /// <summary>
         /// 提议人-管理员
         /// </summary>
@@ -110,13 +110,13 @@ namespace SIASGraduate.Models
         /// 提名时间
         /// </summary>
         public DateTime NominationTime { get; set; } = DateTime.Now;
-        
+
         /// <summary>
         /// 提名时间别名（向后兼容）
         /// </summary>
         [NotMapped]
-        public DateTime NominateTime 
-        { 
+        public DateTime NominateTime
+        {
             get { return NominationTime; }
             set { NominationTime = value; }
         }

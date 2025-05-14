@@ -33,13 +33,13 @@ namespace SIASGraduate
     {
         // 当前登录用户信息（仅用于存储引用，实际数据仍在静态CurrentUser类中）
         public static object Current_LoginUser { get; } = new object();
-        
+
         protected override Window CreateShell()
         {
             // 创建并返回应用的主窗口
             return Container.Resolve<Home>();
         }
-        
+
         protected override void RegisterTypes(IContainerRegistry containerRegistry)
         {
             // 在这里注册应用的类型，如视图模型、服务等
@@ -149,13 +149,13 @@ namespace SIASGraduate
                         CurrentUser.UserName = username;
                         CurrentUser.Password = password;
                         CurrentUser.RoleId = roleId;
-                        
+
                         // 设置Account参数
                         if (dr.Parameters.ContainsKey("account"))
                         {
                             CurrentUser.Account = dr.Parameters.GetValue<string>("account");
                         }
-                        
+
                         if (dr.Parameters.ContainsKey("adminId"))
                         {
                             CurrentUser.AdminId = dr.Parameters.GetValue<int>("adminId");

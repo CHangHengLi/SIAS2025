@@ -191,10 +191,10 @@ namespace SIASGraduate.ViewModels.EditMessage.NominationLogViewer
             try
             {
                 IsLoading = true;
-                
+
                 // 使用无需UI线程的方式清空现有数据
                 Logs = new ObservableCollection<NominationLog>();
-                
+
                 await Task.Run(async () =>
                 {
                     using (var context = new DataBaseContext())
@@ -208,7 +208,7 @@ namespace SIASGraduate.ViewModels.EditMessage.NominationLogViewer
                             .Take(_pageSize)
                             .Select(l => l.LogId)
                             .ToListAsync();
-                        
+
                         // 第二步：只获取需要的日志记录的详细信息
                         var logs = await context.NominationLogs
                             .AsNoTracking()
@@ -221,14 +221,14 @@ namespace SIASGraduate.ViewModels.EditMessage.NominationLogViewer
                             .Include(l => l.OperatorSupAdmin)
                             .OrderByDescending(l => l.OperationTime)
                             .ToListAsync();
-                            
+
                         // 获取总记录数 - 使用简单计数，避免复杂查询
                         int totalCount = await context.NominationLogs.CountAsync();
-                        
+
                         // 在主线程外准备要显示的数据
                         var newLogs = new ObservableCollection<NominationLog>(logs);
                         int maxPage = (int)Math.Ceiling((double)totalCount / _pageSize);
-                        
+
                         // 批量更新UI属性，减少UI线程阻塞时间
                         Application.Current.Dispatcher.Invoke(() =>
                         {
@@ -251,4 +251,4 @@ namespace SIASGraduate.ViewModels.EditMessage.NominationLogViewer
 
         #endregion
     }
-} 
+}

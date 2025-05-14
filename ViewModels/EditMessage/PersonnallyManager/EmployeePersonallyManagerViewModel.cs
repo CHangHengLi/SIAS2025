@@ -1,13 +1,12 @@
+using System.IO;
+using System.Windows.Input;
+using System.Windows.Media.Imaging;
+using HandyControl.Controls;
+using Microsoft.IdentityModel.Tokens;
 using SIASGraduate.Common;
 using SIASGraduate.Context;
 using SIASGraduate.Models;
 using SIASGraduate.Services;
-using SIASGraduate.Converter;
-using HandyControl.Controls;
-using Microsoft.IdentityModel.Tokens;
-using System.IO;
-using System.Windows.Input;
-using System.Windows.Media.Imaging;
 using ConverterImage = SIASGraduate.Converter.ConVerterImage;
 
 namespace SIASGraduate.ViewModels.EditMessage.PersonnallyManager
@@ -47,7 +46,7 @@ namespace SIASGraduate.ViewModels.EditMessage.PersonnallyManager
 
         public Employee CurrentEmployee { get => currentEmployee; set => SetProperty(ref currentEmployee, value); }
         #endregion
-        
+
         #region 部门列表
         private List<Department> departments;
         public List<Department> Departments
@@ -73,19 +72,19 @@ namespace SIASGraduate.ViewModels.EditMessage.PersonnallyManager
             {
                 // 优先根据Account查找，如果找不到再根据UserName查找
                 CurrentEmployee = null;
-                
+
                 // 如果Account有值，优先尝试用Account查询
                 if (!string.IsNullOrEmpty(CurrentUser.Account))
                 {
                     CurrentEmployee = context.Employees.FirstOrDefault(a => a.Account == CurrentUser.Account);
                 }
-                
+
                 // 如果通过Account没找到，再尝试用UserName查询
                 if (CurrentEmployee == null && !string.IsNullOrEmpty(CurrentUser.UserName))
                 {
                     CurrentEmployee = context.Employees.FirstOrDefault(a => a.EmployeeName == CurrentUser.UserName);
                 }
-                
+
                 // 如果还是没找到，创建一个新对象
                 if (CurrentEmployee == null)
                 {
@@ -97,13 +96,13 @@ namespace SIASGraduate.ViewModels.EditMessage.PersonnallyManager
                         EmployeeImage = CurrentUser.Image
                     };
                 }
-                
+
                 // 确保Account属性已设置（防止数据库中的记录没有Account值）
                 if (string.IsNullOrEmpty(CurrentEmployee.Account))
                 {
                     CurrentEmployee.Account = CurrentUser.Account ?? "";
                 }
-                
+
                 Departments = context.Departments.ToList();
             }
         }
@@ -123,14 +122,14 @@ namespace SIASGraduate.ViewModels.EditMessage.PersonnallyManager
                     Growl.Warning("姓名或密码不能为空");
                     return;
                 }
-                
+
                 // 验证密码长度
                 if (CurrentEmployee.EmployeePassword.Length < 6 || CurrentEmployee.EmployeePassword.Length > 20)
                 {
                     Growl.Warning("密码长度必须在6-20位之间");
                     return;
                 }
-                
+
                 // 如果用户名没有变化，直接更新
                 if (CurrentEmployee.EmployeeName == CurrentUser.UserName)
                 {
@@ -148,35 +147,35 @@ namespace SIASGraduate.ViewModels.EditMessage.PersonnallyManager
                     Growl.Success("保存成功");
                     return;
                 }
-                
+
                 // 检查用户名是否已存在，排除当前用户自己
                 bool nameExists = await Task.Run(() =>
                 {
                     // 检查超级管理员中是否有同名用户
                     bool existsInSupAdmin = supAdminService.IsSupAdminNameExist(CurrentEmployee.EmployeeName);
-                    
+
                     // 检查管理员中是否有同名用户
                     bool existsInAdmin = adminService.IsAdminNameExist(CurrentEmployee.EmployeeName);
-                    
+
                     // 检查员工中是否有同名用户（排除自己）
                     bool existsInEmployee = false;
                     using (var tempContext = new DataBaseContext())
                     {
                         existsInEmployee = tempContext.Employees
-                            .Any(e => e.EmployeeName == CurrentEmployee.EmployeeName 
+                            .Any(e => e.EmployeeName == CurrentEmployee.EmployeeName
                                  && e.EmployeeId != CurrentEmployee.EmployeeId);
                     }
-                    
+
                     return existsInSupAdmin || existsInAdmin || existsInEmployee;
                 });
-                
+
                 //员工姓名不能够和超级管理员,管理员,员工重复
                 if (nameExists)
                 {
                     Growl.Warning("用户名已存在");
                     return;
                 }
-                
+
                 if (ByteImage != null)
                 {
                     CurrentEmployee.EmployeeImage = ByteImage;

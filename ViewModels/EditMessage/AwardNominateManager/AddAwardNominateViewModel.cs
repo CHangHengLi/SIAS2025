@@ -1,13 +1,13 @@
-using SIASGraduate.Common;
-using SIASGraduate.Context;
-using SIASGraduate.Event;
-using SIASGraduate.Models;
-using HandyControl.Controls;
-using Microsoft.Win32;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
+using HandyControl.Controls;
+using Microsoft.Win32;
+using SIASGraduate.Common;
+using SIASGraduate.Context;
+using SIASGraduate.Event;
+using SIASGraduate.Models;
 
 namespace SIASGraduate.ViewModels.EditMessage.AwardNominateManager
 {
@@ -26,18 +26,18 @@ namespace SIASGraduate.ViewModels.EditMessage.AwardNominateManager
         {
             this.regionManager = regionManager;
             this.eventAggregator = eventAggregator;
-            
+
             // 获取下一个提名编号
             using (var context = new DataBaseContext())
             {
                 var maxId = context.Nominations.Any() ? context.Nominations.Select(n => n.NominationId).Max() : 0;
                 NominationId = maxId + 1;
             }
-            
+
             // 加载数据
             LoadAwards();
             LoadEmployees();
-            
+
             // 只有超级管理员可以提名管理员
             if (CurrentUser.RoleId == 1) // 超级管理员
             {
@@ -105,8 +105,8 @@ namespace SIASGraduate.ViewModels.EditMessage.AwardNominateManager
         public object SelectedNominee
         {
             get { return selectedNominee; }
-            set 
-            { 
+            set
+            {
                 SetProperty(ref selectedNominee, value);
                 UpdateDepartment();
             }
@@ -196,12 +196,12 @@ namespace SIASGraduate.ViewModels.EditMessage.AwardNominateManager
                 Growl.WarningGlobal("请选择提名对象");
                 return;
             }
-            
+
             // 检查是否选择了离职人员 - 新增提名时不应该选择离职人员
             bool isInactive = false;
             string nomineeType = "";
             string nomineeName = "";
-            
+
             if (SelectedNominee is Employee employee)
             {
                 if (employee.IsActive == false)
@@ -220,14 +220,14 @@ namespace SIASGraduate.ViewModels.EditMessage.AwardNominateManager
                     nomineeName = admin.AdminName;
                 }
             }
-            
+
             // 如果选择了离职人员，拒绝保存
             if (isInactive)
             {
                 Growl.WarningGlobal($"您选择的{nomineeType} {nomineeName} 已离职，无法提名。请选择在职的员工或管理员。");
                 return;
             }
-            
+
             // 验证所属部门（如果是必填项）
             if (string.IsNullOrWhiteSpace(DepartmentName))
             {
@@ -254,7 +254,7 @@ namespace SIASGraduate.ViewModels.EditMessage.AwardNominateManager
                 Growl.WarningGlobal("提名理由不能为空");
                 return;
             }
-            
+
             // 验证当前用户信息（保证能正确设置提议人）
             if (CurrentUser.RoleId != 1 && CurrentUser.RoleId != 2 && CurrentUser.RoleId != 3)
             {
@@ -268,28 +268,28 @@ namespace SIASGraduate.ViewModels.EditMessage.AwardNominateManager
                 {
                     // 检查是否已存在该员工对该奖项的提名
                     bool duplicateNomination = false;
-                    
+
                     if (SelectedNominee is Employee selectedEmployee)
                     {
-                        duplicateNomination = context.Nominations.Any(n => 
-                            n.AwardId == SelectedAward.AwardId && 
+                        duplicateNomination = context.Nominations.Any(n =>
+                            n.AwardId == SelectedAward.AwardId &&
                             n.NominatedEmployeeId == selectedEmployee.EmployeeId);
                         nomineeType = "员工";
                     }
                     else if (SelectedNominee is Admin selectedAdmin)
                     {
-                        duplicateNomination = context.Nominations.Any(n => 
-                            n.AwardId == SelectedAward.AwardId && 
+                        duplicateNomination = context.Nominations.Any(n =>
+                            n.AwardId == SelectedAward.AwardId &&
                             n.NominatedAdminId == selectedAdmin.AdminId);
                         nomineeType = "管理员";
                     }
-                    
+
                     if (duplicateNomination)
                     {
                         Growl.WarningGlobal($"同一{nomineeType}只能申请一次同一奖项");
                         return;
                     }
-                    
+
                     var nomination = new Nomination
                     {
                         AwardId = SelectedAward.AwardId,
@@ -316,12 +316,12 @@ namespace SIASGraduate.ViewModels.EditMessage.AwardNominateManager
                     if (CurrentUser.RoleId == 1) // 超级管理员
                     {
                         System.Diagnostics.Debug.WriteLine($"当前登录的超级管理员 ID: {CurrentUser.AdminId}, 用户名: {CurrentUser.UserName}, 账号: {CurrentUser.Account}");
-                        
+
                         // 使用超级管理员作为提议人
                         using (var lookupContext = new DataBaseContext())
                         {
                             // 尝试通过用户名或账号查找超级管理员
-                            var supAdmin = lookupContext.SupAdmins.FirstOrDefault(s => s.SupAdminName == CurrentUser.UserName || 
+                            var supAdmin = lookupContext.SupAdmins.FirstOrDefault(s => s.SupAdminName == CurrentUser.UserName ||
                                                                                       s.Account == CurrentUser.Account ||
                                                                                       s.SupAdminId == CurrentUser.AdminId);
                             if (supAdmin != null)
@@ -409,7 +409,7 @@ namespace SIASGraduate.ViewModels.EditMessage.AwardNominateManager
                 {
                     // 读取图片文件
                     CoverImage = File.ReadAllBytes(openFileDialog.FileName);
-                    
+
                     // 创建图片预览
                     var image = new BitmapImage();
                     image.BeginInit();

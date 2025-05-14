@@ -1,10 +1,3 @@
-using SIASGraduate.Context;
-using SIASGraduate.Event;
-using SIASGraduate.Models;
-using SIASGraduate.Services;
-using HandyControl.Controls;
-using Microsoft.Win32;
-using NLog;
 using System.Collections;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
@@ -12,10 +5,14 @@ using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
-using System.Linq;
-using System.Threading.Tasks;
+using HandyControl.Controls;
 using Microsoft.EntityFrameworkCore;
-using System;
+using Microsoft.Win32;
+using NLog;
+using SIASGraduate.Context;
+using SIASGraduate.Event;
+using SIASGraduate.Models;
+using SIASGraduate.Services;
 
 namespace SIASGraduate.ViewModels.Pages
 {
@@ -173,8 +170,8 @@ namespace SIASGraduate.ViewModels.Pages
         public object Status
         {
             get { return status; }
-            set 
-            { 
+            set
+            {
                 SetProperty(ref status, value);
                 // 同步更新StatusText
                 if (value is System.Windows.Controls.ComboBoxItem comboBoxItem)
@@ -387,7 +384,7 @@ namespace SIASGraduate.ViewModels.Pages
             // 加载数据的具体实现
             LoadEmployees();
         }
-        
+
         private void LoadEmployees()
         {
             try
@@ -414,7 +411,7 @@ namespace SIASGraduate.ViewModels.Pages
 
                 // 使用批量添加来减少UI更新次数
                 var pageItems = TempEmployees.Skip(startIndex).Take(PageSize).ToList();
-                
+
                 // 将数据一次性添加到集合，减少UI更新
                 App.Current.Dispatcher.Invoke(() =>
                 {
@@ -444,7 +441,7 @@ namespace SIASGraduate.ViewModels.Pages
             try
             {
                 logger.Debug($"开始执行员工搜索: 状态={StatusText}, 关键词={SearchKeyword}");
-                
+
                 // 防止重复操作
                 IsSearchEnabled = false;
                 IsRefreshEnabled = false;
@@ -475,7 +472,7 @@ namespace SIASGraduate.ViewModels.Pages
                     filteredEmployees = Employees;
                     logger.Debug($"显示全部员工，共 {filteredEmployees.Count()} 条记录");
                 }
-                
+
                 // 关键词筛选
                 if (!string.IsNullOrWhiteSpace(SearchKeyword))
                 {
@@ -484,11 +481,11 @@ namespace SIASGraduate.ViewModels.Pages
                         (e.EmployeeName != null && e.EmployeeName.ToLower().Contains(keyword)) ||
                         (e.Account != null && e.Account.ToLower().Contains(keyword)) ||
                         e.EmployeeId.ToString().Contains(keyword) ||
-                        (Departments != null && e.DepartmentId.HasValue && 
+                        (Departments != null && e.DepartmentId.HasValue &&
                          Departments.Any(d => d.DepartmentId == e.DepartmentId &&
                             d.DepartmentName != null && d.DepartmentName.ToLower().Contains(keyword)))
                     ).ToList();
-                    
+
                     logger.Debug($"关键词筛选后，剩余 {filteredEmployees.Count()} 条记录");
                 }
 
@@ -500,17 +497,17 @@ namespace SIASGraduate.ViewModels.Pages
                 // 计算分页信息
                 TotalRecords = TempEmployees.Count;
                 TotalItems = TotalRecords; // 确保TotalItems和TotalRecords保持同步
-                MaxPage = TotalRecords == 0 ? 1 : (TotalRecords % PageSize == 0 ? 
+                MaxPage = TotalRecords == 0 ? 1 : (TotalRecords % PageSize == 0 ?
                           TotalRecords / PageSize : (TotalRecords / PageSize) + 1);
-                
+
                 // 重置为第一页
                 CurrentPage = 1;
 
                 // 使用统一的方法更新ListViewEmployees
                 UpdateListViewData();
-                
+
                 logger.Info($"员工搜索完成，共找到 {TotalRecords} 条记录，当前显示第 {CurrentPage}/{MaxPage} 页");
-                
+
                 // 如果没有搜索结果，显示提示信息
                 if (TotalRecords == 0)
                 {
@@ -540,11 +537,11 @@ namespace SIASGraduate.ViewModels.Pages
                 // 清空编辑区域，确保之前的编辑不会影响新增操作
                 var region = regionManager.Regions["EmployeeEditRegion"];
                 region?.RemoveAll();
-                
+
                 // 导航到添加员工页面
                 logger.Debug("导航到员工添加页面");
-            regionManager.RequestNavigate("EmployeeEditRegion", "AddEmployee");
-                
+                regionManager.RequestNavigate("EmployeeEditRegion", "AddEmployee");
+
                 logger.Info("已打开员工添加页面");
             }
             catch (Exception ex)
@@ -565,16 +562,16 @@ namespace SIASGraduate.ViewModels.Pages
                     Growl.WarningGlobal("请选择要修改的员工");
                     return;
                 }
-                
+
                 // 创建导航参数
                 var parameters = new NavigationParameters
                 {
                     { "Employee", employee }
                 };
-                
+
                 // 导航到编辑页面
                 regionManager.RequestNavigate("EmployeeEditRegion", "EditEmployee", parameters);
-                
+
                 logger.Debug($"已导航到员工编辑页面，员工ID: {employee.EmployeeId}, 姓名: {employee.EmployeeName}");
             }
             catch (Exception ex)
@@ -601,7 +598,7 @@ namespace SIASGraduate.ViewModels.Pages
 
                 // 检查员工是否有关联记录
                 var checkResult = await Task.Run(() => employeeService.CheckEmployeeRelatedRecords(employee.EmployeeId));
-                
+
                 // 隐藏加载状态
                 IsLoading = false;
 
@@ -610,26 +607,26 @@ namespace SIASGraduate.ViewModels.Pages
                 {
                     // 构建提示消息
                     string message = "删除操作无法完成，发现关联记录：\n";
-                    
+
                     if (checkResult.nominationCount > 0)
                     {
                         message += $"• 奖项提名记录 ({checkResult.nominationCount}条)\n";
                     }
-                    
+
                     if (checkResult.declarationCount > 0)
                     {
                         message += $"• 提名申报记录 ({checkResult.declarationCount}条)\n";
                     }
-                    
+
                     if (checkResult.voteCount > 0)
                     {
                         message += $"• 投票记录 ({checkResult.voteCount}条)\n";
                     }
-                    
+
                     message += "\n是否连带删除所有关联记录？";
-                    
+
                     // 显示Growl全局警告框
-                    Growl.AskGlobal(message, isConfirmed => 
+                    Growl.AskGlobal(message, isConfirmed =>
                     {
                         if (isConfirmed)
                         {
@@ -669,17 +666,17 @@ namespace SIASGraduate.ViewModels.Pages
         {
             // 显示加载中状态
             IsLoading = true;
-            
+
             logger.Info($"开始级联删除员工及关联记录：ID={employee.EmployeeId}，姓名={employee.EmployeeName}");
-            
+
             // 显示正在处理的提示
             Growl.InfoGlobal("正在处理级联删除，请稍候...");
-            
+
             // 异步调用服务层删除员工及其关联记录
             bool success = false;
             bool shouldUseSqlMethod = false;
             Exception caughtException = null;
-            
+
             try
             {
                 // 首先尝试使用EF Core方式删除
@@ -690,73 +687,73 @@ namespace SIASGraduate.ViewModels.Pages
             {
                 caughtException = ex;
                 logger.Error(ex, $"级联删除员工时发生异常: {ex.Message}");
-                
+
                 // 外键约束错误，标记使用SQL方法尝试
-                if (ex.Message.Contains("foreign key") || ex.Message.Contains("FOREIGN KEY") || 
+                if (ex.Message.Contains("foreign key") || ex.Message.Contains("FOREIGN KEY") ||
                     ex.Message.Contains("constraint") || ex.Message.Contains("REFERENCE"))
                 {
                     shouldUseSqlMethod = true;
                     logger.Info("将尝试使用直接SQL语句方法删除");
                 }
             }
-            
+
             // 如果首次尝试失败且是外键约束问题，尝试使用直接SQL方法
             if (!success && shouldUseSqlMethod)
             {
-                try 
+                try
                 {
                     // 使用直接SQL方法再次尝试
                     Growl.InfoGlobal("正在使用直接SQL方法尝试删除，请稍候...");
                     logger.Info($"尝试使用SQL方式删除员工 ID={employee.EmployeeId}");
-                    
+
                     // 使用直接SQL方法执行删除
                     success = employeeService.ExecuteDirectSqlDelete(employee.EmployeeId);
-                    
+
                     if (success)
                     {
                         // 清除之前的异常
                         caughtException = null;
                         logger.Info("使用直接SQL方法删除成功");
-                        
+
                         // 直接更新UI界面，避免重复消息
                         App.Current.Dispatcher.Invoke(() =>
                         {
                             // 从本地集合中移除员工
                             if (Employees.Contains(employee))
                                 Employees.Remove(employee);
-                            
+
                             if (TempEmployees.Contains(employee))
                                 TempEmployees.Remove(employee);
-                            
+
                             if (ListViewEmployees.Contains(employee))
                                 ListViewEmployees.Remove(employee);
-                            
+
                             if (_allEmployeesCache != null)
                                 _allEmployeesCache.Remove(employee);
-                            
+
                             // 更新计数和分页
                             TotalRecords = TempEmployees.Count;
-                            MaxPage = TotalRecords == 0 ? 1 : 
-                                     (TotalRecords % PageSize == 0 ? 
+                            MaxPage = TotalRecords == 0 ? 1 :
+                                     (TotalRecords % PageSize == 0 ?
                                      TotalRecords / PageSize : (TotalRecords / PageSize) + 1);
-                            
+
                             // 如果当前页超出范围，修正为最大页
                             if (CurrentPage > MaxPage)
                                 CurrentPage = MaxPage > 0 ? MaxPage : 1;
-                            
+
                             // 刷新当前页数据
                             UpdateListViewData();
-                            
+
                             // 通知用户
                             Growl.SuccessGlobal($"已成功删除员工 {employee.EmployeeName} 及其所有关联记录");
-                            
+
                             // 发布员工删除事件，通知其他组件
                             eventAggregator.GetEvent<EmployeeRemovedEvent>().Publish();
-                            
+
                             // 隐藏加载状态
                             IsLoading = false;
                         });
-                        
+
                         logger.Info($"成功级联删除员工及关联记录：ID={employee.EmployeeId}，姓名={employee.EmployeeName}");
                         return; // 直接返回，避免后续重复处理
                     }
@@ -773,7 +770,7 @@ namespace SIASGraduate.ViewModels.Pages
                     Growl.ErrorGlobal($"SQL删除失败: {ex.Message}");
                 }
             }
-            
+
             // 在UI线程上更新界面（仅处理失败情况，成功情况已在上面直接返回）
             App.Current.Dispatcher.Invoke(() =>
             {
@@ -782,7 +779,7 @@ namespace SIASGraduate.ViewModels.Pages
                     // 分析异常类型，给出更具体的错误提示
                     string errorMsg = "删除员工失败";
                     string detailedError = "";
-                    
+
                     if (caughtException != null)
                     {
                         if (caughtException is TimeoutException)
@@ -790,14 +787,14 @@ namespace SIASGraduate.ViewModels.Pages
                             errorMsg = "删除操作超时";
                             detailedError = "数据库处理时间过长，可能是因为相关记录太多或数据库负载高";
                         }
-                        else if (caughtException.Message.Contains("foreign key") || 
+                        else if (caughtException.Message.Contains("foreign key") ||
                                  caughtException.Message.Contains("FOREIGN KEY") ||
                                  caughtException.Message.Contains("constraint"))
                         {
                             errorMsg = "删除失败：存在外键约束";
                             detailedError = "员工还存在其他系统中未能自动处理的关联记录";
                         }
-                        else if (caughtException.Message.Contains("permission") || 
+                        else if (caughtException.Message.Contains("permission") ||
                                  caughtException.Message.Contains("权限"))
                         {
                             errorMsg = "删除失败：数据库权限不足";
@@ -813,29 +810,29 @@ namespace SIASGraduate.ViewModels.Pages
                     {
                         detailedError = "尝试了所有删除方法但均未成功，可能是数据库结构问题";
                     }
-                    
+
                     logger.Error($"级联删除员工失败：ID={employee.EmployeeId}，姓名={employee.EmployeeName}，错误：{errorMsg}，详情：{detailedError}");
-                    
+
                     // 提示用户并询问是否重试，添加更具体的错误信息
-                    Growl.AskGlobal($"{errorMsg}：{detailedError}\n\n是否尝试更彻底的删除方式？", isConfirmed => 
+                    Growl.AskGlobal($"{errorMsg}：{detailedError}\n\n是否尝试更彻底的删除方式？", isConfirmed =>
                     {
                         if (isConfirmed)
                         {
                             // 记录用户选择重试
                             logger.Info($"用户选择重试删除员工：ID={employee.EmployeeId}，姓名={employee.EmployeeName}");
-                            
+
                             // 如果用户确认，尝试使用更直接的方式处理
                             TryForceDeleteEmployee(employee);
                         }
                         return true;
                     });
                 }
-                
+
                 // 隐藏加载状态
                 IsLoading = false;
             });
         }
-        
+
         /// <summary>
         /// 尝试强制删除员工，绕过EF Core处理投票记录可能存在的问题
         /// </summary>
@@ -845,7 +842,7 @@ namespace SIASGraduate.ViewModels.Pages
             {
                 IsLoading = true;
                 Growl.InfoGlobal("正在尝试强制删除关联投票记录...");
-                
+
                 // 直接通过数据库查询获取关联的投票记录数量
                 using (var context = new DataBaseContext())
                 {
@@ -853,24 +850,24 @@ namespace SIASGraduate.ViewModels.Pages
                     var voteRecords = context.VoteRecords
                         .Where(v => v.VoterEmployeeId == employee.EmployeeId)
                         .ToList();
-                    
+
                     if (voteRecords.Any())
                     {
                         Growl.InfoGlobal($"找到 {voteRecords.Count} 条投票记录，正在删除...");
-                        
+
                         // 直接删除投票记录
                         context.VoteRecords.RemoveRange(voteRecords);
-                        
+
                         // 尝试保存更改
                         await context.SaveChangesAsync();
-                        
+
                         Growl.SuccessGlobal($"成功删除 {voteRecords.Count} 条投票记录");
-                        
+
                         // 直接尝试使用SQL方法删除员工，避免再次调用ExecuteCascadeDelete导致重复提示
                         Growl.InfoGlobal("正在尝试直接删除员工...");
-                        
+
                         bool success = employeeService.ExecuteDirectSqlDelete(employee.EmployeeId);
-                        
+
                         if (success)
                         {
                             // 更新UI界面
@@ -879,36 +876,36 @@ namespace SIASGraduate.ViewModels.Pages
                                 // 从本地集合中移除员工
                                 if (Employees.Contains(employee))
                                     Employees.Remove(employee);
-                                
+
                                 if (TempEmployees.Contains(employee))
                                     TempEmployees.Remove(employee);
-                                
+
                                 if (ListViewEmployees.Contains(employee))
                                     ListViewEmployees.Remove(employee);
-                                
+
                                 if (_allEmployeesCache != null)
                                     _allEmployeesCache.Remove(employee);
-                                
+
                                 // 更新计数和分页
                                 TotalRecords = TempEmployees.Count;
-                                MaxPage = TotalRecords == 0 ? 1 : 
-                                         (TotalRecords % PageSize == 0 ? 
+                                MaxPage = TotalRecords == 0 ? 1 :
+                                         (TotalRecords % PageSize == 0 ?
                                          TotalRecords / PageSize : (TotalRecords / PageSize) + 1);
-                                
+
                                 // 如果当前页超出范围，修正为最大页
                                 if (CurrentPage > MaxPage)
                                     CurrentPage = MaxPage > 0 ? MaxPage : 1;
-                                
+
                                 // 刷新当前页数据
                                 UpdateListViewData();
                             });
-                            
+
                             // 通知用户
                             Growl.SuccessGlobal($"已成功删除员工 {employee.EmployeeName} 及其所有关联记录");
-                            
+
                             // 发布员工删除事件，通知其他组件
                             eventAggregator.GetEvent<EmployeeRemovedEvent>().Publish();
-                            
+
                             logger.Info($"强制删除员工成功：ID={employee.EmployeeId}，姓名={employee.EmployeeName}");
                         }
                         else
@@ -942,9 +939,9 @@ namespace SIASGraduate.ViewModels.Pages
         {
             // 显示加载中状态
             IsLoading = true;
-            
+
             logger.Info($"开始删除员工：ID={employee.EmployeeId}，姓名={employee.EmployeeName}");
-            
+
             // 异步调用服务层删除员工
             bool success = await Task.Run(() =>
             {
@@ -959,7 +956,7 @@ namespace SIASGraduate.ViewModels.Pages
                     return false;
                 }
             });
-            
+
             await App.Current.Dispatcher.InvokeAsync(() =>
             {
                 if (success)
@@ -967,33 +964,33 @@ namespace SIASGraduate.ViewModels.Pages
                     // 从本地集合中移除员工
                     if (Employees.Contains(employee))
                         Employees.Remove(employee);
-                    
+
                     if (TempEmployees.Contains(employee))
                         TempEmployees.Remove(employee);
-                    
+
                     if (ListViewEmployees.Contains(employee))
                         ListViewEmployees.Remove(employee);
-                    
+
                     if (_allEmployeesCache != null)
                         _allEmployeesCache.Remove(employee);
-                    
+
                     // 更新计数和分页
                     TotalRecords = TempEmployees.Count;
-                    MaxPage = TotalRecords == 0 ? 1 : 
-                             (TotalRecords % PageSize == 0 ? 
+                    MaxPage = TotalRecords == 0 ? 1 :
+                             (TotalRecords % PageSize == 0 ?
                              TotalRecords / PageSize : (TotalRecords / PageSize) + 1);
-                    
+
                     // 如果当前页超出范围，修正为最大页
                     if (CurrentPage > MaxPage)
                         CurrentPage = MaxPage > 0 ? MaxPage : 1;
-                    
+
                     // 刷新当前页数据
                     UpdateListViewData();
-                    
+
                     // 通知用户
                     Growl.SuccessGlobal($"已成功删除员工 {employee.EmployeeName}");
                     logger.Info($"成功删除员工：ID={employee.EmployeeId}，姓名={employee.EmployeeName}");
-                    
+
                     // 发布员工删除事件，通知其他组件
                     eventAggregator.GetEvent<EmployeeRemovedEvent>().Publish();
                 }
@@ -1001,30 +998,30 @@ namespace SIASGraduate.ViewModels.Pages
                 {
                     // 如果删除失败，可能是存在其他关联记录，再次检查
                     var checkResult = employeeService.CheckEmployeeRelatedRecords(employee.EmployeeId);
-                    
+
                     if (checkResult.hasRelated)
                     {
                         // 构建错误消息
                         string message = "删除失败，发现关联记录：\n";
-                        
+
                         if (checkResult.nominationCount > 0)
                         {
                             message += $"• 奖项提名记录 ({checkResult.nominationCount}条)\n";
                         }
-                        
+
                         if (checkResult.declarationCount > 0)
                         {
                             message += $"• 提名申报记录 ({checkResult.declarationCount}条)\n";
                         }
-                        
+
                         if (checkResult.voteCount > 0)
                         {
                             message += $"• 投票记录 ({checkResult.voteCount}条)\n";
                         }
-                        
+
                         message += "\n是否连带删除所有关联记录？";
-                        
-                        Growl.AskGlobal(message, isConfirmed => 
+
+                        Growl.AskGlobal(message, isConfirmed =>
                         {
                             if (isConfirmed)
                             {
@@ -1039,7 +1036,7 @@ namespace SIASGraduate.ViewModels.Pages
                         Growl.ErrorGlobal("删除员工失败，可能是数据库错误或权限问题");
                     }
                 }
-                
+
                 // 隐藏加载状态
                 IsLoading = false;
             });
@@ -1052,40 +1049,41 @@ namespace SIASGraduate.ViewModels.Pages
             try
             {
                 logger.Info("接收到员工数据更新事件，开始刷新员工列表");
-                
+
                 // 禁用按钮，防止并发操作
                 IsSearchEnabled = false;
                 IsRefreshEnabled = false;
                 IsLoading = true;
-                
+
                 // 保存当前筛选条件和页码
                 string currentStatusText = StatusText;
                 string currentKeyword = SearchKeyword;
                 int currentPage = CurrentPage;
-                
+
                 // 完全重新加载数据（避免缓存问题）
                 using (var freshContext = new DataBaseContext())
                 {
                     freshContext.Database.SetCommandTimeout(120); // 设置较长的超时时间
-                    
+
                     // 重新从数据库加载所有员工
                     var employeesFromDb = await freshContext.Employees
                         .Include(e => e.Department)
                         .AsNoTracking() // 使用无跟踪查询提高性能
                         .ToListAsync();
-                    
+
                     // 更新缓存和所有集合
                     _allEmployeesCache = employeesFromDb;
-                    
+
                     // 在UI线程上更新集合
-                    App.Current.Dispatcher.Invoke(() => {
+                    App.Current.Dispatcher.Invoke(() =>
+                    {
                         Employees = new ObservableCollection<Employee>(employeesFromDb);
                         logger.Debug($"已刷新员工数据，共加载了 {Employees.Count} 条记录");
-                        
+
                         // 重新应用过滤条件
                         // 根据状态筛选
                         IEnumerable<Employee> filteredEmployees;
-                        
+
                         if (currentStatusText.Contains("在职"))
                         {
                             filteredEmployees = Employees.Where(e => e.IsActive == true);
@@ -1098,7 +1096,7 @@ namespace SIASGraduate.ViewModels.Pages
                         {
                             filteredEmployees = Employees;
                         }
-                        
+
                         // 关键词筛选
                         if (!string.IsNullOrWhiteSpace(currentKeyword))
                         {
@@ -1108,16 +1106,16 @@ namespace SIASGraduate.ViewModels.Pages
                                 (e.Department?.DepartmentName?.Contains(currentKeyword, StringComparison.OrdinalIgnoreCase) == true)
                             );
                         }
-                        
+
                         // 更新临时集合
                         TempEmployees = new ObservableCollection<Employee>(filteredEmployees);
-                        
+
                         // 更新分页信息
                         TotalRecords = TempEmployees.Count;
-                        MaxPage = TotalRecords == 0 ? 1 : 
-                                 (TotalRecords % PageSize == 0 ? 
+                        MaxPage = TotalRecords == 0 ? 1 :
+                                 (TotalRecords % PageSize == 0 ?
                                  TotalRecords / PageSize : (TotalRecords / PageSize) + 1);
-                        
+
                         // 确保当前页在有效范围内
                         if (currentPage > MaxPage)
                         {
@@ -1127,10 +1125,10 @@ namespace SIASGraduate.ViewModels.Pages
                         {
                             CurrentPage = currentPage;
                         }
-                        
+
                         // 更新页面数据
                         UpdateListViewData();
-                        
+
                         logger.Info($"员工列表已刷新，当前显示 {TempEmployees.Count} 条记录");
                     });
                 }
@@ -1158,13 +1156,13 @@ namespace SIASGraduate.ViewModels.Pages
         {
             // 更新总记录数
             TotalRecords = TempEmployees?.Count() ?? 0;
-            
+
             // 计算最大页码
-            MaxPage = TotalRecords == 0 ? 1 : 
-                      (TotalRecords % PageSize == 0 ? 
-                      (TotalRecords / PageSize) : 
+            MaxPage = TotalRecords == 0 ? 1 :
+                      (TotalRecords % PageSize == 0 ?
+                      (TotalRecords / PageSize) :
                       ((TotalRecords / PageSize) + 1));
-            
+
             // 确保当前页码在有效范围内
             if (CurrentPage > MaxPage)
                 CurrentPage = MaxPage > 0 ? MaxPage : 1;
@@ -1198,7 +1196,7 @@ namespace SIASGraduate.ViewModels.Pages
                     case "离职":
                         isActive = false;
                         break;
-                    // "全部" 状态不需要筛选，保持 isActive 为 null
+                        // "全部" 状态不需要筛选，保持 isActive 为 null
                 }
 
                 if (isActive.HasValue)
@@ -1214,7 +1212,7 @@ namespace SIASGraduate.ViewModels.Pages
                 filteredList = filteredList.Where(e =>
                     (e.EmployeeName != null && e.EmployeeName.ToLower().Contains(searchLower)) ||
                     (e.Account != null && e.Account.ToLower().Contains(searchLower)) ||
-                    (e.Department != null && e.Department.DepartmentName != null && 
+                    (e.Department != null && e.Department.DepartmentName != null &&
                      e.Department.DepartmentName.ToLower().Contains(searchLower)));
             }
 
@@ -1335,15 +1333,15 @@ namespace SIASGraduate.ViewModels.Pages
             try
             {
                 CurrentPage = 1; // 改变每页大小时重置为第一页
-                
+
                 // 更新最大页码
                 if (TempEmployees != null && TempEmployees.Count > 0)
                 {
                     TotalRecords = TempEmployees.Count;
-                    MaxPage = TotalRecords == 0 ? 1 : (TotalRecords % PageSize == 0 ? 
+                    MaxPage = TotalRecords == 0 ? 1 : (TotalRecords % PageSize == 0 ?
                              (TotalRecords / PageSize) : ((TotalRecords / PageSize) + 1));
                 }
-                
+
                 // 更新视图
                 UpdateListViewData();
             }
@@ -1426,42 +1424,42 @@ namespace SIASGraduate.ViewModels.Pages
         }
 
         // 修改为异步委托命令
-        public DelegateCommand FirstPageCommand => new DelegateCommand(async () => 
+        public DelegateCommand FirstPageCommand => new DelegateCommand(async () =>
             {
                 if (CurrentPage <= 1)
                     return;
-                
+
                 logger.Debug("导航到第一页");
                 await ExecutePageNavigationAsync(1);
             }, () => CurrentPage > 1)
             .ObservesProperty(() => CurrentPage);
 
-        public DelegateCommand PreviousPageAsyncCommand => new DelegateCommand(async () => 
+        public DelegateCommand PreviousPageAsyncCommand => new DelegateCommand(async () =>
             {
                 if (CurrentPage <= 1)
                     return;
-                
-                logger.Debug($"导航到上一页: {CurrentPage-1}");
+
+                logger.Debug($"导航到上一页: {CurrentPage - 1}");
                 await ExecutePageNavigationAsync(CurrentPage - 1);
             }, () => CurrentPage > 1)
             .ObservesProperty(() => CurrentPage);
 
-        public DelegateCommand NextPageAsyncCommand => new DelegateCommand(async () => 
+        public DelegateCommand NextPageAsyncCommand => new DelegateCommand(async () =>
             {
                 if (CurrentPage >= MaxPage)
                     return;
-                
-                logger.Debug($"导航到下一页: {CurrentPage+1}");
+
+                logger.Debug($"导航到下一页: {CurrentPage + 1}");
                 await ExecutePageNavigationAsync(CurrentPage + 1);
             }, () => CurrentPage < MaxPage)
             .ObservesProperty(() => CurrentPage)
             .ObservesProperty(() => MaxPage);
 
-        public DelegateCommand LastPageCommand => new DelegateCommand(async () => 
+        public DelegateCommand LastPageCommand => new DelegateCommand(async () =>
             {
                 if (CurrentPage >= MaxPage)
                     return;
-                
+
                 logger.Debug($"导航到最后一页: {MaxPage}");
                 await ExecutePageNavigationAsync(MaxPage);
             }, () => CurrentPage < MaxPage)
@@ -1475,10 +1473,10 @@ namespace SIASGraduate.ViewModels.Pages
 
         //public DelegateCommand ImportDataCommand { get; }
         private DelegateCommand exportDataCommand;
-        public DelegateCommand ExportDataCommand => 
+        public DelegateCommand ExportDataCommand =>
             exportDataCommand ?? (exportDataCommand = new DelegateCommand(OnExportData, () => !IsLoading)
                 .ObservesProperty(() => IsLoading));
-        
+
         //private void OnImport()
         //{
         //    // 打开文件对话框选择文件
@@ -1495,10 +1493,10 @@ namespace SIASGraduate.ViewModels.Pages
         private void OnExport()
         {
             // 根据当前状态确定默认文件名
-            string statusMsg = StatusText.Contains("在职") ? "在职员工" : 
+            string statusMsg = StatusText.Contains("在职") ? "在职员工" :
                               StatusText.Contains("离职") ? "离职员工" : "全部员工";
             string defaultFileName = $"{statusMsg}_{DateTime.Now:yyyyMMdd}";
-            
+
             // 打开文件对话框选择保存路径
             var saveFileDialog = new SaveFileDialog
             {
@@ -1524,24 +1522,24 @@ namespace SIASGraduate.ViewModels.Pages
             {
                 IsLoading = true;
                 logger.Info($"开始导出{StatusText}数据");
-                
+
                 // 获取导出状态信息，用于文件名和提示信息
-                string statusMsg = StatusText.Contains("在职") ? "在职" : 
+                string statusMsg = StatusText.Contains("在职") ? "在职" :
                                   StatusText.Contains("离职") ? "离职" : "全部";
-                
+
                 if (string.IsNullOrEmpty(filePath))
                 {
                     // 根据当前状态确定默认文件名
                     string fileNamePrefix = $"{statusMsg}员工";
                     string defaultFileName = $"{fileNamePrefix}_{DateTime.Now:yyyyMMdd}";
-                    
+
                     var saveFileDialog = new Microsoft.Win32.SaveFileDialog
                     {
                         Filter = "CSV文件|*.csv",
                         Title = "导出员工数据",
                         FileName = defaultFileName
                     };
-                    
+
                     if (saveFileDialog.ShowDialog() == true)
                     {
                         filePath = saveFileDialog.FileName;
@@ -1552,7 +1550,7 @@ namespace SIASGraduate.ViewModels.Pages
                         return;
                     }
                 }
-                
+
                 // 检查是否有数据可导出 - 使用TempEmployees而不是AllEmployees
                 if (TempEmployees == null || TempEmployees.Count == 0)
                 {
@@ -1560,10 +1558,10 @@ namespace SIASGraduate.ViewModels.Pages
                     logger.Warn("导出取消：没有符合条件的员工数据");
                     return;
                 }
-                
+
                 // 导出当前过滤后的所有员工，使用TempEmployees而不是AllEmployees
                 bool result = employeeService.ExportEmployees(TempEmployees.ToList(), filePath);
-                
+
                 if (result)
                 {
                     // 添加导出成功提示，包含筛选条件和导出的记录数
@@ -1594,38 +1592,38 @@ namespace SIASGraduate.ViewModels.Pages
             try
             {
                 logger.Debug($"开始更新列表视图 - 当前页:{CurrentPage}, 每页大小:{PageSize}");
-                
-                if (TempEmployees == null || TempEmployees.Count == 0) 
+
+                if (TempEmployees == null || TempEmployees.Count == 0)
                 {
                     logger.Debug("没有员工数据，清空列表视图");
                     ListViewEmployees = new ObservableCollection<Employee>();
                     return;
                 }
-                
+
                 // 确保当前页码在有效范围内
-                if (CurrentPage < 1) 
+                if (CurrentPage < 1)
                 {
                     logger.Debug($"当前页码 {CurrentPage} 无效，重置为 1");
                     CurrentPage = 1;
                 }
-                
-                if (MaxPage > 0 && CurrentPage > MaxPage) 
+
+                if (MaxPage > 0 && CurrentPage > MaxPage)
                 {
                     logger.Debug($"当前页码 {CurrentPage} 超出最大页数 {MaxPage}，重置为最大页");
                     CurrentPage = MaxPage;
                 }
-                
+
                 // 计算分页起始索引
                 int startIndex = (CurrentPage - 1) * PageSize;
-                
+
                 // 应用分页并强制执行LINQ查询
                 var pagedEmployees = TempEmployees.Skip(startIndex).Take(PageSize).ToList();
-                
+
                 // 更新ListViewEmployees - 使用列表创建新集合以避免引用问题
                 ListViewEmployees = new ObservableCollection<Employee>(pagedEmployees);
-                
+
                 logger.Debug($"已更新列表视图 - 当前页:{CurrentPage}/{MaxPage}, 显示记录数:{ListViewEmployees.Count}");
-                
+
                 // 更新分页按钮状态
                 IsFirstEnabled = CurrentPage > 1;
                 IsPreviousEnabled = CurrentPage > 1;
@@ -1657,10 +1655,10 @@ namespace SIASGraduate.ViewModels.Pages
             try
             {
                 logger.Debug($"开始过滤员工数据 - 状态: {SelectedStatus}, 搜索文本: {SearchKeyword}");
-                
+
                 // 从缓存中筛选员工数据
                 var filteredEmployees = _allEmployeesCache;
-                
+
                 // 根据状态筛选
                 if (SelectedStatus != "全部")
                 {
@@ -1668,27 +1666,27 @@ namespace SIASGraduate.ViewModels.Pages
                     filteredEmployees = filteredEmployees.Where(e => e.IsActive == isActive).ToList();
                     logger.Debug($"状态过滤后剩余: {filteredEmployees.Count} 名员工");
                 }
-                
+
                 // 根据搜索文本筛选
                 if (!string.IsNullOrWhiteSpace(SearchKeyword))
                 {
                     string searchLower = SearchKeyword.ToLower();
-                    filteredEmployees = filteredEmployees.Where(e => 
+                    filteredEmployees = filteredEmployees.Where(e =>
                         e.EmployeeName.ToLower().Contains(searchLower) ||
                         (e.Department != null && e.Department.DepartmentName.ToLower().Contains(searchLower)) ||
                         (e.Account != null && e.Account.ToLower().Contains(searchLower))
                     ).ToList();
-                    
+
                     logger.Debug($"文本搜索后剩余: {filteredEmployees.Count} 名员工");
                 }
-                
+
                 // 更新当前过滤后的员工集合
                 AllEmployees = new ObservableCollection<Employee>(filteredEmployees);
-                
+
                 // 更新分页属性
                 TotalItems = AllEmployees.Count;
                 MaxPage = (int)Math.Ceiling(TotalItems / (double)PageSize);
-                
+
                 // 修正当前页码（如果超出范围）
                 if (CurrentPage > MaxPage && MaxPage > 0)
                 {
@@ -1698,10 +1696,10 @@ namespace SIASGraduate.ViewModels.Pages
                 {
                     CurrentPage = 1;
                 }
-                
+
                 // 加载当前页的数据
                 LoadEmployees();
-                
+
                 logger.Debug($"过滤完成 - 总计: {TotalItems} 名员工, 共 {MaxPage} 页");
             }
             catch (Exception ex)
@@ -1794,19 +1792,19 @@ namespace SIASGraduate.ViewModels.Pages
                 // 应用之前的过滤条件
                 SelectedStatus = currentStatus;
                 SearchKeyword = currentSearch;
-                
+
                 // 重新过滤
                 FilterEmployeesByStatus();
-                
+
                 // 尝试恢复到之前的页码，如果可能的话
                 if (currentPage <= MaxPage)
                 {
                     CurrentPage = currentPage;
                 }
-                
+
                 // 加载当前页数据
                 await LoadEmployeesPagedAsync(CurrentPage);
-                
+
                 logger.Info("员工数据刷新完成");
                 Growl.SuccessGlobal("员工数据已刷新");
             }
@@ -1830,29 +1828,30 @@ namespace SIASGraduate.ViewModels.Pages
             try
             {
                 IsLoading = true;
-                
-                await Task.Run(() => {
+
+                await Task.Run(() =>
+                {
                     // 计算要显示的记录范围
                     int startIndex = (page - 1) * PageSize;
                     int count = Math.Min(PageSize, TotalItems - startIndex);
-                    
+
                     if (count <= 0)
                     {
-                        Application.Current.Dispatcher.Invoke(() => 
+                        Application.Current.Dispatcher.Invoke(() =>
                 {
                     ListViewEmployees = new ObservableCollection<Employee>();
-                        });
+                });
                         return;
                     }
-                    
+
                     // 获取当前页的数据
                     var pageData = AllEmployees
                         .Skip(startIndex)
                         .Take(count)
                         .ToList();
-                    
+
                     // 在UI线程上更新UI
-                    Application.Current.Dispatcher.Invoke(() => 
+                    Application.Current.Dispatcher.Invoke(() =>
                     {
                         // 更新ListViewEmployees而不是Employees
                         ListViewEmployees = new ObservableCollection<Employee>(pageData);
@@ -1881,12 +1880,12 @@ namespace SIASGraduate.ViewModels.Pages
             {
                 IsLoading = true;
                 logger.Debug($"切换到第 {targetPage} 页");
-                
+
                 CurrentPage = targetPage;
-                
+
                 // 使用统一的视图更新方法，而不是LoadEmployeesPagedAsync
                 UpdateListViewData();
-                
+
                 // 记录翻页结果
                 logger.Debug($"已切换到第 {CurrentPage} 页，显示 {ListViewEmployees.Count} 条记录");
             }
@@ -1913,19 +1912,19 @@ namespace SIASGraduate.ViewModels.Pages
                       VirtualizingPanel.CacheLength="1,1"
                       ScrollViewer.IsDeferredScrollingEnabled="True">
             */
-            
+
             logger.Debug("已应用ListView性能优化设置");
         }
         #endregion
 
         #region 数据操作命令
-        
+
         // 刷新数据命令
         private DelegateCommand _refreshDataCommand;
         public DelegateCommand RefreshDataCommand =>
             _refreshDataCommand ?? (_refreshDataCommand = new DelegateCommand(ExecuteRefreshDataCommand)
                 .ObservesProperty(() => IsLoading));
-            
+
         private async void ExecuteRefreshDataCommand()
         {
             if (!IsLoading)

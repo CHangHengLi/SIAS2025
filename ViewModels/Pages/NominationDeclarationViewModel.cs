@@ -1,25 +1,24 @@
-using SIASGraduate.Common;
-using SIASGraduate.Context;
-using SIASGraduate.Event;
-using SIASGraduate.Models;
-using SIASGraduate.Views.EditMessage.NominationLogViewer;
-using SIASGraduate.ViewModels.EditMessage.NominationLogViewer;
-using HandyControl.Controls;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Win32;
 using System.Collections;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.IO; // 添加文件操作
-using System.Runtime.CompilerServices;
 using System.Text; // 添加文本编码相关
 using System.Windows;
 using System.Windows.Controls;
+using System.Windows.Media;
 using System.Windows.Threading;
+using HandyControl.Controls;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Win32;
+using SIASGraduate.Common;
+using SIASGraduate.Context;
+using SIASGraduate.Event;
+using SIASGraduate.Models;
+using SIASGraduate.ViewModels.EditMessage.NominationLogViewer;
+using SIASGraduate.Views.EditMessage.NominationLogViewer;
 using MediaColor = System.Windows.Media.Color; // 使用别名避免Color冲突
 using SolidColorBrush = System.Windows.Media.SolidColorBrush; // 明确指定SolidColorBrush类型
 using WindowNS = System.Windows.Window;
-using System.Windows.Media;
 
 namespace SIASGraduate.ViewModels.Pages
 {
@@ -451,7 +450,7 @@ namespace SIASGraduate.ViewModels.Pages
             {
                 // 记录当前选中项的ID，以便在数据加载后恢复选中状态
                 int? selectedDeclarationId = SelectedDeclaration?.DeclarationId;
-                
+
                 // 显示加载状态
                 IsLoading = true;
 
@@ -490,12 +489,12 @@ namespace SIASGraduate.ViewModels.Pages
                             lastLoadTime = DateTime.Now;
 
                             UpdateListViewData();
-                            
+
                             // 恢复选中状态
                             if (selectedDeclarationId.HasValue)
                             {
                                 SelectedDeclaration = ListViewDeclarations.FirstOrDefault(d => d.DeclarationId == selectedDeclarationId);
-                                
+
                                 // 如果在当前页找不到，则尝试在整个数据集中查找
                                 if (SelectedDeclaration == null)
                                 {
@@ -655,7 +654,7 @@ namespace SIASGraduate.ViewModels.Pages
                 await Task.Run(() =>
                 {
                     List<NominationDeclaration> filteredByStatus;
-                    
+
                     // 首先根据状态筛选
                     if (SelectedStatus.Key == -1)
                         filteredByStatus = Declarations.ToList();
@@ -686,7 +685,7 @@ namespace SIASGraduate.ViewModels.Pages
                         TempViewDeclarations = new ObservableCollection<NominationDeclaration>(filteredByStatus);
                         CurrentPage = 1;
                         UpdateListViewData();
-                        
+
                         // 在完成搜索后显示结果数量
                         if (filteredByStatus.Count == 0)
                         {
@@ -897,9 +896,9 @@ namespace SIASGraduate.ViewModels.Pages
             {
                 // 显示加载状态
                 IsLoading = true;
-                
+
                 // 使用Task.Run在后台线程执行删除操作
-                await Task.Run(async () => 
+                await Task.Run(async () =>
                 {
                     using (var context = new DataBaseContext())
                     {
@@ -1152,10 +1151,10 @@ namespace SIASGraduate.ViewModels.Pages
                 {
                     // 在UI线程获取TextBox的值，避免线程访问错误
                     string reviewComment = commentTextBox.Text;
-                    
+
                     // 显示加载状态
                     IsLoading = true;
-                    
+
                     // 异步执行审核操作
                     await Task.Run(async () =>
                     {
@@ -1215,7 +1214,7 @@ namespace SIASGraduate.ViewModels.Pages
                                     declaration.Status = 1;
                                     declaration.ReviewComment = reviewComment; // 使用预先获取的文本值
                                     declaration.ReviewTime = DateTime.Now;
-                                    
+
                                     // 根据当前用户角色设置审核人ID和实体
                                     switch (CurrentUser.RoleId)
                                     {
@@ -1262,10 +1261,10 @@ namespace SIASGraduate.ViewModels.Pages
 
                                     // 发布申报审核通过事件
                                     eventAggregator.GetEvent<NominationDeclarationApproveEvent>().Publish(declaration);
-                                    
+
                                     // 关闭对话框
                                     dialog.Close();
-                                    
+
                                     // 显示成功提示
                                     Growl.SuccessGlobal("申报已通过审核");
                                 });
@@ -1486,10 +1485,10 @@ namespace SIASGraduate.ViewModels.Pages
                 {
                     // 在UI线程获取TextBox的值，避免线程访问错误
                     string rejectReason = commentTextBox.Text;
-                    
+
                     // 显示加载状态
                     IsLoading = true;
-                    
+
                     // 异步执行审核操作
                     await Task.Run(async () =>
                     {
@@ -1599,7 +1598,7 @@ namespace SIASGraduate.ViewModels.Pages
 
                                     // 关闭对话框
                                     dialog.Close();
-                                    
+
                                     // 显示成功提示
                                     Growl.SuccessGlobal("申报已拒绝");
                                 });
@@ -1757,10 +1756,10 @@ namespace SIASGraduate.ViewModels.Pages
                 {
                     // 在UI线程获取TextBox的值，避免线程访问错误
                     string promoteComment = commentTextBox.Text;
-                    
+
                     // 显示加载状态
                     IsLoading = true;
-                    
+
                     // 异步执行审核操作
                     await Task.Run(async () =>
                     {
@@ -1773,7 +1772,7 @@ namespace SIASGraduate.ViewModels.Pages
                                 // 只有待审核状态才需要先进行通过处理
                                 if (entity.Status == 0)
                                 {
-                                                                        entity.Status = 1; // 已通过
+                                    entity.Status = 1; // 已通过
                                     entity.ReviewComment = promoteComment;
                                     entity.ReviewTime = DateTime.Now;
                                 }
@@ -1822,7 +1821,7 @@ namespace SIASGraduate.ViewModels.Pages
                                 await context.SaveChangesAsync();
 
                                 // 调用转为提名的实际实现
-                                try 
+                                try
                                 {
                                     // 尝试使用EF Core创建提名
                                     PromoteWithEFCore(entity);
@@ -1830,7 +1829,7 @@ namespace SIASGraduate.ViewModels.Pages
                                 catch (Exception ex)
                                 {
                                     System.Diagnostics.Debug.WriteLine($"使用EF Core转为提名失败：{ex.Message}，尝试使用SQL方式");
-                                    
+
                                     // 如果EF Core失败，尝试使用SQL
                                     PromoteWithSQL(entity);
                                 }
@@ -1842,7 +1841,7 @@ namespace SIASGraduate.ViewModels.Pages
                                     declaration.Status = 1;
                                     declaration.ReviewComment = promoteComment;
                                     declaration.ReviewTime = DateTime.Now;
-                                    
+
                                     // 根据当前用户角色设置审核人ID和实体
                                     switch (CurrentUser.RoleId)
                                     {
@@ -1889,13 +1888,13 @@ namespace SIASGraduate.ViewModels.Pages
 
                                     // 发布申报转为提名事件
                                     eventAggregator.GetEvent<NominationDeclarationPromoteEvent>().Publish(declaration);
-                                    
+
                                     // 发布提名数据变更事件，刷新提名列表
                                     eventAggregator.GetEvent<NominationDataChangedEvent>().Publish();
-                                    
+
                                     // 关闭对话框
                                     dialog.Close();
-                                    
+
                                     // 显示成功提示
                                     Growl.SuccessGlobal("申报已成功转为提名");
                                 });
@@ -1929,12 +1928,12 @@ namespace SIASGraduate.ViewModels.Pages
             {
                 // 使用CreateExecutionStrategy创建一个执行策略
                 var strategy = context.Database.CreateExecutionStrategy();
-                
+
                 strategy.Execute(() =>
                 {
                     // 检查该奖项是否已有提名，避免重复提名
                     bool hasExistingNomination = false;
-                    
+
                     // 这个检查需要放在Execute内部的事务中
                     using (var checkTransaction = context.Database.BeginTransaction())
                     {
@@ -1942,15 +1941,15 @@ namespace SIASGraduate.ViewModels.Pages
                             .Any(n => n.AwardId == declaration.AwardId &&
                                      ((n.NominatedEmployeeId != null && n.NominatedEmployeeId == declaration.NominatedEmployeeId) ||
                                       (n.NominatedAdminId != null && n.NominatedAdminId == declaration.NominatedAdminId)));
-                        
+
                         checkTransaction.Commit();
                     }
-                    
+
                     if (hasExistingNomination)
                     {
                         throw new InvalidOperationException("该奖项已有同一人的提名记录");
                     }
-                    
+
                     // 创建新的提名记录
                     using (var transaction = context.Database.BeginTransaction())
                     {
@@ -1958,7 +1957,7 @@ namespace SIASGraduate.ViewModels.Pages
                         {
                             // 清除缓存中的跟踪数据，以避免冲突
                             context.ChangeTracker.Clear();
-                            
+
                             // 确保使用新的无跟踪实例来创建提名记录
                             var newNomination = new Nomination
                             {
@@ -1975,13 +1974,13 @@ namespace SIASGraduate.ViewModels.Pages
                                 // 设置CoverImage
                                 CoverImage = declaration.CoverImage
                             };
-                            
+
                             // 标记为新增，避免EF Core尝试更新
                             context.Entry(newNomination).State = EntityState.Added;
-                            
+
                             // 保存提名记录
                             context.SaveChanges();
-                            
+
                             // 添加操作日志
                             var log = new NominationLog
                             {
@@ -1990,7 +1989,7 @@ namespace SIASGraduate.ViewModels.Pages
                                 OperationTime = DateTime.Now,
                                 Content = $"申报已转为提名，提名ID: {newNomination.NominationId}"
                             };
-                            
+
                             // 设置日志操作人
                             switch (CurrentUser.RoleId)
                             {
@@ -2001,11 +2000,11 @@ namespace SIASGraduate.ViewModels.Pages
                                     log.OperatorAdminId = CurrentUser.AdminId;
                                     break;
                             }
-                            
+
                             // 标记日志为新增
                             context.Entry(log).State = EntityState.Added;
                             context.NominationLogs.Add(log);
-                            
+
                             // 更新申报记录，标记为已转为提名
                             var declarationEntity = context.NominationDeclarations.Find(declaration.DeclarationId);
                             if (declarationEntity != null)
@@ -2013,10 +2012,10 @@ namespace SIASGraduate.ViewModels.Pages
                                 declarationEntity.IsPromoted = true;
                                 declarationEntity.PromotedNominationId = newNomination.NominationId;
                             }
-                            
+
                             context.SaveChanges();
                             transaction.Commit();
-                            
+
                             System.Diagnostics.Debug.WriteLine($"成功转为提名，提名ID: {newNomination.NominationId}");
                         }
                         catch (Exception ex)
@@ -2099,7 +2098,7 @@ namespace SIASGraduate.ViewModels.Pages
                         THROW;
                     END CATCH
                 ";
-                
+
                 var parameters = new List<Microsoft.Data.SqlClient.SqlParameter>
                 {
                     new Microsoft.Data.SqlClient.SqlParameter("@AwardId", declaration.AwardId),
@@ -2117,7 +2116,7 @@ namespace SIASGraduate.ViewModels.Pages
                     new Microsoft.Data.SqlClient.SqlParameter("@OperatorEmployeeId", DBNull.Value),
                     new Microsoft.Data.SqlClient.SqlParameter("@CoverImage", declaration.CoverImage ?? (object)DBNull.Value)
                 };
-                
+
                 try
                 {
                     // 执行SQL
@@ -2141,7 +2140,7 @@ namespace SIASGraduate.ViewModels.Pages
                 // 创建日志查看窗口
                 var logWindow = new NominationDeclarationLogWindow();
                 var viewModel = new NominationDeclarationLogViewModel();
-                
+
                 if (SelectedDeclaration == null)
                 {
                     // 没有选中申报项，查看所有日志
@@ -2153,25 +2152,25 @@ namespace SIASGraduate.ViewModels.Pages
                 {
                     // 设置查看的申报ID
                     viewModel.NominationDeclarationId = SelectedDeclaration.DeclarationId;
-                    
+
                     // 传递完整的申报项信息
                     viewModel.Award = SelectedDeclaration.Award;
                     viewModel.NominatedName = SelectedDeclaration.NominatedName;
                     viewModel.Department = SelectedDeclaration.Department;
                     viewModel.StatusText = SelectedDeclaration.StatusText;
-                    
+
                     // 设置窗口的标题
                     string nominatedName = SelectedDeclaration.NominatedName ?? "未知";
                     string awardName = SelectedDeclaration.Award?.AwardName ?? "未知奖项";
                     logWindow.Title = $"{awardName} - {nominatedName} 的申报日志";
                 }
-                
+
                 // 加载日志
                 viewModel.LoadLogsAsync();
-                
+
                 // 设置数据上下文
                 logWindow.DataContext = viewModel;
-                
+
                 // 显示窗口
                 logWindow.ShowDialog();
             }
@@ -2213,7 +2212,7 @@ namespace SIASGraduate.ViewModels.Pages
 
                 // 创建容器
                 var grid = new Grid();
-                
+
                 // 创建图片控件
                 var image = new System.Windows.Controls.Image
                 {
@@ -2312,10 +2311,10 @@ namespace SIASGraduate.ViewModels.Pages
         {
             // 创建CSV内容
             var sb = new StringBuilder();
-            
+
             // 添加表头
             sb.AppendLine("申报ID,奖项,被提名人,所属部门,申报理由,申报人,申报时间,状态,审核人,审核时间,审核意见");
-            
+
             // 添加数据行
             foreach (var d in TempViewDeclarations)
             {
@@ -2323,7 +2322,7 @@ namespace SIASGraduate.ViewModels.Pages
                 string EscapeCSV(string field)
                 {
                     if (string.IsNullOrEmpty(field)) return "";
-                    
+
                     // 如果包含逗号、引号或换行符，则用引号包裹并将内部引号转换为两个引号
                     if (field.Contains(",") || field.Contains("\"") || field.Contains("\n") || field.Contains("\r"))
                     {
@@ -2331,7 +2330,7 @@ namespace SIASGraduate.ViewModels.Pages
                     }
                     return field;
                 }
-                
+
                 sb.AppendLine(string.Join(",",
                     d.DeclarationId,
                     EscapeCSV(d.Award?.AwardName ?? "未知"),
@@ -2346,7 +2345,7 @@ namespace SIASGraduate.ViewModels.Pages
                     EscapeCSV(d.ReviewComment ?? "-")
                 ));
             }
-            
+
             // 写入文件
             File.WriteAllText(fileName, sb.ToString(), Encoding.UTF8);
         }
@@ -2359,25 +2358,25 @@ namespace SIASGraduate.ViewModels.Pages
             {
                 // 显示加载状态
                 IsLoading = true;
-                
+
                 // 清除缓存标志
                 lastLoadTime = DateTime.MinValue;
-                
+
                 // 保存当前选中项ID，以便在刷新后恢复选中状态
                 int? selectedId = SelectedDeclaration?.DeclarationId;
-                
+
                 // 重新加载数据
-                await Task.Run(() => 
+                await Task.Run(() =>
                 {
                     App.Current.Dispatcher.Invoke(() =>
                     {
                         LoadDeclarationsAsync();
-                        
+
                         // 显示刷新成功提示
                         Growl.InfoGlobal("数据已刷新");
                     });
                 });
-                
+
                 // 恢复选中状态
                 if (selectedId.HasValue)
                 {
@@ -2455,10 +2454,10 @@ namespace SIASGraduate.ViewModels.Pages
 
             // 检查是否为数字输入
             bool isNumeric = int.TryParse(text, out _);
-            
+
             // 保存上一次输入
             LastInput = text;
-            
+
             // 仅允许在搜索框中输入数字
             if (!isNumeric)
             {
@@ -2638,7 +2637,7 @@ namespace SIASGraduate.ViewModels.Pages
                 {
                     // 更新状态为已通过
                     originalItem.Status = 1;
-                    
+
                     // 处理临时集合和视图更新
                     if (SelectedStatus.Key != -1 && originalItem.Status != SelectedStatus.Key)
                     {
@@ -2719,13 +2718,13 @@ namespace SIASGraduate.ViewModels.Pages
             // 更新页大小，重新计算最大页数
             TotalRecords = TempViewDeclarations.Count;
             MaxPage = TotalRecords % PageSize == 0 ? (TotalRecords / PageSize) : ((TotalRecords / PageSize) + 1);
-            
+
             // 确保当前页码有效
             if (CurrentPage > MaxPage)
             {
                 CurrentPage = MaxPage > 0 ? MaxPage : 1;
             }
-            
+
             UpdateListViewData();
         }
 

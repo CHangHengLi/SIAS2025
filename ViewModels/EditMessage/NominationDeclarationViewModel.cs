@@ -21,9 +21,9 @@ namespace SIASGraduate.ViewModels.EditMessage
                     .Include(n => n.NominatedEmployee)
                     .Include(n => n.NominatedAdmin)
                     .FirstOrDefault(n => n.NominationId == nominationId);
-                
-                return nomination?.NominatedEmployee?.EmployeeName ?? 
-                       nomination?.NominatedAdmin?.AdminName ?? 
+
+                return nomination?.NominatedEmployee?.EmployeeName ??
+                       nomination?.NominatedAdmin?.AdminName ??
                        "未知";
             }
         }
@@ -48,4 +48,4 @@ namespace SIASGraduate.ViewModels.EditMessage
             }
         }
     }
-} 
+}

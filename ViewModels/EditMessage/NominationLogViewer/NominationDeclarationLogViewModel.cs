@@ -34,10 +34,10 @@ namespace SIASGraduate.ViewModels.EditMessage.NominationLogViewer
         private DelegateCommand _refreshCommand;
         private DelegateCommand _exportCommand;
         private DelegateCommand _loadMoreCommand;
-        
+
         // 缓存过期时间（分钟）
         private const int CACHE_EXPIRY_MINUTES = 2;
-        
+
         // 初始加载数量和增量加载数量
         private const int INITIAL_LOAD_LIMIT = 100;
         private const int LOAD_MORE_INCREMENT = 100;
@@ -162,7 +162,7 @@ namespace SIASGraduate.ViewModels.EditMessage.NominationLogViewer
                 }, () => Logs != null && Logs.Count > 0);
             }
         }
-        
+
         /// <summary>
         /// 加载更多命令
         /// </summary>
@@ -210,13 +210,13 @@ namespace SIASGraduate.ViewModels.EditMessage.NominationLogViewer
             try
             {
                 IsLoading = true;
-                
+
                 // 首次加载或刷新时重置计数
                 if (forceReload || Logs == null || Logs.Count == 0)
                 {
                     _currentLoadedCount = 0;
                 }
-                
+
                 await Task.Run(async () =>
                 {
                     using (var context = new DataBaseContext())
@@ -225,23 +225,23 @@ namespace SIASGraduate.ViewModels.EditMessage.NominationLogViewer
                         var baseQuery = context.NominationLogs
                             .AsNoTracking()
                             .AsSplitQuery();
-                            
+
                         // 分别加载三个导航属性
                         baseQuery = baseQuery.Include(l => l.OperatorEmployee);
                         baseQuery = baseQuery.Include(l => l.OperatorAdmin);
                         baseQuery = baseQuery.Include(l => l.OperatorSupAdmin);
-                        
+
                         // 加载Declaration及其相关数据
                         baseQuery = baseQuery.Include(l => l.Declaration)
                             .ThenInclude(d => d.Award);
-                            
+
                         // 加载被提名者信息
                         baseQuery = baseQuery.Include(l => l.Declaration)
                             .ThenInclude(d => d.NominatedEmployee);
-                            
+
                         baseQuery = baseQuery.Include(l => l.Declaration)
                             .ThenInclude(d => d.NominatedAdmin);
-                            
+
                         // 加载部门信息
                         baseQuery = baseQuery.Include(l => l.Declaration)
                             .ThenInclude(d => d.Department);
@@ -255,7 +255,7 @@ namespace SIASGraduate.ViewModels.EditMessage.NominationLogViewer
                         else
                         {
                             IsAllLogs = true;
-                            
+
                             // 更新标题
                             Application.Current.Dispatcher.Invoke(() =>
                             {
@@ -265,17 +265,17 @@ namespace SIASGraduate.ViewModels.EditMessage.NominationLogViewer
                                 }
                             });
                         }
-                        
+
                         // 2. 检查总记录数 - 这个查询更快，因为不需要加载所有数据
                         var totalCount = await baseQuery.CountAsync();
-                        
+
                         // 3. 限制加载数量，使用分页加载策略
                         var logs = await baseQuery
                             .OrderByDescending(l => l.OperationTime)
                             .Skip(_currentLoadedCount)
                             .Take(INITIAL_LOAD_LIMIT)
                             .ToListAsync(); // 直接获取完整的日志对象
-                        
+
                         // 4. 更新UI
                         Application.Current.Dispatcher.Invoke(() =>
                         {
@@ -284,24 +284,24 @@ namespace SIASGraduate.ViewModels.EditMessage.NominationLogViewer
                             {
                                 Logs = new ObservableCollection<NominationLog>();
                             }
-                            
+
                             // 添加到集合
                             foreach (var log in logs)
                             {
                                 Logs.Add(log);
                             }
-                            
+
                             // 更新已加载的数量和是否有更多数据可以加载
                             _currentLoadedCount += logs.Count;
                             HasMoreToLoad = _currentLoadedCount < totalCount;
-                            
+
                             // 确保命令状态更新
                             CommandManager.InvalidateRequerySuggested();
                             ExportCommand.RaiseCanExecuteChanged();
                         });
                     }
                 });
-                
+
                 // 更新加载时间
                 _lastLoadTime = DateTime.Now;
             }
@@ -316,7 +316,7 @@ namespace SIASGraduate.ViewModels.EditMessage.NominationLogViewer
                 CommandManager.InvalidateRequerySuggested();
             }
         }
-        
+
         /// <summary>
         /// 加载更多日志数据
         /// </summary>
@@ -324,7 +324,7 @@ namespace SIASGraduate.ViewModels.EditMessage.NominationLogViewer
         {
             if (IsLoading || !HasMoreToLoad)
                 return;
-                
+
             await LoadLogsAsync(false);
         }
 
@@ -360,7 +360,7 @@ namespace SIASGraduate.ViewModels.EditMessage.NominationLogViewer
                                 IsLoading = true;
                                 Growl.InfoGlobal("正在导出日志，请稍候...");
                             });
-                            
+
                             // 创建简单的导出视图模型，避免在CSV映射中使用复杂表达式
                             var exportLogs = Logs.Select(log => new NominationLogExport
                             {
@@ -373,22 +373,22 @@ namespace SIASGraduate.ViewModels.EditMessage.NominationLogViewer
                                 NomineeName = GetNomineeName(log),
                                 Content = log.Content
                             }).ToList();
-                            
+
                             // 使用UTF-8编码加BOM，便于Excel正确识别中文
                             using (var writer = new StreamWriter(saveFileDialog.FileName, false, new UTF8Encoding(true)))
                             using (var csv = new CsvWriter(writer, CultureInfo.InvariantCulture))
                             {
                                 // 配置标题
                                 csv.Context.Configuration.HasHeaderRecord = true;
-                                
+
                                 // 列名映射
                                 csv.WriteHeader<NominationLogExport>();
                                 csv.NextRecord();
-                                
+
                                 // 写入数据
                                 csv.WriteRecords(exportLogs);
                             }
-                            
+
                             Application.Current.Dispatcher.Invoke(() =>
                             {
                                 Growl.SuccessGlobal($"成功导出 {Logs.Count} 条日志记录到 {saveFileDialog.FileName}");
@@ -434,7 +434,8 @@ namespace SIASGraduate.ViewModels.EditMessage.NominationLogViewer
         /// </summary>
         private string GetNomineeName(NominationLog log)
         {
-            try {
+            try
+            {
                 if (log.Declaration == null) return "";
                 if (log.Declaration.NominatedEmployee != null) return log.Declaration.NominatedEmployee.EmployeeName ?? "";
                 if (log.Declaration.NominatedAdmin != null) return log.Declaration.NominatedAdmin.AdminName ?? "";
@@ -456,27 +457,27 @@ namespace SIASGraduate.ViewModels.EditMessage.NominationLogViewer
     {
         [CsvHelper.Configuration.Attributes.Name("日志ID")]
         public int LogId { get; set; }
-        
+
         [CsvHelper.Configuration.Attributes.Name("申报ID")]
         public int DeclarationId { get; set; }
-        
+
         [CsvHelper.Configuration.Attributes.Name("操作类型")]
         public string OperationTypeText { get; set; }
-        
+
         [CsvHelper.Configuration.Attributes.Name("操作时间")]
         [CsvHelper.Configuration.Attributes.Format("yyyy-MM-dd HH:mm:ss")]
         public DateTime OperationTime { get; set; }
-        
+
         [CsvHelper.Configuration.Attributes.Name("操作人")]
         public string OperatorName { get; set; }
-        
+
         [CsvHelper.Configuration.Attributes.Name("关联奖项")]
         public string AwardName { get; set; }
-        
+
         [CsvHelper.Configuration.Attributes.Name("被提名人")]
         public string NomineeName { get; set; }
-        
+
         [CsvHelper.Configuration.Attributes.Name("操作内容")]
         public string Content { get; set; }
     }
-} 
+}

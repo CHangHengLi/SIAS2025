@@ -1,4 +1,3 @@
-using System;
 using System.Collections;
 using System.Globalization;
 using System.Windows.Data;
@@ -17,7 +16,7 @@ namespace SIASGraduate.Converter
             {
                 // 第二个参数是要检查的值
                 var valueToCheck = values[1];
-                
+
                 foreach (var item in collection)
                 {
                     if (item != null && item.Equals(valueToCheck))
@@ -33,4 +32,4 @@ namespace SIASGraduate.Converter
             throw new NotImplementedException();
         }
     }
-} 
+}

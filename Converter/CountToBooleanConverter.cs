@@ -1,7 +1,6 @@
-using System;
+using System.Collections;
 using System.Globalization;
 using System.Windows.Data;
-using System.Collections;
 
 namespace SIASGraduate.Converter
 {
@@ -25,7 +24,7 @@ namespace SIASGraduate.Converter
         {
             bool isInvert = parameter?.ToString() == "Invert";
             int count = 0;
-            
+
             // 根据值类型获取数量
             if (value is int intValue)
             {
@@ -35,10 +34,10 @@ namespace SIASGraduate.Converter
             {
                 count = collection.Count;
             }
-            
+
             // 根据数量返回结果（0为false，其他为true）
             bool result = count > 0;
-            
+
             // 如果需要取反，则返回相反的结果
             return isInvert ? !result : result;
         }
@@ -51,4 +50,4 @@ namespace SIASGraduate.Converter
             throw new NotImplementedException();
         }
     }
-} 
+}

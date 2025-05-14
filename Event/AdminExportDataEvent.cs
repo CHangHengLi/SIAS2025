@@ -1,4 +1,4 @@
 namespace SIASGraduate.Event
 {
-    public class AdminExportDataEvent: PubSubEvent<string> { }
+    public class AdminExportDataEvent : PubSubEvent<string> { }
 }

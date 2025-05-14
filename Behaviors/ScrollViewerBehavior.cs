@@ -15,7 +15,7 @@ namespace SIASGraduate.Behaviors
         /// </summary>
         public static readonly DependencyProperty ScrollToTopCommandProperty =
             DependencyProperty.Register("ScrollToTopCommand", typeof(ICommand), typeof(ScrollViewerBehavior), new PropertyMetadata(null));
-            
+
         /// <summary>
         /// 滚动到顶部命令
         /// </summary>
@@ -24,18 +24,18 @@ namespace SIASGraduate.Behaviors
             get { return (ICommand)GetValue(ScrollToTopCommandProperty); }
             set { SetValue(ScrollToTopCommandProperty, value); }
         }
-        
+
         /// <summary>
         /// 当行为附加到滚动视图上时调用
         /// </summary>
         protected override void OnAttached()
         {
             base.OnAttached();
-            
+
             // 监听Loaded事件
             AssociatedObject.Loaded += ScrollViewer_Loaded;
         }
-        
+
         /// <summary>
         /// 当行为从滚动视图上分离时调用
         /// </summary>
@@ -44,7 +44,7 @@ namespace SIASGraduate.Behaviors
             AssociatedObject.Loaded -= ScrollViewer_Loaded;
             base.OnDetaching();
         }
-        
+
         /// <summary>
         /// 处理滚动视图加载事件
         /// </summary>
@@ -52,7 +52,7 @@ namespace SIASGraduate.Behaviors
         {
             // 可以在这里执行初始化操作
         }
-        
+
         /// <summary>
         /// 执行滚动到顶部
         /// </summary>
@@ -64,4 +64,4 @@ namespace SIASGraduate.Behaviors
             }
         }
     }
-} 
+}

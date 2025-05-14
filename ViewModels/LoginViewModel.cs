@@ -1,8 +1,8 @@
-using SIASGraduate.Models;
-using SIASGraduate.Services;
 using System.Collections.ObjectModel;
 using System.Windows;
 using System.Windows.Input;
+using SIASGraduate.Models;
+using SIASGraduate.Services;
 
 namespace SIASGraduate.ViewModels
 {
@@ -25,7 +25,7 @@ namespace SIASGraduate.ViewModels
 
         #region 属性
         private string title = "登录";
-        public string Title 
+        public string Title
         {
             get { return title; }
             set { SetProperty(ref title, value); }
@@ -42,7 +42,7 @@ namespace SIASGraduate.ViewModels
             get { return password; }
             set { SetProperty(ref password, value); }
         }
-        private byte[] image    ;
+        private byte[] image;
         public byte[] Image
         {
             get { return image; }
@@ -57,7 +57,7 @@ namespace SIASGraduate.ViewModels
         {
             // 先显示加载旋转条
             Loading = Visibility.Visible;
-            
+
             // 执行在按下回车键时触发的逻辑
             LoginCommand.Execute();
         }

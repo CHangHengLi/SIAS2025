@@ -1,16 +1,14 @@
-using SIASGraduate.Common;
-using SIASGraduate.Converter;
-using SIASGraduate.Context;
-using SIASGraduate.Event;
-using SIASGraduate.Models;
-using ConverterImage = SIASGraduate.Converter.ConVerterImage;
-using HandyControl.Controls;
-using Microsoft.Win32;
 using System.Collections.ObjectModel;
 using System.IO;
 using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media.Imaging;
+using HandyControl.Controls;
+using Microsoft.Win32;
+using SIASGraduate.Context;
+using SIASGraduate.Event;
+using SIASGraduate.Models;
+using ConverterImage = SIASGraduate.Converter.ConVerterImage;
 
 namespace SIASGraduate.ViewModels.EditMessage.AwardNominateManager
 {
@@ -87,8 +85,8 @@ namespace SIASGraduate.ViewModels.EditMessage.AwardNominateManager
         public object SelectedNominee
         {
             get { return selectedNominee; }
-            set 
-            { 
+            set
+            {
                 SetProperty(ref selectedNominee, value);
                 UpdateDepartment();
             }
@@ -154,8 +152,8 @@ namespace SIASGraduate.ViewModels.EditMessage.AwardNominateManager
         public bool HasVotes
         {
             get { return hasVotes; }
-            set 
-            { 
+            set
+            {
                 SetProperty(ref hasVotes, value);
                 RaisePropertyChanged(nameof(CanEditAward));
                 RaisePropertyChanged(nameof(CanEditNominee));
@@ -207,12 +205,12 @@ namespace SIASGraduate.ViewModels.EditMessage.AwardNominateManager
                 Growl.WarningGlobal("请选择提名对象");
                 return;
             }
-            
+
             // 检查是否选择了离职人员
             bool isInactive = false;
             string nomineeType = "";
             string nomineeName = "";
-            
+
             if (SelectedNominee is Employee employee && employee.IsActive == false)
             {
                 isInactive = true;
@@ -225,16 +223,16 @@ namespace SIASGraduate.ViewModels.EditMessage.AwardNominateManager
                 nomineeType = "管理员";
                 nomineeName = admin.AdminName;
             }
-            
+
             // 如果选择了离职人员，弹出确认
             if (isInactive)
             {
                 var confirmResult = HandyControl.Controls.MessageBox.Show(
-                    $"您选择的{nomineeType} {nomineeName} 已离职，确定要继续提名吗？", 
-                    "确认提名", 
-                    MessageBoxButton.YesNo, 
+                    $"您选择的{nomineeType} {nomineeName} 已离职，确定要继续提名吗？",
+                    "确认提名",
+                    MessageBoxButton.YesNo,
                     MessageBoxImage.Question);
-                
+
                 if (confirmResult != MessageBoxResult.Yes)
                 {
                     // 用户选择不继续，退出保存
@@ -273,7 +271,7 @@ namespace SIASGraduate.ViewModels.EditMessage.AwardNominateManager
 
                     // 检查是否有投票记录
                     int voteCount = context.VoteRecords.Count(v => v.NominationId == nomination.NominationId);
-                    
+
                     // 如果已有投票，则不允许修改奖项和提名对象
                     if (voteCount > 0)
                     {
@@ -283,10 +281,10 @@ namespace SIASGraduate.ViewModels.EditMessage.AwardNominateManager
                             Growl.WarningGlobal("此提名已有投票，不能修改奖项");
                             return;
                         }
-                        
+
                         // 检查是否试图修改提名对象
                         bool isNomineeChanged = false;
-                        
+
                         if (SelectedNominee is Employee selectedEmployee && CurrentNomination.NominatedEmployeeId != selectedEmployee.EmployeeId)
                         {
                             isNomineeChanged = true;
@@ -300,13 +298,13 @@ namespace SIASGraduate.ViewModels.EditMessage.AwardNominateManager
                         {
                             isNomineeChanged = true;
                         }
-                        
+
                         if (isNomineeChanged)
                         {
                             Growl.WarningGlobal("此提名已有投票，不能修改提名对象");
                             return;
                         }
-                        
+
                         // 只更新允许的字段
                         nomination.Introduction = Introduction;
                         nomination.NominateReason = NominateReason;
@@ -333,7 +331,7 @@ namespace SIASGraduate.ViewModels.EditMessage.AwardNominateManager
                             nomination.DepartmentId = selectedAdmin.DepartmentId;
                         }
                     }
-                    
+
                     // 更新提名
                     context.Nominations.Update(nomination);
                     await context.SaveChangesAsync();
@@ -378,7 +376,7 @@ namespace SIASGraduate.ViewModels.EditMessage.AwardNominateManager
                 {
                     // 读取图片文件
                     CoverImage = File.ReadAllBytes(openFileDialog.FileName);
-                    
+
                     // 创建图片预览
                     var image = new BitmapImage();
                     image.BeginInit();
@@ -471,15 +469,15 @@ namespace SIASGraduate.ViewModels.EditMessage.AwardNominateManager
                         Cancel();
                         return;
                     }
-                    
+
                     NominationId = CurrentNomination.NominationId;
-                    
+
                     // 查询当前提名是否已有投票 - 先查询再设置其他属性
                     using (var context = new DataBaseContext())
                     {
                         int voteCount = context.VoteRecords.Count(v => v.NominationId == CurrentNomination.NominationId);
                         HasVotes = voteCount > 0;
-                        
+
                         if (HasVotes)
                         {
                             Growl.InfoGlobal($"此提名已有{voteCount}个投票，奖项和提名对象不能修改");
@@ -489,7 +487,7 @@ namespace SIASGraduate.ViewModels.EditMessage.AwardNominateManager
                             System.Diagnostics.Debug.WriteLine("无投票，可编辑所有字段");
                         }
                     }
-                    
+
                     // 设置基本属性
                     SelectedAward = Awards.FirstOrDefault(a => a.AwardId == CurrentNomination.AwardId);
                     Introduction = CurrentNomination.Introduction;
@@ -507,22 +505,22 @@ namespace SIASGraduate.ViewModels.EditMessage.AwardNominateManager
                         if (CurrentNomination.NominatedEmployeeId.HasValue)
                         {
                             // 从数据库中查询员工，包括离职的
-                            var employeeInDb = context.Employees.FirstOrDefault(e => 
+                            var employeeInDb = context.Employees.FirstOrDefault(e =>
                                 e.EmployeeId == CurrentNomination.NominatedEmployeeId);
-                                
+
                             if (employeeInDb != null)
                             {
                                 // 如果员工已离职且未在列表中
-                                if (employeeInDb.IsActive == false && 
+                                if (employeeInDb.IsActive == false &&
                                     !Employees.Any(e => e.EmployeeId == employeeInDb.EmployeeId))
                                 {
                                     // 提示用户原提名对象已离职
                                     Growl.WarningGlobal($"提名的员工 {employeeInDb.EmployeeName} 已离职。您可以选择其他在职员工或继续使用该员工。");
-                                    
+
                                     // 添加到当前列表以便选择
                                     Employees.Add(employeeInDb);
                                 }
-                                
+
                                 // 设置为当前选中项
                                 SelectedNominee = Employees.FirstOrDefault(e => e.EmployeeId == employeeInDb.EmployeeId);
                                 // 设置TabControl选中员工标签页
@@ -533,22 +531,22 @@ namespace SIASGraduate.ViewModels.EditMessage.AwardNominateManager
                         else if (CurrentNomination.NominatedAdminId.HasValue)
                         {
                             // 从数据库中查询管理员，包括离职的
-                            var adminInDb = context.Admins.FirstOrDefault(a => 
+                            var adminInDb = context.Admins.FirstOrDefault(a =>
                                 a.AdminId == CurrentNomination.NominatedAdminId);
-                                
+
                             if (adminInDb != null)
                             {
                                 // 如果管理员已离职且未在列表中
-                                if (adminInDb.IsActive == false && 
+                                if (adminInDb.IsActive == false &&
                                     !Admins.Any(a => a.AdminId == adminInDb.AdminId))
                                 {
                                     // 提示用户原提名对象已离职
                                     Growl.WarningGlobal($"提名的管理员 {adminInDb.AdminName} 已离职。您可以选择其他在职管理员或继续使用该管理员。");
-                                    
+
                                     // 添加到当前列表以便选择
                                     Admins.Add(adminInDb);
                                 }
-                                
+
                                 // 设置为当前选中项
                                 SelectedNominee = Admins.FirstOrDefault(a => a.AdminId == adminInDb.AdminId);
                                 // 设置TabControl选中管理员标签页

@@ -1,9 +1,9 @@
+using System.Windows.Input;
+using HandyControl.Controls;
+using Microsoft.IdentityModel.Tokens;
 using SIASGraduate.Context;
 using SIASGraduate.Event;
 using SIASGraduate.Models;
-using HandyControl.Controls;
-using Microsoft.IdentityModel.Tokens;
-using System.Windows.Input;
 
 namespace SIASGraduate.ViewModels.EditMessage.AwardSettingManager
 {

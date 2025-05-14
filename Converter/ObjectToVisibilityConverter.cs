@@ -1,4 +1,3 @@
-using System;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
@@ -16,11 +15,11 @@ namespace SIASGraduate.Converter
         {
             if (value == null)
                 return Visibility.Collapsed;
-                
+
             // 特别处理字节数组类型，确保数组非空且有内容
             if (value is byte[] byteArray)
                 return byteArray.Length > 0 ? Visibility.Visible : Visibility.Collapsed;
-                
+
             return Visibility.Visible;
         }
 
@@ -29,4 +28,4 @@ namespace SIASGraduate.Converter
             throw new NotImplementedException();
         }
     }
-} 
+}

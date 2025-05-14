@@ -22,7 +22,7 @@ namespace SIASGraduate.Common
                 MessageBox.Show($"重新加密连接字符串时出错: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
             }
         }
-        
+
         /// <summary>
         /// 重新生成加密密钥
         /// </summary>
@@ -33,17 +33,17 @@ namespace SIASGraduate.Common
                 "重新生成密钥",
                 MessageBoxButton.YesNo,
                 MessageBoxImage.Warning);
-                
+
             if (result == MessageBoxResult.Yes)
             {
                 try
                 {
                     // 重新生成密钥
                     SecurityKeys.RegenerateAllKeys();
-                    
+
                     // 使用新密钥重新加密连接字符串，但不显示加密成功的提示
                     DbConnectionManager.ApplyAESToConnectionString(false);
-                    
+
                     MessageBox.Show("密钥已重新生成，连接字符串已使用新密钥加密", "成功", MessageBoxButton.OK, MessageBoxImage.Information);
                 }
                 catch (Exception ex)
@@ -52,7 +52,7 @@ namespace SIASGraduate.Common
                 }
             }
         }
-        
+
         /// <summary>
         /// 检查加密状态
         /// </summary>
@@ -63,23 +63,23 @@ namespace SIASGraduate.Common
                 // 检查密钥文件是否存在
                 bool keysExist = System.IO.File.Exists(
                     System.IO.Path.Combine(
-                        AppDomain.CurrentDomain.BaseDirectory, 
+                        AppDomain.CurrentDomain.BaseDirectory,
                         "encryption.key")) &&
                     System.IO.File.Exists(
                         System.IO.Path.Combine(
-                            AppDomain.CurrentDomain.BaseDirectory, 
+                            AppDomain.CurrentDomain.BaseDirectory,
                             "encryption.iv"));
-                
+
                 // 检查密码文件是否存在
                 bool passwordFileExists = System.IO.File.Exists(
                     System.IO.Path.Combine(
-                        AppDomain.CurrentDomain.BaseDirectory, 
+                        AppDomain.CurrentDomain.BaseDirectory,
                         "dbpass.key"));
-                
+
                 string status = $"加密状态:\n\n" +
                                 $"加密密钥: {(keysExist ? "已生成" : "未生成")}\n" +
                                 $"密码文件: {(passwordFileExists ? "已存在" : "未存在")}\n";
-                
+
                 MessageBox.Show(status, "加密状态", MessageBoxButton.OK, MessageBoxImage.Information);
             }
             catch (Exception ex)
@@ -88,4 +88,4 @@ namespace SIASGraduate.Common
             }
         }
     }
-} 
+}

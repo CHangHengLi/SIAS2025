@@ -42,12 +42,12 @@ namespace SIASGraduate.ViewModels.EditMessage.EmployeeManager
         public string Account
         {
             get { return account; }
-            set 
-            { 
+            set
+            {
                 // 保存旧账号值
                 string oldAccount = account;
                 SetProperty(ref account, value);
-                
+
                 // 如果姓名为空或与旧账号相同，则将姓名设置为新账号
                 if (string.IsNullOrEmpty(employeeName) || (oldAccount != null && employeeName == oldAccount))
                 {
@@ -176,18 +176,18 @@ namespace SIASGraduate.ViewModels.EditMessage.EmployeeManager
             Random random = new Random();
             string randomPart = random.Next(1000, 9999).ToString();
             string account = prefix + randomPart;
-            
+
             // 检查账号是否已存在
             bool accountExists = supAdminService.IsSupAdminAccountExist(account) ||
                                 adminService.IsAdminAccountExist(account) ||
                                 employeeService.IsEmployeeAccountExist(account);
-            
+
             // 如果账号已存在，重新生成
             if (accountExists)
             {
                 return GenerateUniqueAccount();
             }
-            
+
             return account;
         }
         #endregion
@@ -231,27 +231,27 @@ namespace SIASGraduate.ViewModels.EditMessage.EmployeeManager
                     HandyControl.Controls.Growl.Warning("密码长度必须在6-20位之间");
                     return;
                 }
-                
+
                 // 其他验证和保存逻辑
                 if (string.IsNullOrEmpty(EmployeeName) || string.IsNullOrEmpty(EmployeePassword))
                 {
                     HandyControl.Controls.Growl.Error("请填写必要信息（姓名、密码）", "保存失败");
                     return;
                 }
-                
+
                 //账号密码不能为空
                 if (string.IsNullOrEmpty(Account) || EmployeePassword.IsNullOrEmpty())
                 {
                     Growl.Warning("账号或密码不能为空");
                     return;
                 }
-                
+
                 if (string.IsNullOrEmpty(EmployeeName))
                 {
                     Growl.Warning("员工姓名不能为空");
                     return;
                 }
-                
+
                 //员工账号不能够和超级管理员,管理员,员工重复评审员重复
                 bool accountExists = await Task.Run(() =>
                 {
@@ -288,7 +288,7 @@ namespace SIASGraduate.ViewModels.EditMessage.EmployeeManager
                     IsActive = IsActive,
                     RoleId = RoleId
                 };
-                
+
                 if (!DepartmentName.IsNullOrEmpty() && DepartmentName != "无部门")
                 {
                     using var context = new DataBaseContext();
@@ -303,7 +303,7 @@ namespace SIASGraduate.ViewModels.EditMessage.EmployeeManager
 
                 employeeService.AddEmployee(AddEmployee);
                 Growl.SuccessGlobal("员工添加成功");
-                
+
                 // 发布正确的事件通知左侧视图更新
                 eventAggregator.GetEvent<EmployeeAddedEvent>().Publish();
                 OnCancel();

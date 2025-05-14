@@ -1,9 +1,7 @@
-using System;
 using System.Globalization;
 using System.IO;
 using System.Windows.Data;
 using System.Windows.Media.Imaging;
-using System.Linq;
 
 namespace SIASGraduate.Converter
 {
@@ -17,7 +15,7 @@ namespace SIASGraduate.Converter
             // 根据实际需要处理转换逻辑
             if (value == null)
                 return false;
-                
+
             return true;
         }
 
@@ -26,7 +24,7 @@ namespace SIASGraduate.Converter
             throw new NotImplementedException();
         }
     }
-    
+
     /// <summary>
     /// 投票入口页专用对象到布尔值转换器
     /// </summary>
@@ -86,4 +84,4 @@ namespace SIASGraduate.Converter
             throw new NotImplementedException();
         }
     }
-} 
+}

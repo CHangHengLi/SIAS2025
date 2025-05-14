@@ -1,12 +1,10 @@
+using System.Collections.ObjectModel;
+using HandyControl.Controls;
+using Microsoft.IdentityModel.Tokens;
 using SIASGraduate.Context;
 using SIASGraduate.Event;
 using SIASGraduate.Models;
 using SIASGraduate.Services;
-using HandyControl.Controls;
-using Microsoft.IdentityModel.Tokens;
-using System.Collections.ObjectModel;
-using System.Linq;
-using System.Threading.Tasks;
 
 namespace SIASGraduate.ViewModels.EditMessage.AdminManager
 {
@@ -58,12 +56,12 @@ namespace SIASGraduate.ViewModels.EditMessage.AdminManager
         public string Account
         {
             get { return account; }
-            set 
-            { 
+            set
+            {
                 // 保存旧账号值
                 string oldAccount = account;
                 SetProperty(ref account, value);
-                
+
                 // 如果姓名为空或与旧账号相同，则将姓名设置为新账号
                 if (string.IsNullOrEmpty(adminName) || (oldAccount != null && adminName == oldAccount))
                 {
@@ -177,18 +175,18 @@ namespace SIASGraduate.ViewModels.EditMessage.AdminManager
             Random random = new Random();
             string randomPart = random.Next(1000, 9999).ToString();
             string account = prefix + randomPart;
-            
+
             // 检查账号是否已存在
             bool accountExists = supAdminService.IsSupAdminAccountExist(account) ||
                                 adminService.IsAdminAccountExist(account) ||
                                 employeeService.IsEmployeeAccountExist(account);
-            
+
             // 如果账号已存在，重新生成
             if (accountExists)
             {
                 return GenerateUniqueAccount();
             }
-            
+
             return account;
         }
         #endregion
@@ -231,20 +229,20 @@ namespace SIASGraduate.ViewModels.EditMessage.AdminManager
                     HandyControl.Controls.Growl.Warning("密码长度必须在6-20位之间");
                     return;
                 }
-                
+
                 //账号密码不能为空
                 if (string.IsNullOrEmpty(Account) || AdminPassword.IsNullOrEmpty())
                 {
                     Growl.Warning("账号或密码不能为空");
                     return;
                 }
-                
+
                 if (string.IsNullOrEmpty(AdminName))
                 {
                     Growl.Warning("管理员姓名不能为空");
                     return;
                 }
-                
+
                 //管理员账号不能够与已有账号重复
                 bool accountExists = await Task.Run(() =>
                 {

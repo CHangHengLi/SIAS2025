@@ -1,15 +1,15 @@
-using SIASGraduate.Common;
-using SIASGraduate.Context;
-using SIASGraduate.Event;
-using SIASGraduate.Models;
-using HandyControl.Controls;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Win32;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
+using HandyControl.Controls;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Win32;
+using SIASGraduate.Common;
+using SIASGraduate.Context;
+using SIASGraduate.Event;
+using SIASGraduate.Models;
 using ConverterImage = SIASGraduate.Converter.ConVerterImage;
 
 namespace SIASGraduate.ViewModels.EditMessage.NominationDeclarationManager
@@ -410,7 +410,7 @@ namespace SIASGraduate.ViewModels.EditMessage.NominationDeclarationManager
             {
                 // 清空当前选择的提名对象
                 SelectedNominee = null;
-                
+
                 // 确保Nominees已初始化
                 if (Nominees == null)
                 {
@@ -593,8 +593,8 @@ namespace SIASGraduate.ViewModels.EditMessage.NominationDeclarationManager
                         // 没有可用的提名对象时，显示警告
                         Growl.WarningGlobal("没有找到符合条件的提名对象");
                     }
-                    
-                    OnPropertyChanged(nameof(IsNomineeVisible));
+
+                        OnPropertyChanged(nameof(IsNomineeVisible));
                 }
             }
             catch (Exception ex)

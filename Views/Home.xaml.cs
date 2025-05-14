@@ -13,21 +13,21 @@ namespace SIASGraduate.Views
         private const double MinWindowHeight = 500;
         private double baseWidth;
         private double baseHeight;
-        
+
         public Home()
         {
             InitializeComponent();
-            
+
             // 记录初始窗口尺寸作为基础值
             baseWidth = MinWindowWidth;
             baseHeight = MinWindowHeight;
-            
+
             // 添加窗口大小变化事件处理器
             SizeChanged += Home_SizeChanged;
-            
+
             // 添加窗口状态变化事件处理器
             StateChanged += Home_StateChanged;
-            
+
             // 设置内容最小尺寸
             MinWidth = MinWindowWidth;
             MinHeight = MinWindowHeight;
@@ -36,7 +36,7 @@ namespace SIASGraduate.Views
         private void Home_SizeChanged(object sender, SizeChangedEventArgs e)
         {
             UpdateLayout();
-            
+
             // 当窗口大小改变时，计算缩放比例
             if (ApplicationScaleTransform != null && ActualWidth > 0 && ActualHeight > 0)
             {
@@ -47,11 +47,11 @@ namespace SIASGraduate.Views
                     double scaleX = Math.Max(ActualWidth / baseWidth, 2.2); // 至少2.5倍
                     double scaleY = Math.Max(ActualHeight / baseHeight, 2.2); // 至少2.5倍
                     double scale = Math.Min(scaleX, scaleY); // 保持比例
-                    
+
                     // 应用缩放变换，实现等比缩放
                     ApplicationScaleTransform.ScaleX = scale;
                     ApplicationScaleTransform.ScaleY = scale;
-                    
+
                     // 通知视图刷新布局
                     InvalidateVisual();
                     UpdateLayout();
@@ -61,14 +61,14 @@ namespace SIASGraduate.Views
                     // 如果窗口小于或等于基础尺寸，则不进行缩放
                     ApplicationScaleTransform.ScaleX = 1.0;
                     ApplicationScaleTransform.ScaleY = 1.0;
-                    
+
                     // 通知视图刷新布局
                     InvalidateVisual();
                     UpdateLayout();
                 }
             }
         }
-        
+
         private void Home_StateChanged(object sender, EventArgs e)
         {
             // 当窗口状态改变时（最大化/还原），确保重新计算缩放比例
@@ -77,7 +77,7 @@ namespace SIASGraduate.Views
                 // 还原后重置缩放
                 ApplicationScaleTransform.ScaleX = 1.0;
                 ApplicationScaleTransform.ScaleY = 1.0;
-                
+
                 // 通知视图刷新布局
                 InvalidateVisual();
                 UpdateLayout();
@@ -89,7 +89,7 @@ namespace SIASGraduate.Views
                 ApplicationScaleTransform.ScaleY = 2.2;
             }
         }
-        
+
         // 处理快捷入口区域的鼠标滚轮事件
         private void ShortcutScrollViewer_PreviewMouseWheel(object sender, MouseWheelEventArgs e)
         {

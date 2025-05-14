@@ -108,13 +108,13 @@ namespace SIASGraduate.Behaviors
             if (!e.Handled && ScrollViewer != null)
             {
                 e.Handled = true;
-                
+
                 // 计算滚动偏移量
                 double offset = ScrollViewer.VerticalOffset - (e.Delta / 3.0);
-                
+
                 // 确保偏移量在有效范围内
                 offset = Math.Max(0, Math.Min(offset, ScrollViewer.ScrollableHeight));
-                
+
                 // 执行滚动
                 ScrollViewer.ScrollToVerticalOffset(offset);
             }
@@ -122,4 +122,4 @@ namespace SIASGraduate.Behaviors
 
         #endregion
     }
-} 
+}

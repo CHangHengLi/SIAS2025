@@ -1,7 +1,6 @@
-using System;
+using System.Data;
 using System.Globalization;
 using System.Windows.Data;
-using System.Data;
 
 namespace SIASGraduate.Converter
 {
@@ -15,17 +14,17 @@ namespace SIASGraduate.Converter
         {
             if (value == null || parameter == null)
                 return 0;
-                
-            try 
+
+            try
             {
                 // 获取值和表达式
                 double x = System.Convert.ToDouble(value);
                 string expression = parameter.ToString().Replace("x", x.ToString(CultureInfo.InvariantCulture));
-                
+
                 // 使用DataTable的Compute方法计算表达式
                 DataTable dt = new DataTable();
                 var result = dt.Compute(expression, "");
-                
+
                 // 对结果进行类型转换
                 if (targetType == typeof(double))
                     return System.Convert.ToDouble(result);
@@ -33,7 +32,7 @@ namespace SIASGraduate.Converter
                     return System.Convert.ToInt32(result);
                 if (targetType == typeof(decimal))
                     return System.Convert.ToDecimal(result);
-                
+
                 return System.Convert.ToDouble(result);
             }
             catch (Exception ex)

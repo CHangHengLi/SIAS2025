@@ -1,20 +1,20 @@
-using SIASGraduate.Context;
-using SIASGraduate.Event;
-using SIASGraduate.Models;
-using HandyControl.Controls;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Win32;
 using System.Collections;
 using System.Collections.ObjectModel;
+using System.Globalization;
+using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
-using WindowNS = System.Windows.Window;
-using System.IO;
-using System.Globalization;
 using CsvHelper;
+using HandyControl.Controls;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Win32;
+using SIASGraduate.Context;
+using SIASGraduate.Event;
+using SIASGraduate.Models;
+using WindowNS = System.Windows.Window;
 
 namespace SIASGraduate.ViewModels.Pages
 {
@@ -59,9 +59,9 @@ namespace SIASGraduate.ViewModels.Pages
             Nominates = new ObservableCollection<Nomination>();
             TempViewNominates = new ObservableCollection<Nomination>();
             ListViewNominates = new ObservableCollection<Nomination>();
-            
+
             // 加载数据并应用分页（内部会设置TotalRecords和MaxPage）
-            LoadNominates(); 
+            LoadNominates();
             #endregion
 
             PreviewTextInputCommand = new DelegateCommand<string>(OnPreviewTextInput);
@@ -85,7 +85,7 @@ namespace SIASGraduate.ViewModels.Pages
         {
             // 设置加载状态
             IsLoading = true;
-            
+
             try
             {
                 using (var context = new DataBaseContext())
@@ -93,16 +93,16 @@ namespace SIASGraduate.ViewModels.Pages
                     try
                     {
                         // 使用分步加载方式避免NotMapped属性问题
-                        
+
                         // 先获取提名ID列表
                         var nominationIds = await context.Nominations
                             .AsNoTracking()
                             .Select(n => n.NominationId)
                             .ToListAsync();
-                        
+
                         // 然后分别加载每个提名的完整数据
                         var nominations = new List<Nomination>();
-                        
+
                         foreach (var nominationId in nominationIds)
                         {
                             // 使用Select投影获取基本提名信息，避免导航属性
@@ -125,7 +125,7 @@ namespace SIASGraduate.ViewModels.Pages
                                     NominationTime = n.NominationTime
                                 })
                                 .FirstOrDefaultAsync();
-                                
+
                             if (nomination != null)
                             {
                                 // 单独加载各个关联实体
@@ -135,66 +135,66 @@ namespace SIASGraduate.ViewModels.Pages
                                         .AsNoTracking()
                                         .FirstOrDefaultAsync(a => a.AwardId == nomination.AwardId);
                                 }
-                                
+
                                 if (nomination.DepartmentId.HasValue && nomination.DepartmentId.Value > 0)
                                 {
                                     nomination.Department = await context.Departments
                                         .AsNoTracking()
                                         .FirstOrDefaultAsync(d => d.DepartmentId == nomination.DepartmentId.Value);
                                 }
-                                
+
                                 if (nomination.NominatedEmployeeId.HasValue && nomination.NominatedEmployeeId.Value > 0)
                                 {
                                     nomination.NominatedEmployee = await context.Employees
                                         .AsNoTracking()
                                         .FirstOrDefaultAsync(e => e.EmployeeId == nomination.NominatedEmployeeId.Value);
                                 }
-                                
+
                                 if (nomination.NominatedAdminId.HasValue && nomination.NominatedAdminId.Value > 0)
                                 {
                                     nomination.NominatedAdmin = await context.Admins
                                         .AsNoTracking()
                                         .FirstOrDefaultAsync(a => a.AdminId == nomination.NominatedAdminId.Value);
                                 }
-                                
+
                                 if (nomination.ProposerEmployeeId.HasValue && nomination.ProposerEmployeeId.Value > 0)
                                 {
                                     nomination.ProposerEmployee = await context.Employees
                                         .AsNoTracking()
                                         .FirstOrDefaultAsync(e => e.EmployeeId == nomination.ProposerEmployeeId.Value);
                                 }
-                                
+
                                 if (nomination.ProposerAdminId.HasValue && nomination.ProposerAdminId.Value > 0)
                                 {
                                     nomination.ProposerAdmin = await context.Admins
                                         .AsNoTracking()
                                         .FirstOrDefaultAsync(a => a.AdminId == nomination.ProposerAdminId.Value);
                                 }
-                                
+
                                 if (nomination.ProposerSupAdminId.HasValue && nomination.ProposerSupAdminId.Value > 0)
                                 {
                                     nomination.ProposerSupAdmin = await context.SupAdmins
                                         .AsNoTracking()
                                         .FirstOrDefaultAsync(s => s.SupAdminId == nomination.ProposerSupAdminId.Value);
                                 }
-                                
+
                                 // 单独加载投票记录
                                 var voteRecords = await context.VoteRecords
                                     .AsNoTracking()
                                     .Where(v => v.NominationId == nominationId)
                                     .ToListAsync();
-                                
+
                                 nomination.VoteRecords = new ObservableCollection<VoteRecord>(voteRecords);
                                 nominations.Add(nomination);
                             }
                         }
-                        
+
                         // 转为观察集合
                         TempViewNominates = new ObservableCollection<Nomination>(nominations);
                         Nominates = new ObservableCollection<Nomination>(nominations);
                         TotalRecords = TempViewNominates.Count;
                         MaxPage = (int)Math.Ceiling(TotalRecords / (double)PageSize);
-                        
+
                         // 使用 Skip 和 Take 进行分页
                         var pagedNominations = TempViewNominates.Skip((CurrentPage - 1) * PageSize).Take(PageSize);
                         ListViewNominates = new ObservableCollection<Nomination>(pagedNominations);
@@ -204,7 +204,7 @@ namespace SIASGraduate.ViewModels.Pages
                     {
                         Growl.ErrorGlobal($"加载提名数据失败: {ex.Message}");
                         System.Diagnostics.Debug.WriteLine($"加载提名详细数据异常: {ex}");
-                        
+
                         // 如果详细加载失败，回退到更简单的查询
                         var basicQuery = context.Nominations
                             .AsNoTracking()
@@ -216,7 +216,7 @@ namespace SIASGraduate.ViewModels.Pages
                                 n.NominateReason
                             });
                         var basicNominationsFromDb = await basicQuery.ToListAsync();
-                        
+
                         // 转换为Nomination对象并设置UI属性
                         var basicProcessedNominations = basicNominationsFromDb.Select(n => new Nomination
                         {
@@ -232,12 +232,12 @@ namespace SIASGraduate.ViewModels.Pages
                             CommentCount = 0,
                             VoteRecords = new ObservableCollection<VoteRecord>()
                         }).ToList();
-                            
+
                         TempViewNominates = new ObservableCollection<Nomination>(basicProcessedNominations);
                         Nominates = new ObservableCollection<Nomination>(basicProcessedNominations);
                         TotalRecords = TempViewNominates.Count;
                         MaxPage = (int)Math.Ceiling(TotalRecords / (double)PageSize);
-                        
+
                         var pagedNominations = TempViewNominates.Skip((CurrentPage - 1) * PageSize).Take(PageSize);
                         ListViewNominates = new ObservableCollection<Nomination>(pagedNominations);
                     }
@@ -247,7 +247,7 @@ namespace SIASGraduate.ViewModels.Pages
             {
                 Growl.ErrorGlobal($"加载数据失败：{ex.Message}");
                 System.Diagnostics.Debug.WriteLine($"加载提名数据失败: {ex}");
-                
+
                 // 初始化空集合以防止UI异常
                 TempViewNominates = new ObservableCollection<Nomination>();
                 Nominates = new ObservableCollection<Nomination>();
@@ -342,7 +342,7 @@ namespace SIASGraduate.ViewModels.Pages
                         return;
                     }
                 }
-                
+
                 // 导航到添加视图
                 regionManager.RequestNavigate("AwardNominateEditRegion", "AddAwardNominate");
             }
@@ -365,7 +365,7 @@ namespace SIASGraduate.ViewModels.Pages
         private void OnDeleteAward(Nomination nomination)
         {
             if (nomination == null) return;
-            
+
             try
             {
                 using (var context = new DataBaseContext())
@@ -378,44 +378,44 @@ namespace SIASGraduate.ViewModels.Pages
                         Growl.WarningGlobal($"提名「{nomination.NominationId}」已有{voteCount}个投票记录，不能删除！");
                         return;
                     }
-                    
+
                     // 使用完全限定名称确保不会有命名空间冲突
                     System.Windows.MessageBoxResult result = System.Windows.MessageBox.Show(
-                        $"删除提名「{nomination.NominationId}」将同时删除所有关联的评论和投票记录！\n确定要继续吗？", 
-                        "删除确认", 
+                        $"删除提名「{nomination.NominationId}」将同时删除所有关联的评论和投票记录！\n确定要继续吗？",
+                        "删除确认",
                         System.Windows.MessageBoxButton.OKCancel);
-                
-                    if (result != System.Windows.MessageBoxResult.OK) 
+
+                    if (result != System.Windows.MessageBoxResult.OK)
                         return;
-                
+
                     // 先查找并删除所有关联的评论记录
                     var relatedComments = context.CommentRecords
                         .Where(c => c.NominationId == nomination.NominationId)
                         .ToList();
-                
+
                     if (relatedComments.Any())
                     {
                         context.CommentRecords.RemoveRange(relatedComments);
                     }
-                
+
                     // 查找并删除所有关联的投票记录
                     var relatedVotes = context.VoteRecords
                         .Where(v => v.NominationId == nomination.NominationId)
                         .ToList();
-                
+
                     if (relatedVotes.Any())
                     {
                         context.VoteRecords.RemoveRange(relatedVotes);
                     }
-                
+
                     // 最后删除提名记录本身
                     context.Nominations.Remove(nomination);
                     context.SaveChanges();
-                
+
                     // 刷新列表
                     TempViewNominates = Nominates = new ObservableCollection<Nomination>(context.Nominations.ToList());
                 }
-            
+
                 Growl.SuccessGlobal("提名删除成功");
                 OnSearchAward();
             }
@@ -451,7 +451,7 @@ namespace SIASGraduate.ViewModels.Pages
                         return;
                     }
                 }
-                
+
                 var parameters = new NavigationParameters
                 {
                     { "Nomination", nomination }
@@ -478,11 +478,11 @@ namespace SIASGraduate.ViewModels.Pages
                     {
                         // 修改查询，先创建基本查询并获取ID列表
                         var baseQuery = context.Nominations.AsNoTracking();
-                        
+
                         // 使用基本过滤条件
                         if (!string.IsNullOrWhiteSpace(SearchKeyword))
                         {
-                            baseQuery = baseQuery.Where(n => 
+                            baseQuery = baseQuery.Where(n =>
                                 (n.Award != null && n.Award.AwardName.Contains(SearchKeyword)) ||
                                 (n.NominatedEmployee != null && n.NominatedEmployee.EmployeeName.Contains(SearchKeyword)) ||
                                 (n.NominatedAdmin != null && n.NominatedAdmin.AdminName.Contains(SearchKeyword)) ||
@@ -494,13 +494,13 @@ namespace SIASGraduate.ViewModels.Pages
                                 (n.ProposerSupAdmin != null && n.ProposerSupAdmin.SupAdminName.Contains(SearchKeyword))
                             );
                         }
-                        
+
                         // 首先获取匹配条件的提名ID列表
                         var nominationIds = baseQuery.Select(n => n.NominationId).ToList();
-                        
+
                         // 然后分别加载每个提名的完整数据
                         var nominations = new List<Nomination>();
-                        
+
                         foreach (var nominationId in nominationIds)
                         {
                             // 首先获取基本提名信息，不包含导航属性
@@ -523,7 +523,7 @@ namespace SIASGraduate.ViewModels.Pages
                                     NominationTime = n.NominationTime
                                 })
                                 .FirstOrDefault();
-                                
+
                             if (nomination != null)
                             {
                                 // 单独加载各个关联实体
@@ -533,63 +533,63 @@ namespace SIASGraduate.ViewModels.Pages
                                         .AsNoTracking()
                                         .FirstOrDefault(a => a.AwardId == nomination.AwardId);
                                 }
-                                
+
                                 if (nomination.DepartmentId.HasValue && nomination.DepartmentId.Value > 0)
                                 {
                                     nomination.Department = context.Departments
                                         .AsNoTracking()
                                         .FirstOrDefault(d => d.DepartmentId == nomination.DepartmentId.Value);
                                 }
-                                
+
                                 if (nomination.NominatedEmployeeId.HasValue && nomination.NominatedEmployeeId.Value > 0)
                                 {
                                     nomination.NominatedEmployee = context.Employees
                                         .AsNoTracking()
                                         .FirstOrDefault(e => e.EmployeeId == nomination.NominatedEmployeeId.Value);
                                 }
-                                
+
                                 if (nomination.NominatedAdminId.HasValue && nomination.NominatedAdminId.Value > 0)
                                 {
                                     nomination.NominatedAdmin = context.Admins
                                         .AsNoTracking()
                                         .FirstOrDefault(a => a.AdminId == nomination.NominatedAdminId.Value);
                                 }
-                                
+
                                 if (nomination.ProposerEmployeeId.HasValue && nomination.ProposerEmployeeId.Value > 0)
                                 {
                                     nomination.ProposerEmployee = context.Employees
                                         .AsNoTracking()
                                         .FirstOrDefault(e => e.EmployeeId == nomination.ProposerEmployeeId.Value);
                                 }
-                                
+
                                 if (nomination.ProposerAdminId.HasValue && nomination.ProposerAdminId.Value > 0)
                                 {
                                     nomination.ProposerAdmin = context.Admins
                                         .AsNoTracking()
                                         .FirstOrDefault(a => a.AdminId == nomination.ProposerAdminId.Value);
                                 }
-                                
+
                                 if (nomination.ProposerSupAdminId.HasValue && nomination.ProposerSupAdminId.Value > 0)
                                 {
                                     nomination.ProposerSupAdmin = context.SupAdmins
                                         .AsNoTracking()
                                         .FirstOrDefault(a => a.SupAdminId == nomination.ProposerSupAdminId.Value);
                                 }
-                                
+
                                 // 单独加载投票记录
                                 var voteRecords = context.VoteRecords
                                     .AsNoTracking()
                                     .Where(v => v.NominationId == nominationId)
                                     .ToList();
-                                    
+
                                 nomination.VoteRecords = new ObservableCollection<VoteRecord>(voteRecords);
                                 nominations.Add(nomination);
                             }
                         }
-                        
+
                         // 转为观察集合
                         TempViewNominates = new ObservableCollection<Nomination>(nominations);
-                        
+
                         // 更新UI
                         UpdateListViewData();
                     }
@@ -597,21 +597,21 @@ namespace SIASGraduate.ViewModels.Pages
                     {
                         Growl.ErrorGlobal($"加载提名数据失败: {ex.Message}");
                         System.Diagnostics.Debug.WriteLine($"加载提名数据异常: {ex}");
-                        
+
                         // 如果加载失败，尝试加载最基本的数据
                         var basicQuery = context.Nominations
                             .AsNoTracking();
-                            
+
                         if (!string.IsNullOrWhiteSpace(SearchKeyword))
                         {
-                            basicQuery = basicQuery.Where(n => 
+                            basicQuery = basicQuery.Where(n =>
                                 (n.Introduction != null && n.Introduction.Contains(SearchKeyword)) ||
                                 (n.NominateReason != null && n.NominateReason.Contains(SearchKeyword))
                             );
                         }
-                        
+
                         var basicNominations = basicQuery.ToList();
-                            
+
                         TempViewNominates = new ObservableCollection<Nomination>(basicNominations);
                         UpdateListViewData();
                     }
@@ -621,7 +621,7 @@ namespace SIASGraduate.ViewModels.Pages
             {
                 Growl.ErrorGlobal($"查询失败：{ex.Message}");
                 System.Diagnostics.Debug.WriteLine($"查询异常: {ex}");
-                
+
                 // 初始化空集合防止界面异常
                 TempViewNominates = new ObservableCollection<Nomination>();
                 UpdateListViewData();
@@ -706,16 +706,16 @@ namespace SIASGraduate.ViewModels.Pages
                 // 使用UTF-8编码（带BOM）确保Excel可以正确识别中文
                 using var writer = new StreamWriter(filePath, false, new System.Text.UTF8Encoding(true));
                 using var csv = new CsvWriter(writer, CultureInfo.InvariantCulture);
-                
+
                 // 创建不包含图片字段的数据列表，但需要从数据库重新查询包含投票记录数量
                 using (var context = new DataBaseContext())
                 {
                     // 首先获取需要导出的提名ID列表
                     var nominationIds = TempViewNominates.Select(n => n.NominationId).ToList();
-                    
+
                     // 然后分步加载数据
                     var exportData = new List<object>();
-                    
+
                     foreach (var nominationId in nominationIds)
                     {
                         // 先获取基础提名信息，不包含导航属性
@@ -737,7 +737,7 @@ namespace SIASGraduate.ViewModels.Pages
                                 NominationTime = n.NominationTime
                             })
                             .FirstOrDefault();
-                            
+
                         if (nomination != null)
                         {
                             // 单独加载各个关联实体
@@ -747,57 +747,57 @@ namespace SIASGraduate.ViewModels.Pages
                                     .AsNoTracking()
                                     .FirstOrDefault(a => a.AwardId == nomination.AwardId);
                             }
-                            
+
                             if (nomination.DepartmentId.HasValue && nomination.DepartmentId.Value > 0)
                             {
                                 nomination.Department = context.Departments
                                     .AsNoTracking()
                                     .FirstOrDefault(d => d.DepartmentId == nomination.DepartmentId.Value);
                             }
-                            
+
                             if (nomination.NominatedEmployeeId.HasValue && nomination.NominatedEmployeeId.Value > 0)
                             {
                                 nomination.NominatedEmployee = context.Employees
                                     .AsNoTracking()
                                     .FirstOrDefault(e => e.EmployeeId == nomination.NominatedEmployeeId.Value);
                             }
-                            
+
                             if (nomination.NominatedAdminId.HasValue && nomination.NominatedAdminId.Value > 0)
                             {
                                 nomination.NominatedAdmin = context.Admins
                                     .AsNoTracking()
                                     .FirstOrDefault(a => a.AdminId == nomination.NominatedAdminId.Value);
                             }
-                            
+
                             if (nomination.ProposerEmployeeId.HasValue && nomination.ProposerEmployeeId.Value > 0)
                             {
                                 nomination.ProposerEmployee = context.Employees
                                     .AsNoTracking()
                                     .FirstOrDefault(e => e.EmployeeId == nomination.ProposerEmployeeId.Value);
                             }
-                            
+
                             if (nomination.ProposerAdminId.HasValue && nomination.ProposerAdminId.Value > 0)
                             {
                                 nomination.ProposerAdmin = context.Admins
                                     .AsNoTracking()
                                     .FirstOrDefault(a => a.AdminId == nomination.ProposerAdminId.Value);
                             }
-                            
+
                             if (nomination.ProposerSupAdminId.HasValue && nomination.ProposerSupAdminId.Value > 0)
                             {
                                 nomination.ProposerSupAdmin = context.SupAdmins
                                     .AsNoTracking()
                                     .FirstOrDefault(a => a.SupAdminId == nomination.ProposerSupAdminId.Value);
                             }
-                            
+
                             // 单独查询投票记录数量
                             int voteCount = context.VoteRecords
                                 .Count(v => v.NominationId == nominationId);
-                            
+
                             // 获取提名人和被提名人姓名
                             string nominatedName = GetNominatedName(nomination);
                             string proposerName = GetProposerName(nomination);
-                            
+
                             // 添加到导出数据
                             exportData.Add(new
                             {
@@ -813,10 +813,10 @@ namespace SIASGraduate.ViewModels.Pages
                             });
                         }
                     }
-                    
+
                     csv.WriteRecords(exportData);
                 }
-                
+
                 Growl.SuccessGlobal($"已成功导出提名数据到: {filePath}");
             }
             catch (Exception ex)
@@ -838,7 +838,7 @@ namespace SIASGraduate.ViewModels.Pages
             else
                 return "未设置";
         }
-        
+
         // 辅助方法：获取提名对象姓名
         private string GetNominatedName(Nomination nomination)
         {
@@ -1029,7 +1029,7 @@ namespace SIASGraduate.ViewModels.Pages
                 {
                     region.RemoveAll();
                 }
-                
+
                 // 刷新数据
                 using (var context = new DataBaseContext())
                 {
@@ -1040,7 +1040,7 @@ namespace SIASGraduate.ViewModels.Pages
                         Growl.InfoGlobal($"已删除的奖项关联了{affectedCount}个提名，这些提名可能已失效");
                     }
                 }
-                
+
                 // 刷新视图
                 LoadNominates();
             }
@@ -1056,12 +1056,12 @@ namespace SIASGraduate.ViewModels.Pages
         {
             // 重新加载奖项列表，确保使用最新数据
             LoadNominates();
-            
+
             using (var context = new DataBaseContext())
             {
                 // ... 现有搜索逻辑 ...
             }
-            
+
             // ... 其余代码 ...
         }
         #endregion
@@ -1070,21 +1070,21 @@ namespace SIASGraduate.ViewModels.Pages
         {
             // 刷新奖项列表
             LoadNominates();
-            
+
             // 验证是否有可用奖项
             if (!Nominates.Any())
             {
                 Growl.WarningGlobal("没有可用的奖项，请先添加奖项！");
                 return;
             }
-            
+
             // ... 现有逻辑 ...
         }
 
         private void EditNominate()
         {
             if (!CanUpdateOrDelete()) { return; }
-            
+
             // 验证所选提名的奖项是否仍然存在
             using (var context = new DataBaseContext())
             {
@@ -1097,21 +1097,21 @@ namespace SIASGraduate.ViewModels.Pages
                     return;
                 }
             }
-            
+
             // ... 现有逻辑 ...
         }
 
         #region 查看图片命令
         public DelegateCommand<Nomination> ViewImageCommand { get; }
-        
+
         // 添加标志位防止重复执行
         private bool _isViewingImage = false;
-        
+
         private void OnViewImage(Nomination nomination)
         {
             // 如果已经在显示图片，则不重复处理
             if (_isViewingImage) return;
-            
+
             if (nomination == null || nomination.CoverImage == null || nomination.CoverImage.Length == 0)
             {
                 Growl.WarningGlobal("没有可查看的图片");
@@ -1122,7 +1122,7 @@ namespace SIASGraduate.ViewModels.Pages
             {
                 // 设置标志位，防止重复打开窗口
                 _isViewingImage = true;
-                
+
                 // 创建一个新窗口来展示图片
                 var imageWindow = new WindowNS
                 {
@@ -1137,13 +1137,13 @@ namespace SIASGraduate.ViewModels.Pages
 
                 // 创建主布局
                 var mainGrid = new Grid();
-                var rowDef1 = new RowDefinition(); 
+                var rowDef1 = new RowDefinition();
                 rowDef1.Height = System.Windows.GridLength.Auto;
                 mainGrid.RowDefinitions.Add(rowDef1);
                 mainGrid.RowDefinitions.Add(new RowDefinition { Height = new GridLength(1, GridUnitType.Star) });
                 mainGrid.HorizontalAlignment = HorizontalAlignment.Center;
                 mainGrid.VerticalAlignment = VerticalAlignment.Center;
-                
+
                 // 创建顶部信息面板
                 var infoBorder = new Border
                 {
@@ -1154,40 +1154,40 @@ namespace SIASGraduate.ViewModels.Pages
                     BorderThickness = new Thickness(1),
                     Width = 650 // 与图片容器宽度一致
                 };
-                
+
                 var infoPanel = new StackPanel { Margin = new Thickness(5) };
-                
+
                 // 添加提名信息文本
-                infoPanel.Children.Add(new TextBlock 
-                { 
+                infoPanel.Children.Add(new TextBlock
+                {
                     Text = $"奖项: {nomination.Award?.AwardName ?? "未知"}",
                     FontWeight = FontWeights.Bold,
                     Margin = new Thickness(0, 0, 0, 5),
                     FontSize = 14
                 });
-                
-                infoPanel.Children.Add(new TextBlock 
-                { 
+
+                infoPanel.Children.Add(new TextBlock
+                {
                     Text = $"提名对象: {nomination.NominatedEmployee?.EmployeeName ?? nomination.NominatedAdmin?.AdminName ?? "未知"}",
                     Margin = new Thickness(0, 0, 0, 5)
                 });
-                
-                infoPanel.Children.Add(new TextBlock 
-                { 
+
+                infoPanel.Children.Add(new TextBlock
+                {
                     Text = $"部门: {nomination.Department?.DepartmentName ?? "未知"}",
                     Margin = new Thickness(0, 0, 0, 5)
                 });
-                
+
                 if (!string.IsNullOrEmpty(nomination.Introduction))
                 {
-                    infoPanel.Children.Add(new TextBlock 
-                    { 
+                    infoPanel.Children.Add(new TextBlock
+                    {
                         Text = $"简介: {nomination.Introduction}",
                         TextWrapping = TextWrapping.Wrap,
                         Margin = new Thickness(0, 0, 0, 5)
                     });
                 }
-                
+
                 infoBorder.Child = infoPanel;
                 Grid.SetRow(infoBorder, 0);
                 mainGrid.Children.Add(infoBorder);
@@ -1211,7 +1211,7 @@ namespace SIASGraduate.ViewModels.Pages
                     bitmap.CacheOption = System.Windows.Media.Imaging.BitmapCacheOption.OnLoad;
                     bitmap.StreamSource = ms;
                     bitmap.EndInit();
-                    
+
                     // 图片将根据MaxWidth和MaxHeight自动缩放，
                     // 不需要手动计算尺寸，让Uniform模式自动处理
                     image.Source = bitmap;
@@ -1224,7 +1224,7 @@ namespace SIASGraduate.ViewModels.Pages
                     HorizontalAlignment = HorizontalAlignment.Center,
                     VerticalAlignment = VerticalAlignment.Center
                 };
-                
+
                 var imageBorder = new Border
                 {
                     Child = image,
@@ -1237,17 +1237,17 @@ namespace SIASGraduate.ViewModels.Pages
                     Height = 400,
                     HorizontalAlignment = HorizontalAlignment.Center
                 };
-                
+
                 dockPanel.Children.Add(imageBorder);
                 Grid.SetRow(dockPanel, 1);
                 mainGrid.Children.Add(dockPanel);
 
                 // 设置窗口内容
                 imageWindow.Content = mainGrid;
-                
+
                 // 窗口关闭时重置标志位
                 imageWindow.Closed += (s, e) => _isViewingImage = false;
-                
+
                 imageWindow.ShowDialog();
             }
             catch (Exception ex)
@@ -1264,10 +1264,10 @@ namespace SIASGraduate.ViewModels.Pages
         /// <summary>
         /// 指示当前是否正在加载数据
         /// </summary>
-        public bool IsLoading 
-        { 
-            get => isLoading; 
-            set => SetProperty(ref isLoading, value); 
+        public bool IsLoading
+        {
+            get => isLoading;
+            set => SetProperty(ref isLoading, value);
         }
         #endregion
     }

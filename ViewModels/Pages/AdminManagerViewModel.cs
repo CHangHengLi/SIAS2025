@@ -1,18 +1,17 @@
+using System.Collections;
+using System.Collections.ObjectModel;
+using System.Diagnostics;
+using System.Windows.Input;
+using System.Windows.Media;
+using System.Windows.Threading;
+using HandyControl.Controls;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Win32;
+using NLog;
 using SIASGraduate.Context;
 using SIASGraduate.Event;
 using SIASGraduate.Models;
 using SIASGraduate.Services;
-using HandyControl.Controls;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Win32;
-using System.Collections;
-using System.Collections.ObjectModel;
-using System.Windows.Input;
-using System.Windows.Media;
-using System.Windows.Threading;
-using System.Diagnostics;
-using Microsoft.Extensions.Logging;
-using NLog;
 
 namespace SIASGraduate.ViewModels.Pages
 {
@@ -95,7 +94,7 @@ namespace SIASGraduate.ViewModels.Pages
             // 使用异步方式初始化，避免界面卡顿
             InitializeDataAsync();
         }
-        
+
         // 异步初始化数据，避免构造函数中的同步操作导致界面卡顿
         private async void InitializeDataAsync()
         {
@@ -108,7 +107,7 @@ namespace SIASGraduate.ViewModels.Pages
                         // 在后台线程加载数据
                         var adminList = context.Admins.ToList();
                         var departmentList = context.Departments.ToList();
-                        
+
                         // 切换回UI线程更新界面
                         App.Current.Dispatcher.Invoke(() =>
                         {
@@ -165,8 +164,8 @@ namespace SIASGraduate.ViewModels.Pages
         public object Status
         {
             get { return status; }
-            set 
-            { 
+            set
+            {
                 SetProperty(ref status, value);
                 // 同步更新StatusText
                 if (value is System.Windows.Controls.ComboBoxItem comboBoxItem)
@@ -327,7 +326,7 @@ namespace SIASGraduate.ViewModels.Pages
 
                 // 计算分页参数
                 TotalRecords = TempAdmins.Count;
-                MaxPage = TotalRecords == 0 ? 1 : (TotalRecords % PageSize == 0 ? 
+                MaxPage = TotalRecords == 0 ? 1 : (TotalRecords % PageSize == 0 ?
                           TotalRecords / PageSize : (TotalRecords / PageSize) + 1);
 
                 // 确保当前页码有效
@@ -354,7 +353,7 @@ namespace SIASGraduate.ViewModels.Pages
             }
         }
         #endregion
-        
+
         #region 刷新命令
         private bool isRefreshing;
         public bool IsRefreshing
@@ -369,7 +368,7 @@ namespace SIASGraduate.ViewModels.Pages
         {
             if (IsRefreshing)
                 return;
-            
+
             IsRefreshing = true;
             try
             {
@@ -404,37 +403,38 @@ namespace SIASGraduate.ViewModels.Pages
             try
             {
                 logger.Info("接收到管理员更新事件，开始刷新管理员列表");
-                
+
                 // 禁用按钮，防止并发操作
                 IsSearchEnabled = false;
                 IsRefreshEnabled = false;
-                
+
                 // 保存当前筛选条件
                 string currentStatusText = StatusText;
                 string currentKeyword = SearchKeyword;
-                
+
                 // 获取当前选中的管理员ID，用于在刷新后尝试恢复选中状态
                 int? selectedAdminId = SelectedAdmin?.AdminId;
-                
+
                 // 使用新上下文和异步方法
                 using (var freshContext = new DataBaseContext())
                 {
                     freshContext.Database.SetCommandTimeout(120); // 设置较长的超时时间
-                    
+
                     // 重新从数据库加载所有管理员
                     var adminsFromDb = await freshContext.Admins
                         .Include(a => a.Department)
                         .AsNoTracking() // 使用无跟踪查询提高性能
                         .ToListAsync();
-                    
+
                     // 在UI线程上更新集合
-                    App.Current.Dispatcher.Invoke(() => {
+                    App.Current.Dispatcher.Invoke(() =>
+                    {
                         Admins = new ObservableCollection<Admin>(adminsFromDb);
                         logger.Debug($"已刷新管理员数据，加载了 {Admins.Count} 条记录");
-                        
+
                         // 根据状态筛选
                         IEnumerable<Admin> filteredAdmins;
-                        
+
                         if (currentStatusText.Contains("在职"))
                         {
                             filteredAdmins = Admins.Where(a => a.IsActive == true);
@@ -447,7 +447,7 @@ namespace SIASGraduate.ViewModels.Pages
                         {
                             filteredAdmins = Admins;
                         }
-                        
+
                         // 关键词筛选
                         if (!string.IsNullOrWhiteSpace(currentKeyword))
                         {
@@ -457,31 +457,31 @@ namespace SIASGraduate.ViewModels.Pages
                                 a.AdminId.ToString().Contains(currentKeyword)
                             );
                         }
-                        
+
                         // 更新临时集合
                         TempAdmins = new ObservableCollection<Admin>(filteredAdmins);
-                        
+
                         // 更新分页信息
                         TotalRecords = TempAdmins.Count;
-                        MaxPage = TotalRecords == 0 ? 1 : 
-                                 (TotalRecords % PageSize == 0 ? 
+                        MaxPage = TotalRecords == 0 ? 1 :
+                                 (TotalRecords % PageSize == 0 ?
                                  TotalRecords / PageSize : (TotalRecords / PageSize) + 1);
-                        
+
                         // 确保当前页在有效范围内
                         if (CurrentPage > MaxPage)
                         {
                             CurrentPage = MaxPage > 0 ? MaxPage : 1;
                         }
-                        
+
                         // 重新加载当前页数据
                         LoadAdmins();
-                        
+
                         // 尝试恢复选中状态
                         if (selectedAdminId.HasValue && ListViewAdmins != null)
                         {
                             SelectedAdmin = ListViewAdmins.FirstOrDefault(a => a.AdminId == selectedAdminId);
                         }
-                        
+
                         logger.Info($"管理员列表已刷新，当前显示 {TempAdmins.Count} 条记录");
                     });
                 }
@@ -507,33 +507,33 @@ namespace SIASGraduate.ViewModels.Pages
             {
                 DisableButtons();
                 System.Diagnostics.Debug.WriteLine($"开始查询管理员，状态条件: '{Status}'");
-                
+
                 using (var context = new DataBaseContext())
                 {
                     context.Database.SetCommandTimeout(180); // 设置更长的超时时间
-                    
+
                     // 始终从数据库重新加载管理员列表，确保数据是最新的
                     Admins = new ObservableCollection<Admin>(
                         context.Admins
                               .Include(a => a.Department)
                               .ToList());
-                    
+
                     System.Diagnostics.Debug.WriteLine($"从数据库加载了 {Admins.Count} 个管理员");
-                    
+
                     // 加载部门信息
                     departments = new ObservableCollection<Department>(
                         context.Departments.ToList());
                 }
-                
+
                 // 根据状态筛选
                 if (Status == null)
                 {
                     System.Diagnostics.Debug.WriteLine("Status为空，设置为默认值: 在职员工");
                     Status = "在职员工";
                 }
-                
+
                 System.Diagnostics.Debug.WriteLine($"当前筛选条件: {StatusText}");
-                
+
                 if (StatusText.Contains("在职员工"))
                 {
                     System.Diagnostics.Debug.WriteLine("筛选在职管理员");
@@ -549,38 +549,38 @@ namespace SIASGraduate.ViewModels.Pages
                     System.Diagnostics.Debug.WriteLine("显示全部管理员");
                     TempAdmins = new ObservableCollection<Admin>(Admins);
                 }
-                
+
                 System.Diagnostics.Debug.WriteLine($"状态筛选后剩余 {TempAdmins.Count} 个管理员");
-                
+
                 // 关键字筛选
                 if (!string.IsNullOrWhiteSpace(SearchKeyword))
                 {
                     string keyword = SearchKeyword.Trim().ToLower();
                     System.Diagnostics.Debug.WriteLine($"使用关键词筛选: '{keyword}'");
-                    
+
                     TempAdmins = new ObservableCollection<Admin>(TempAdmins.Where(a =>
                         (a.AdminName != null && a.AdminName.ToLower().Contains(keyword)) ||
                         // 已移除对AdminPassword的匹配，提高安全性
                         (a.Email != null && a.Email.ToLower().Contains(keyword)) ||
                         (a.Account != null && a.Account.ToLower().Contains(keyword)) ||
                         a.AdminId.ToString().Contains(keyword) ||
-                        (departments != null && 
-                         a.DepartmentId.HasValue && 
-                         departments.Any(d => d.DepartmentId == a.DepartmentId && 
-                                         d.DepartmentName != null && 
+                        (departments != null &&
+                         a.DepartmentId.HasValue &&
+                         departments.Any(d => d.DepartmentId == a.DepartmentId &&
+                                         d.DepartmentName != null &&
                                          d.DepartmentName.ToLower().Contains(keyword))) ||
                         (a.HireDate.HasValue && a.HireDate.Value.ToString("yyyy-MM-dd").Contains(keyword))
                     ));
-                    
+
                     System.Diagnostics.Debug.WriteLine($"关键词筛选后剩余 {TempAdmins.Count} 个管理员");
                 }
-                
+
                 // 重置页码
                 CurrentPage = 1;
-                
+
                 // 加载管理员数据
                 LoadAdmins();
-                
+
                 EnableButtons();
             }
             catch (Exception ex)
@@ -639,27 +639,27 @@ namespace SIASGraduate.ViewModels.Pages
                     int declarerCount = context.NominationDeclarations.Count(n => n.DeclarerAdminId == admin.AdminId);
                     // 查询管理员作为投票者的投票记录
                     int voterCount = context.VoteRecords.Count(v => v.VoterAdminId == admin.AdminId);
-                    
+
                     int nominationCount = nominatedCount + proposerCount;
                     int declarationCount = declaredCount + declarerCount;
-                    
+
                     // 如果有关联记录，显示特殊的确认对话框
                     if (nominationCount > 0 || declarationCount > 0 || voterCount > 0)
                     {
                         // 构建提示消息
                         string message = "当前管理员有关联记录:";
                         List<string> details = new List<string>();
-                        
+
                         if (nominationCount > 0)
                             details.Add($"奖项提名({nominationCount}条)");
                         if (declarationCount > 0)
                             details.Add($"提名申报({declarationCount}条)");
                         if (voterCount > 0)
                             details.Add($"投票记录({voterCount}条)");
-                            
+
                         message += string.Join("、", details);
                         message += "，是否删除该管理员及其所有关联记录？";
-                        
+
                         // 显示Growl确认对话框
                         Growl.AskGlobal(message, (result) =>
                         {
@@ -696,7 +696,7 @@ namespace SIASGraduate.ViewModels.Pages
                                     context.Admins.Remove(dbAdmin);
                                     context.SaveChanges();
                                     Growl.SuccessGlobal($"管理员 {admin.AdminName} 删除成功");
-                                    
+
                                     // 刷新列表
                                     Admins = new ObservableCollection<Admin>(context.Admins.ToList());
                                     TempAdmins = new ObservableCollection<Admin>(Admins.Where(e => e.IsActive == true));
@@ -732,14 +732,14 @@ namespace SIASGraduate.ViewModels.Pages
             {
                 IsLoading = true;
                 logger.Info($"开始级联删除管理员记录: ID={admin.AdminId}, 名称={admin.AdminName}");
-                
+
                 bool success = await adminService.DeleteAdminWithRelatedRecords(admin.AdminId);
-                
+
                 if (success)
                 {
                     logger.Info($"管理员级联删除成功: ID={admin.AdminId}");
                     Growl.SuccessGlobal($"管理员 {admin.AdminName} 及其关联记录删除成功");
-                    
+
                     // 刷新列表
                     using (var context = new DataBaseContext())
                     {
@@ -778,7 +778,7 @@ namespace SIASGraduate.ViewModels.Pages
             {
                 IsLoading = true;
                 Growl.InfoGlobal("正在尝试更彻底的级联删除...");
-                
+
                 // 显示确认对话框
                 Growl.AskGlobal("标准删除失败，是否尝试更彻底的级联删除？此操作将直接从数据库中删除所有关联记录，不可逆", (result) =>
                 {
@@ -811,12 +811,12 @@ namespace SIASGraduate.ViewModels.Pages
             {
                 logger.Info($"开始执行管理员的彻底级联删除: ID={admin.AdminId}");
                 bool success = await adminService.ExecuteDirectSqlDelete(admin.AdminId);
-                
+
                 if (success)
                 {
                     logger.Info($"管理员彻底级联删除成功: ID={admin.AdminId}");
                     Growl.SuccessGlobal($"管理员 {admin.AdminName} 及其关联记录已成功删除");
-                    
+
                     // 刷新列表
                     using (var context = new DataBaseContext())
                     {
@@ -1015,17 +1015,17 @@ namespace SIASGraduate.ViewModels.Pages
         private void OnExport()
         {
             // 根据当前状态确定默认文件名
-            string fileNamePrefix = StatusText.Contains("在职") ? "在职管理员" : 
+            string fileNamePrefix = StatusText.Contains("在职") ? "在职管理员" :
                                    StatusText.Contains("离职") ? "离职管理员" : "全部管理员";
             string defaultFileName = $"{fileNamePrefix}_{DateTime.Now:yyyyMMdd}";
-            
+
             // 打开文件对话框选择保存路径
             var saveFileDialog = new SaveFileDialog
             {
                 Filter = "CSV files (*.csv)|*.csv|All files (*.*)|*.*",
                 FileName = defaultFileName
             };
-            
+
             if (saveFileDialog.ShowDialog() == true)
             {
                 // 发布导出事件，传递文件路径
@@ -1038,7 +1038,7 @@ namespace SIASGraduate.ViewModels.Pages
             try
             {
                 logger.Info($"开始导出{StatusText}列表...");
-                
+
                 // 导出当前筛选后的管理员列表(TempAdmins)，而不是所有管理员(Admins)
                 if (TempAdmins == null || TempAdmins.Count == 0)
                 {
@@ -1046,16 +1046,16 @@ namespace SIASGraduate.ViewModels.Pages
                     logger.Warn("导出取消：没有符合条件的管理员数据");
                     return;
                 }
-                
+
                 // 实现导出逻辑
                 bool result = adminService.ExportAdmins(TempAdmins.ToList(), filePath);
-                
+
                 if (result)
                 {
                     // 添加导出成功提示，包含筛选条件和导出的记录数
-                    string statusMsg = StatusText.Contains("在职") ? "在职" : 
+                    string statusMsg = StatusText.Contains("在职") ? "在职" :
                                       StatusText.Contains("离职") ? "离职" : "全部";
-                    
+
                     Growl.SuccessGlobal($"成功导出{statusMsg}管理员记录 {TempAdmins.Count} 条");
                     logger.Info($"成功导出{statusMsg}管理员记录 {TempAdmins.Count} 条到 {filePath}");
                 }

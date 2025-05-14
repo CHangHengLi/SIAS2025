@@ -1,4 +1,3 @@
-using System;
 using System.IO;
 using System.Security.Cryptography;
 using System.Text;
@@ -14,11 +13,11 @@ namespace SIASGraduate.Common
         // 密钥文件
         private const string KeyFile = "encryption.key";
         private const string IvFile = "encryption.iv";
-        
+
         // 缓存密钥和向量
         private static byte[] _cachedKey;
         private static byte[] _cachedIV;
-        
+
         /// <summary>
         /// 获取AES加密密钥
         /// </summary>
@@ -29,11 +28,11 @@ namespace SIASGraduate.Common
             {
                 return _cachedKey;
             }
-            
+
             _cachedKey = GetOrCreateKey(KeyFile);
             return _cachedKey;
         }
-        
+
         /// <summary>
         /// 获取AES加密向量
         /// </summary>
@@ -44,11 +43,11 @@ namespace SIASGraduate.Common
             {
                 return _cachedIV;
             }
-            
+
             _cachedIV = GetOrCreateKey(IvFile);
             return _cachedIV;
         }
-        
+
         /// <summary>
         /// 获取或创建密钥
         /// </summary>
@@ -56,7 +55,7 @@ namespace SIASGraduate.Common
         {
             string exePath = AppDomain.CurrentDomain.BaseDirectory;
             string filePath = Path.Combine(exePath, fileName);
-            
+
             if (File.Exists(filePath))
             {
                 try
@@ -68,10 +67,10 @@ namespace SIASGraduate.Common
                 catch (Exception ex)
                 {
                     // 减少消息框弹出，只在调试模式下显示
-                    #if DEBUG
+#if DEBUG
                     MessageBox.Show($"读取加密密钥时出错: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                    #endif
-                    
+#endif
+
                     // 如果读取失败，生成新密钥
                     return GenerateAndSaveKey(filePath);
                 }
@@ -82,7 +81,7 @@ namespace SIASGraduate.Common
                 return GenerateAndSaveKey(filePath);
             }
         }
-        
+
         /// <summary>
         /// 生成并保存新密钥
         /// </summary>
@@ -96,49 +95,49 @@ namespace SIASGraduate.Common
                 {
                     rng.GetBytes(key);
                 }
-                
+
                 // 将密钥保存到文件（Base64编码）
                 string base64Key = Convert.ToBase64String(key);
                 File.WriteAllText(filePath, base64Key);
-                
+
                 return key;
             }
             catch (Exception ex)
             {
                 // 减少消息框弹出，只在调试模式下显示
-                #if DEBUG
+#if DEBUG
                 MessageBox.Show($"生成加密密钥时出错: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
-                #endif
-                
+#endif
+
                 // 如果生成失败，返回默认密钥
                 return Encoding.UTF8.GetBytes("A8C7D9E5F3B1G2H6");
             }
         }
-        
+
         /// <summary>
         /// 重新生成所有加密密钥（谨慎使用，会使现有加密数据无法解密）
         /// </summary>
         public static void RegenerateAllKeys()
         {
             string exePath = AppDomain.CurrentDomain.BaseDirectory;
-            
+
             // 删除现有密钥文件
             string keyPath = Path.Combine(exePath, KeyFile);
             string ivPath = Path.Combine(exePath, IvFile);
-            
+
             try
             {
                 if (File.Exists(keyPath)) File.Delete(keyPath);
                 if (File.Exists(ivPath)) File.Delete(ivPath);
-                
+
                 // 清除缓存
                 _cachedKey = null;
                 _cachedIV = null;
-                
+
                 // 重新生成密钥
                 GetEncryptionKey();
                 GetEncryptionIV();
-                
+
                 MessageBox.Show("加密密钥已重新生成。注意：现有加密数据将无法解密。", "提示", MessageBoxButton.OK, MessageBoxImage.Warning);
             }
             catch (Exception ex)
@@ -147,4 +146,4 @@ namespace SIASGraduate.Common
             }
         }
     }
-} 
+}

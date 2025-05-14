@@ -13,7 +13,7 @@ namespace SIASGraduate.Services
         void DeleteEmployee(int id);
         (bool hasRelated, int nominationCount, int declarationCount, int voteCount) CheckEmployeeRelatedRecords(int employeeId);
         bool DeleteEmployeeWithRelatedRecords(int employeeId);
-        
+
         /// <summary>
         /// 使用直接SQL语句执行级联删除，适用于EF Core约束处理失败的情况
         /// </summary>

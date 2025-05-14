@@ -25,13 +25,13 @@ namespace SIASGraduate.ViewModels
         /// 被提名人姓名
         /// </summary>
         public string NomineeName { get; set; }
-        
+
         /// <summary>
         /// 得票数
         /// </summary>
         public int VoteCount { get; set; }
     }
-    
+
     /// <summary>
     /// 首页视图模型
     /// </summary>
@@ -45,23 +45,23 @@ namespace SIASGraduate.ViewModels
 
         // 添加Random实例
         private Random _random = new Random();
-        
+
         // 最小化窗口命令
         private DelegateCommand _minimizeWindowCommand;
         public DelegateCommand MinimizeWindowCommand =>
             _minimizeWindowCommand ??= new DelegateCommand(MinimizeWindow);
-            
+
         // 处理最小化窗口事件
         private void MinimizeWindow()
         {
             Application.Current.MainWindow.WindowState = WindowState.Minimized;
         }
-            
+
         // 最大化窗口命令
         private DelegateCommand _maximizeWindowCommand;
         public DelegateCommand MaximizeWindowCommand =>
             _maximizeWindowCommand ??= new DelegateCommand(MaximizeWindow);
-            
+
         // 处理最大化窗口事件
         private void MaximizeWindow()
         {
@@ -74,18 +74,18 @@ namespace SIASGraduate.ViewModels
                 Application.Current.MainWindow.WindowState = WindowState.Maximized;
             }
         }
-        
+
         // 鼠标滚轮命令
         private DelegateCommand<MouseWheelEventArgs> _mouseWheelCommand;
         public DelegateCommand<MouseWheelEventArgs> MouseWheelCommand =>
             _mouseWheelCommand ??= new DelegateCommand<MouseWheelEventArgs>(OnMouseWheel);
-            
+
         // 处理鼠标滚轮事件
         private void OnMouseWheel(MouseWheelEventArgs e)
         {
             // 在主窗口层面不拦截滚轮事件，让事件继续传递给子控件
             // 确保不设置e.Handled = true，以便事件能继续路由
-            
+
             // 简单的调试输出
             Debug.WriteLine($"Home 鼠标滚轮事件: Delta={e.Delta}");
         }
@@ -94,12 +94,12 @@ namespace SIASGraduate.ViewModels
         private DelegateCommand<MouseWheelEventArgs> _horizontalScrollCommand;
         public DelegateCommand<MouseWheelEventArgs> HorizontalScrollCommand =>
             _horizontalScrollCommand ??= new DelegateCommand<MouseWheelEventArgs>(OnHorizontalScroll);
-            
+
         // 处理水平滚动事件
         private void OnHorizontalScroll(MouseWheelEventArgs e)
         {
             if (e == null) return;
-            
+
             // 获取事件源控件并找到ScrollViewer
             var source = e.Source as DependencyObject;
             if (source != null)
@@ -110,14 +110,14 @@ namespace SIASGraduate.ViewModels
                 {
                     // 判断是否按下了Shift键，如果按下则反向滚动
                     bool isShiftKeyDown = Keyboard.IsKeyDown(Key.LeftShift) || Keyboard.IsKeyDown(Key.RightShift);
-                    
+
                     // 计算滚动量
                     double scrollAmount = e.Delta / 3; // 调整速度
                     if (isShiftKeyDown) scrollAmount = -scrollAmount;
-                    
+
                     // 执行水平滚动
                     scrollViewer.ScrollToHorizontalOffset(scrollViewer.HorizontalOffset - scrollAmount);
-                    
+
                     // 标记事件为已处理，防止继续传递
                     e.Handled = true;
                 }
@@ -129,13 +129,13 @@ namespace SIASGraduate.ViewModels
         {
             // 获取父元素
             DependencyObject parentObject = VisualTreeHelper.GetParent(child);
-            
+
             // 如果没有父元素，返回null
             if (parentObject == null) return null;
-            
+
             // 如果父元素是我们要找的类型，直接返回
             if (parentObject is T parent) return parent;
-            
+
             // 否则继续向上查找
             return FindVisualParent<T>(parentObject);
         }
@@ -204,7 +204,7 @@ namespace SIASGraduate.ViewModels
             get { return userName; }
             set { SetProperty(ref userName, value); }
         }
-        
+
         // 添加显示姓名属性
         private string displayName;
         public string DisplayName
@@ -212,7 +212,7 @@ namespace SIASGraduate.ViewModels
             get { return displayName; }
             set { SetProperty(ref displayName, value); }
         }
-        
+
         private string password;
         public string Password
         {
@@ -233,7 +233,7 @@ namespace SIASGraduate.ViewModels
         #region 构造函数
         public HomeViewModel(IRegionManager regionManager)
         {
-       
+
             #region 区域管理器 regionManager
             this.regionManager = regionManager;
             #endregion
@@ -245,7 +245,7 @@ namespace SIASGraduate.ViewModels
             _timer.Tick += UpdateUserName;
             _timer.Start();
             #endregion
-            
+
             #region 登录状态检查
             // 初始化登录状态检查定时器，但不立即启动
             // 将在 Loaded 方法中启动，确保用户已登录
@@ -262,20 +262,20 @@ namespace SIASGraduate.ViewModels
             labels = new List<string>();
             rankingLabels = new List<string>();
             nomineeRankingLabels = new List<string>();
-            
+
             // 初始化坐标轴
             rankingAxisX = new AxesCollection { new Axis { Title = "奖项" } };
             rankingAxisY = new AxesCollection { new Axis { Title = "得票数" } };
             nomineeRankingAxisX = new AxesCollection { new Axis { Title = "候选人" } };
             nomineeRankingAxisY = new AxesCollection { new Axis { Title = "票数" } };
-            
+
             // 初始化饼图标签格式化函数
-            PieChartLabelFormat = chartPoint => 
+            PieChartLabelFormat = chartPoint =>
                 $"{chartPoint.Y:N0}个 ({chartPoint.Participation:P1})";
-                
-            PieChartTitleOnlyFormat = chartPoint => 
+
+            PieChartTitleOnlyFormat = chartPoint =>
                 $"{chartPoint.Y:N0}个";
-            
+
             // 注意：数据加载移到了Loaded方法中
             #endregion
         }
@@ -322,9 +322,10 @@ namespace SIASGraduate.ViewModels
             Row3Visible = GridLength.Auto;
             Row4Visible = GridLength.Auto;
             Row5Visible = GridLength.Auto;
-            
+
             // 重新加载图表数据，确保显示最新数据
-            Application.Current.Dispatcher.InvokeAsync(() => {
+            Application.Current.Dispatcher.InvokeAsync(() =>
+            {
                 LoadChartData();
                 LoadVoteDetails(); // 同时刷新投票详情数据
             }, System.Windows.Threading.DispatcherPriority.Background);
@@ -342,18 +343,18 @@ namespace SIASGraduate.ViewModels
             UpdateDisplayName(); //获取并设置显示姓名
             Password = CurrentUser.Password; //获取当前用户密码
             RoleId = CurrentUser.RoleId; //1.超级管理员 2.管理员 3.雇员
-            
+
             // 用户已成功登录，启动登录状态检查定时器
             if (!string.IsNullOrEmpty(CurrentUser.Account) && !string.IsNullOrEmpty(CurrentUser.UserName))
             {
                 _loginCheckTimer.Start();
             }
-            
+
             if (RoleId == 1)
             {
                 IsButtonVisible = Visibility.Visible; EmployeeManagerButtonIsEnable = true;
                 IsButtonVisibleCopy = Visibility.Visible; EmployeeManagerButtonIsEnableCopy = true;
-                
+
                 // 超级管理员可以看到所有按钮
                 EmployeeManagerButtonVisible = Visibility.Visible;
                 AwardSettingButtonVisible = Visibility.Visible;
@@ -364,7 +365,7 @@ namespace SIASGraduate.ViewModels
             {
                 IsButtonVisible = Visibility.Visible; EmployeeManagerButtonIsEnable = true;
                 IsButtonVisibleCopy = Visibility.Collapsed; EmployeeManagerButtonIsEnableCopy = false;
-                
+
                 // 管理员可以看到所有按钮
                 EmployeeManagerButtonVisible = Visibility.Visible;
                 AwardSettingButtonVisible = Visibility.Visible;
@@ -374,34 +375,35 @@ namespace SIASGraduate.ViewModels
             else if (RoleId == 3)
             {
                 // 修改为可见和可用，使员工能够访问提名申报功能
-                IsButtonVisible = Visibility.Visible; 
+                IsButtonVisible = Visibility.Visible;
                 EmployeeManagerButtonIsEnable = true;
-                
+
                 // 其他管理功能按钮保持不可见
                 IsButtonVisibleCopy = Visibility.Collapsed;
                 EmployeeManagerButtonIsEnableCopy = false;
-                
+
                 // 员工不能看到这三个按钮
                 EmployeeManagerButtonVisible = Visibility.Collapsed;
                 AwardSettingButtonVisible = Visibility.Collapsed;
                 AwardNominateButtonVisible = Visibility.Collapsed;
-                
+
                 // 但是员工可以看到提名申报按钮
                 NominationDeclarationButtonVisible = Visibility.Visible;
             }
             else
             {
                 IsButtonVisible = Visibility.Collapsed;
-                
+
                 // 未知角色隐藏所有特定按钮
                 EmployeeManagerButtonVisible = Visibility.Collapsed;
                 AwardSettingButtonVisible = Visibility.Collapsed;
                 AwardNominateButtonVisible = Visibility.Collapsed;
                 NominationDeclarationButtonVisible = Visibility.Collapsed;
             }
-            
+
             // 在UI加载完成后加载图表数据
-            Application.Current.Dispatcher.InvokeAsync(() => {
+            Application.Current.Dispatcher.InvokeAsync(() =>
+            {
                 LoadChartData();
                 LoadVoteDetails(); // 加载投票详情数据
             }, System.Windows.Threading.DispatcherPriority.Background);
@@ -419,7 +421,7 @@ namespace SIASGraduate.ViewModels
             UserName = CurrentUser.UserName;
             UpdateDisplayName();
         }
-        
+
         // 根据当前用户角色更新显示姓名
         private void UpdateDisplayName()
         {
@@ -502,7 +504,7 @@ namespace SIASGraduate.ViewModels
             {
                 return false;
             }
-            
+
             using (var context = new DataBaseContext())
             {
                 try
@@ -511,23 +513,23 @@ namespace SIASGraduate.ViewModels
                     switch (CurrentUser.RoleId)
                     {
                         case 1: // 超级管理员
-                            var supAdmin = context.SupAdmins.FirstOrDefault(sa => 
-                                sa.Account == CurrentUser.Account && 
+                            var supAdmin = context.SupAdmins.FirstOrDefault(sa =>
+                                sa.Account == CurrentUser.Account &&
                                 sa.SupAdminPassword == CurrentUser.Password);
                             return supAdmin != null && supAdmin.IsActive == true;
-                            
+
                         case 2: // 管理员
-                            var admin = context.Admins.FirstOrDefault(a => 
-                                a.Account == CurrentUser.Account && 
+                            var admin = context.Admins.FirstOrDefault(a =>
+                                a.Account == CurrentUser.Account &&
                                 a.AdminPassword == CurrentUser.Password);
                             return admin != null && admin.IsActive == true;
-                            
+
                         case 3: // 员工
-                            var employee = context.Employees.FirstOrDefault(e => 
-                                e.Account == CurrentUser.Account && 
+                            var employee = context.Employees.FirstOrDefault(e =>
+                                e.Account == CurrentUser.Account &&
                                 e.EmployeePassword == CurrentUser.Password);
                             return employee != null && employee.IsActive == true;
-                            
+
                         default:
                             return false;
                     }
@@ -553,24 +555,24 @@ namespace SIASGraduate.ViewModels
                     // 显示错误提示对话框
                     HandyControl.Controls.MessageBox.Show(
                         "您的账号登录状态已失效，可能由于以下原因：\n\n" +
-                        "1. 您的账号已被管理员禁用\n" + 
-                        "2. 您的账号信息已被修改\n" + 
+                        "1. 您的账号已被管理员禁用\n" +
+                        "2. 您的账号信息已被修改\n" +
                         "3. 您的会话已过期\n\n" +
                         "系统将自动退出登录，请重新登录。",
-                        "登录状态失效", 
-                        MessageBoxButton.OK, 
+                        "登录状态失效",
+                        MessageBoxButton.OK,
                         MessageBoxImage.Warning);
-                        
+
                     // 同时在界面上显示提示消息
                     HandyControl.Controls.Growl.InfoGlobal("登录状态已失效，即将退出登录");
                 });
-                
+
                 // 等待提示显示完毕
                 Thread.Sleep(1500);
-                
+
                 // 清除当前用户信息
                 CurrentUser.Clear();
-                
+
                 // 重启应用以返回登录界面
                 var currentProcess = Process.GetCurrentProcess();
                 var fileName = currentProcess.MainModule?.FileName;
@@ -582,7 +584,7 @@ namespace SIASGraduate.ViewModels
                         FileName = fileName,
                         UseShellExecute = true
                     });
-                    
+
                     // 关闭当前程序
                     Application.Current.Dispatcher.Invoke(() =>
                     {
@@ -601,7 +603,7 @@ namespace SIASGraduate.ViewModels
             catch (Exception ex)
             {
                 Debug.WriteLine($"强制退出登录时出错: {ex.Message}");
-                
+
                 // 如果重启应用失败，至少尝试退出应用
                 try
                 {
@@ -822,7 +824,7 @@ namespace SIASGraduate.ViewModels
             get { return labels; }
             set { SetProperty(ref labels, value); }
         }
-        
+
         // 添加饼图标签格式化函数
         private Func<ChartPoint, string> _pieChartLabelFormat;
         public Func<ChartPoint, string> PieChartLabelFormat
@@ -830,7 +832,7 @@ namespace SIASGraduate.ViewModels
             get { return _pieChartLabelFormat; }
             set { SetProperty(ref _pieChartLabelFormat, value); }
         }
-        
+
         // 添加饼图标签格式化函数 - 仅显示标题
         private Func<ChartPoint, string> _pieChartTitleOnlyFormat;
         public Func<ChartPoint, string> PieChartTitleOnlyFormat
@@ -852,21 +854,21 @@ namespace SIASGraduate.ViewModels
             get { return rankingLabels; }
             set { SetProperty(ref rankingLabels, value); }
         }
-        
+
         private AxesCollection rankingAxisX;
         public AxesCollection RankingAxisX
         {
             get { return rankingAxisX; }
             set { SetProperty(ref rankingAxisX, value); }
         }
-        
+
         private AxesCollection rankingAxisY;
         public AxesCollection RankingAxisY
         {
             get { return rankingAxisY; }
             set { SetProperty(ref rankingAxisY, value); }
         }
-        
+
         // 这个用于第四行的投票排名图表
         private SeriesCollection nomineeRankingSeriesCollection;
         public SeriesCollection NomineeRankingSeriesCollection
@@ -880,14 +882,14 @@ namespace SIASGraduate.ViewModels
             get { return nomineeRankingLabels; }
             set { SetProperty(ref nomineeRankingLabels, value); }
         }
-        
+
         private AxesCollection nomineeRankingAxisX;
         public AxesCollection NomineeRankingAxisX
         {
             get { return nomineeRankingAxisX; }
             set { SetProperty(ref nomineeRankingAxisX, value); }
         }
-        
+
         private AxesCollection nomineeRankingAxisY;
         public AxesCollection NomineeRankingAxisY
         {
@@ -1004,7 +1006,7 @@ namespace SIASGraduate.ViewModels
                     {
                         // 清空现有集合
                         SeriesCollection.Clear();
-                        
+
                         // 生成饼图数据
                         foreach (var award in awardNominations)
                         {
@@ -1056,10 +1058,10 @@ namespace SIASGraduate.ViewModels
                                 Foreground = Brushes.Black
                             }
                         };
-                        
+
                         // 清空现有集合
                         RankingSeriesCollection.Clear();
-                        
+
                         // 添加条形图数据
                         RankingSeriesCollection.Add(new ColumnSeries
                         {
@@ -1080,25 +1082,25 @@ namespace SIASGraduate.ViewModels
 
                         // 分步加载被提名者信息，避免SQL查询中包含NotMapped属性
                         var topNominees = new List<NomineeVoteCount>();
-                        
+
                         foreach (var record in topVoteRecords)
                         {
                             // 先获取基本提名信息
                             var nomination = context.Nominations
                                 .AsNoTracking()
                                 .Where(n => n.NominationId == record.NominationId)
-                                .Select(n => new 
+                                .Select(n => new
                                 {
                                     n.NominationId,
                                     n.NominatedEmployeeId,
                                     n.NominatedAdminId
                                 })
                                 .FirstOrDefault();
-                                
+
                             if (nomination != null)
                             {
                                 string nomineeName = "未知";
-                                
+
                                 // 单独加载被提名员工
                                 if (nomination.NominatedEmployeeId.HasValue)
                                 {
@@ -1107,7 +1109,7 @@ namespace SIASGraduate.ViewModels
                                         .Where(e => e.EmployeeId == nomination.NominatedEmployeeId.Value)
                                         .Select(e => e.EmployeeName)
                                         .FirstOrDefault();
-                                    
+
                                     if (!string.IsNullOrEmpty(employee))
                                     {
                                         nomineeName = employee;
@@ -1121,22 +1123,22 @@ namespace SIASGraduate.ViewModels
                                         .Where(a => a.AdminId == nomination.NominatedAdminId.Value)
                                         .Select(a => a.AdminName)
                                         .FirstOrDefault();
-                                    
+
                                     if (!string.IsNullOrEmpty(admin))
                                     {
                                         nomineeName = admin;
                                     }
                                 }
-                                
+
                                 // 添加到结果列表
-                                topNominees.Add(new NomineeVoteCount 
-                                { 
-                                    NomineeName = nomineeName, 
-                                    VoteCount = record.VoteCount 
+                                topNominees.Add(new NomineeVoteCount
+                                {
+                                    NomineeName = nomineeName,
+                                    VoteCount = record.VoteCount
                                 });
                             }
                         }
-                        
+
                         if (topNominees.Count > 0)
                         {
                             var nomineeLabels = topNominees.Select(n => n.NomineeName).ToArray();
@@ -1169,7 +1171,7 @@ namespace SIASGraduate.ViewModels
 
                             // 清空现有集合
                             NomineeRankingSeriesCollection.Clear();
-                            
+
                             // 添加条形图数据
                             NomineeRankingSeriesCollection.Add(new ColumnSeries
                             {
@@ -1197,7 +1199,7 @@ namespace SIASGraduate.ViewModels
                 SetDefaultCharts();
             }
         }
-        
+
         // 获取随机颜色的辅助方法
         private System.Windows.Media.Color GetRandomColor()
         {
@@ -1206,7 +1208,7 @@ namespace SIASGraduate.ViewModels
                 (byte)_random.Next(100, 250),
                 (byte)_random.Next(100, 250));
         }
-        
+
         private void SetDefaultCharts()
         {
             // 如果饼图集合为空，创建默认的空饼图
@@ -1222,7 +1224,7 @@ namespace SIASGraduate.ViewModels
                     LabelPoint = PieChartTitleOnlyFormat
                 });
             }
-            
+
             // 为条形图创建默认轴
             RankingAxisX.Clear();
             RankingAxisX.Add(new Axis
@@ -1231,7 +1233,7 @@ namespace SIASGraduate.ViewModels
                 Labels = new[] { "无数据" },
                 Foreground = Brushes.Black
             });
-            
+
             RankingAxisY.Clear();
             RankingAxisY.Add(new Axis
             {
@@ -1239,7 +1241,7 @@ namespace SIASGraduate.ViewModels
                 MinValue = 0,
                 Foreground = Brushes.Black
             });
-            
+
             // 如果条形图集合为空，创建默认的空条形图
             if (RankingSeriesCollection == null || RankingSeriesCollection.Count == 0)
             {
@@ -1252,7 +1254,7 @@ namespace SIASGraduate.ViewModels
                     DataLabels = true
                 });
             }
-            
+
             // 为提名排名图创建默认轴
             NomineeRankingAxisX.Clear();
             NomineeRankingAxisX.Add(new Axis
@@ -1261,7 +1263,7 @@ namespace SIASGraduate.ViewModels
                 Labels = new[] { "无数据" },
                 Foreground = Brushes.Black
             });
-            
+
             NomineeRankingAxisY.Clear();
             NomineeRankingAxisY.Add(new Axis
             {
@@ -1269,7 +1271,7 @@ namespace SIASGraduate.ViewModels
                 MinValue = 0,
                 Foreground = Brushes.Black
             });
-            
+
             // 如果提名排名图集合为空，创建默认的空条形图
             if (NomineeRankingSeriesCollection == null || NomineeRankingSeriesCollection.Count == 0)
             {
@@ -1291,24 +1293,25 @@ namespace SIASGraduate.ViewModels
         {
             // GetAllPermission();
             UserName = CurrentUser.UserName;
-            
+
             // 启动时钟线程
-            Task.Run(() => {
+            Task.Run(() =>
+            {
                 while (true)
                 {
                     Application.Current.Dispatcher.Invoke(() => UpdateTime(null, EventArgs.Empty));
                     Thread.Sleep(1000);
                 }
             });
-            
+
             // 立即加载图表数据，确保初始显示
             LoadChartData();
-            
+
             // 初始界面
             InitializeChartsIfNeeded();
             // LoadPageInfo();
         }
-        
+
         /// <summary>
         /// 获取所有权限
         /// </summary>
@@ -1317,7 +1320,7 @@ namespace SIASGraduate.ViewModels
             // 这里实现获取权限的逻辑
             // 根据App.Current_LoginUser的角色和权限设置进行处理
         }
-        
+
         /// <summary>
         /// 加载页面信息
         /// </summary>
@@ -1326,7 +1329,7 @@ namespace SIASGraduate.ViewModels
             // 这里实现加载页面信息的逻辑
             // 可能包括加载用户基本信息、系统状态等
         }
-        
+
         /// <summary>
         /// 初始化图表，确保显示不为空
         /// </summary>
@@ -1345,7 +1348,7 @@ namespace SIASGraduate.ViewModels
                     LabelPoint = PieChartTitleOnlyFormat
                 });
             }
-            
+
             // 如果条形图集合为空，创建默认的空条形图
             if (RankingSeriesCollection == null || RankingSeriesCollection.Count == 0)
             {
@@ -1357,18 +1360,18 @@ namespace SIASGraduate.ViewModels
                     Fill = Brushes.LightBlue,
                     DataLabels = true
                 });
-                
+
                 if (RankingLabels == null || RankingLabels.Count == 0)
                 {
                     RankingLabels = new List<string> { "暂无数据" };
                 }
-                
+
                 // 确保坐标轴已初始化
                 if (RankingAxisX == null || RankingAxisX.Count == 0)
                 {
                     if (RankingAxisX == null)
                         RankingAxisX = new AxesCollection();
-                    
+
                     RankingAxisX.Clear();
                     RankingAxisX.Add(new Axis
                     {
@@ -1377,12 +1380,12 @@ namespace SIASGraduate.ViewModels
                         Foreground = Brushes.Black
                     });
                 }
-                
+
                 if (RankingAxisY == null || RankingAxisY.Count == 0)
                 {
                     if (RankingAxisY == null)
                         RankingAxisY = new AxesCollection();
-                    
+
                     RankingAxisY.Clear();
                     RankingAxisY.Add(new Axis
                     {
@@ -1392,7 +1395,7 @@ namespace SIASGraduate.ViewModels
                     });
                 }
             }
-            
+
             // 如果提名排名图集合为空，创建默认的空条形图
             if (NomineeRankingSeriesCollection == null || NomineeRankingSeriesCollection.Count == 0)
             {
@@ -1404,18 +1407,18 @@ namespace SIASGraduate.ViewModels
                     Fill = Brushes.LightGreen,
                     DataLabels = true
                 });
-                
+
                 if (NomineeRankingLabels == null || NomineeRankingLabels.Count == 0)
                 {
                     NomineeRankingLabels = new List<string> { "暂无数据" };
                 }
-                
+
                 // 确保坐标轴已初始化
                 if (NomineeRankingAxisX == null || NomineeRankingAxisX.Count == 0)
                 {
                     if (NomineeRankingAxisX == null)
                         NomineeRankingAxisX = new AxesCollection();
-                    
+
                     NomineeRankingAxisX.Clear();
                     NomineeRankingAxisX.Add(new Axis
                     {
@@ -1424,12 +1427,12 @@ namespace SIASGraduate.ViewModels
                         Foreground = Brushes.Black
                     });
                 }
-                
+
                 if (NomineeRankingAxisY == null || NomineeRankingAxisY.Count == 0)
                 {
                     if (NomineeRankingAxisY == null)
                         NomineeRankingAxisY = new AxesCollection();
-                    
+
                     NomineeRankingAxisY.Clear();
                     NomineeRankingAxisY.Add(new Axis
                     {
@@ -1456,8 +1459,8 @@ namespace SIASGraduate.ViewModels
         public Award SelectedAward
         {
             get { return selectedAward; }
-            set 
-            { 
+            set
+            {
                 SetProperty(ref selectedAward, value);
                 // 当选中奖项改变时，可以自动触发筛选
                 if (value != null)
@@ -1480,7 +1483,7 @@ namespace SIASGraduate.ViewModels
 
         // 筛选投票详情命令
         private DelegateCommand filterVoteDetailsCommand;
-        public DelegateCommand FilterVoteDetailsCommand => 
+        public DelegateCommand FilterVoteDetailsCommand =>
             filterVoteDetailsCommand ??= new DelegateCommand(FilterVoteDetails);
 
         // 查看提名详情命令
@@ -1526,38 +1529,38 @@ namespace SIASGraduate.ViewModels
 
                     // 查询投票详情数据
                     var voteDetailsQuery = (from n in context.Nominations
-                                          join a in context.Awards on n.AwardId equals a.AwardId
-                                          join d in context.Departments on n.DepartmentId equals d.DepartmentId into depts
-                                          from dept in depts.DefaultIfEmpty()
-                                          select new VoteDetailDto
-                                          {
-                                              NominationId = n.NominationId,
-                                              AwardId = a.AwardId,
-                                              AwardName = a.AwardName,
-                                              DepartmentId = n.DepartmentId,
-                                              DepartmentName = dept != null ? dept.DepartmentName : "未指定",
-                                              NomineeName = n.NominatedEmployeeId.HasValue ? 
-                                                  context.Employees.Where(e => e.EmployeeId == n.NominatedEmployeeId.Value)
-                                                      .Select(e => e.EmployeeName).FirstOrDefault() :
-                                                  (n.NominatedAdminId.HasValue ? 
-                                                      context.Admins.Where(ad => ad.AdminId == n.NominatedAdminId.Value)
-                                                          .Select(ad => ad.AdminName).FirstOrDefault() : "未知"),
-                                              Introduction = n.Introduction,
-                                              NominateReason = n.NominateReason,
-                                              VoteCount = context.VoteRecords.Count(vr => vr.NominationId == n.NominationId),
-                                              EmployeeVoteCount = context.VoteRecords
-                                                  .Join(context.Employees, 
-                                                      vr => vr.VoterEmployeeId, 
-                                                      e => e.EmployeeId, 
-                                                      (vr, e) => new { VoteRecord = vr, Employee = e })
-                                                  .Count(x => x.VoteRecord.NominationId == n.NominationId),
-                                              AdminVoteCount = context.VoteRecords
-                                                  .Join(context.Admins, 
-                                                      vr => vr.VoterAdminId, 
-                                                      a => a.AdminId, 
-                                                      (vr, a) => new { VoteRecord = vr, Admin = a })
-                                                  .Count(x => x.VoteRecord.NominationId == n.NominationId)
-                                          }).ToList();
+                                            join a in context.Awards on n.AwardId equals a.AwardId
+                                            join d in context.Departments on n.DepartmentId equals d.DepartmentId into depts
+                                            from dept in depts.DefaultIfEmpty()
+                                            select new VoteDetailDto
+                                            {
+                                                NominationId = n.NominationId,
+                                                AwardId = a.AwardId,
+                                                AwardName = a.AwardName,
+                                                DepartmentId = n.DepartmentId,
+                                                DepartmentName = dept != null ? dept.DepartmentName : "未指定",
+                                                NomineeName = n.NominatedEmployeeId.HasValue ?
+                                                    context.Employees.Where(e => e.EmployeeId == n.NominatedEmployeeId.Value)
+                                                        .Select(e => e.EmployeeName).FirstOrDefault() :
+                                                    (n.NominatedAdminId.HasValue ?
+                                                        context.Admins.Where(ad => ad.AdminId == n.NominatedAdminId.Value)
+                                                            .Select(ad => ad.AdminName).FirstOrDefault() : "未知"),
+                                                Introduction = n.Introduction,
+                                                NominateReason = n.NominateReason,
+                                                VoteCount = context.VoteRecords.Count(vr => vr.NominationId == n.NominationId),
+                                                EmployeeVoteCount = context.VoteRecords
+                                                    .Join(context.Employees,
+                                                        vr => vr.VoterEmployeeId,
+                                                        e => e.EmployeeId,
+                                                        (vr, e) => new { VoteRecord = vr, Employee = e })
+                                                    .Count(x => x.VoteRecord.NominationId == n.NominationId),
+                                                AdminVoteCount = context.VoteRecords
+                                                    .Join(context.Admins,
+                                                        vr => vr.VoterAdminId,
+                                                        a => a.AdminId,
+                                                        (vr, a) => new { VoteRecord = vr, Admin = a })
+                                                    .Count(x => x.VoteRecord.NominationId == n.NominationId)
+                                            }).ToList();
 
                     // 保存所有数据
                     allVoteDetails = voteDetailsQuery;
@@ -1570,35 +1573,35 @@ namespace SIASGraduate.ViewModels
             {
                 Debug.WriteLine($"加载投票详情时出错: {ex.Message}");
                 Debug.WriteLine(ex.StackTrace);
-                
+
                 // 确保集合初始化
                 if (VoteDetails == null)
                 {
                     VoteDetails = new ObservableCollection<VoteDetailDto>();
                 }
-                
+
                 if (Awards == null)
                 {
                     Awards = new ObservableCollection<Award>();
                 }
             }
         }
-        
+
         /// <summary>
         /// 查看提名详情
         /// </summary>
         private void ViewNominationDetails(VoteDetailDto voteDetail)
         {
             if (voteDetail == null) return;
-            
+
             try
             {
                 // 创建并显示提名详情窗口，使用完整类型名以避免歧义
                 var detailsWindow = new SIASGraduate.Views.EditMessage.NominationDetailsWindows.NominationDetailsWindow();
-                
+
                 // 加载提名详情前先确保显示窗口，以便UI上下文初始化
                 detailsWindow.Show();
-                
+
                 try
                 {
                     // 使用更安全的方式加载详情，避免立即使用EF查询
@@ -1625,22 +1628,22 @@ namespace SIASGraduate.ViewModels
         private DelegateCommand<ChartPoint> _pieChartDataClickCommand;
         public DelegateCommand<ChartPoint> PieChartDataClickCommand =>
             _pieChartDataClickCommand ??= new DelegateCommand<ChartPoint>(OnPieChartDataClick);
-            
+
         private void OnPieChartDataClick(ChartPoint chartPoint)
         {
             // 获取饼图
             var chart = (PieChart)chartPoint.ChartView;
-            
+
             // 清除所有扇区的突出显示
             foreach (PieSeries series in chart.Series)
             {
                 series.PushOut = 0;
             }
-            
+
             // 突出显示被点击的扇区
             var selectedSeries = (PieSeries)chartPoint.SeriesView;
             selectedSeries.PushOut = 8;
-            
+
             // 可以在这里添加其他交互逻辑，如显示相关数据等
             Debug.WriteLine($"点击了饼图：{selectedSeries.Title}，值：{chartPoint.Y}，占比：{chartPoint.Participation:P2}");
         }

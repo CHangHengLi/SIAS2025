@@ -1,4 +1,3 @@
-using System;
 using System.Globalization;
 using System.Windows.Data;
 
@@ -13,13 +12,13 @@ namespace SIASGraduate.Converter
         {
             if (value == null)
                 return false;
-            
+
             if (value is bool boolValue)
                 return boolValue;
-                
+
             if (parameter != null && parameter.ToString() == "Inverse")
                 return value == null;
-                
+
             return true;
         }
 
@@ -28,4 +27,4 @@ namespace SIASGraduate.Converter
             throw new NotImplementedException();
         }
     }
-} 
+}

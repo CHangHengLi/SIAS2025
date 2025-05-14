@@ -13,4 +13,4 @@ namespace SIASGraduate.Views.EditMessage.NominationLogViewer
             InitializeComponent();
         }
     }
-} 
+}

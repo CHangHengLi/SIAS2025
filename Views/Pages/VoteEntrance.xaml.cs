@@ -1,4 +1,3 @@
-using System;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -44,13 +43,13 @@ namespace SIASGraduate.Views.Pages
             if (!e.Handled && MainScrollViewer != null)
             {
                 e.Handled = true;
-                
+
                 // 计算滚动偏移量
                 double offset = MainScrollViewer.VerticalOffset - (e.Delta / 3.0);
-                
+
                 // 确保偏移量在有效范围内
                 offset = Math.Max(0, Math.Min(offset, MainScrollViewer.ScrollableHeight));
-                
+
                 // 执行滚动
                 MainScrollViewer.ScrollToVerticalOffset(offset);
             }

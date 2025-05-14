@@ -1,8 +1,8 @@
+using System.Windows.Input;
+using HandyControl.Controls;
 using SIASGraduate.Context;
 using SIASGraduate.Event;
 using SIASGraduate.Models;
-using HandyControl.Controls;
-using System.Windows.Input;
 
 namespace SIASGraduate.ViewModels.EditMessage.AwardSettingManager
 {
@@ -79,7 +79,7 @@ namespace SIASGraduate.ViewModels.EditMessage.AwardSettingManager
                 context.Awards.Update(UpdateAward);
                 context.SaveChanges();
                 eventAggregator.GetEvent<AwardUpdateEvent>().Publish();
-                Growl.SuccessGlobal("奖项信息修改成功"); 
+                Growl.SuccessGlobal("奖项信息修改成功");
                 Cancel();
                 return;
             }

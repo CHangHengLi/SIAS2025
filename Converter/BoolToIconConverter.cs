@@ -1,4 +1,3 @@
-using System;
 using System.Globalization;
 using System.Windows.Data;
 
@@ -12,9 +11,9 @@ namespace SIASGraduate.Converter
         public object Convert(object value, Type targetType, object parameter, CultureInfo culture)
         {
             if (value == null) return "";
-            
+
             bool boolValue = (bool)value;
-            
+
             if (parameter is string paramStr && paramStr.Contains("|"))
             {
                 // 参数格式：falseIcon|trueIcon
@@ -24,7 +23,7 @@ namespace SIASGraduate.Converter
                     return boolValue ? parts[1] : parts[0];
                 }
             }
-            
+
             // 默认情况
             return boolValue ? "✓" : "?";
         }
@@ -34,4 +33,4 @@ namespace SIASGraduate.Converter
             throw new NotImplementedException();
         }
     }
-} 
+}

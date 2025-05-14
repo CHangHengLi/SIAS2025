@@ -1,11 +1,11 @@
+using System.Collections.ObjectModel;
+using HandyControl.Controls;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using SIASGraduate.Context;
 using SIASGraduate.Event;
 using SIASGraduate.Models;
 using SIASGraduate.Services;
-using HandyControl.Controls;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.IdentityModel.Tokens;
-using System.Collections.ObjectModel;
 
 namespace SIASGraduate.ViewModels.EditMessage.EmployeeManager
 {
@@ -154,8 +154,8 @@ namespace SIASGraduate.ViewModels.EditMessage.EmployeeManager
         public bool? IsActive
         {
             get { return isActive; }
-            set 
-            { 
+            set
+            {
                 // 如果从在职变为离职状态
                 if (isActive == true && value == false)
                 {
@@ -165,7 +165,7 @@ namespace SIASGraduate.ViewModels.EditMessage.EmployeeManager
                 }
                 // 更新在职状态
                 SetProperty(ref isActive, value);
-                System.Diagnostics.Debug.WriteLine($"IsActive已变更为: {value}"); 
+                System.Diagnostics.Debug.WriteLine($"IsActive已变更为: {value}");
             }
         }
         #endregion
@@ -236,14 +236,14 @@ namespace SIASGraduate.ViewModels.EditMessage.EmployeeManager
                 Growl.Warning("账号、姓名或密码不能为空");
                 return;
             }
-            
+
             //验证账号格式必须为6位
             if (Account.Length != 6)
             {
                 Growl.Warning("账号必须为6位");
                 return;
             }
-            
+
             //如果修改了账号，需要验证账号是否已存在
             if (Account != BaseAccount)
             {
@@ -259,7 +259,7 @@ namespace SIASGraduate.ViewModels.EditMessage.EmployeeManager
                     return;
                 }
             }
-            
+
             //如果修改了姓名，需要验证姓名是否已存在
             if (EmployeeName != BaseName)
             {
@@ -298,12 +298,12 @@ namespace SIASGraduate.ViewModels.EditMessage.EmployeeManager
                     // 禁用按钮防止重复点击
                     IsSaveEnabled = false;
                     IsCancelEnabled = false;
-                    
+
                     using (var context = new DataBaseContext())
                     {
                         // 使用执行策略
                         var strategy = context.Database.CreateExecutionStrategy();
-                        
+
                         await strategy.ExecuteAsync(async () =>
                         {
                             // 使用事务
@@ -314,12 +314,12 @@ namespace SIASGraduate.ViewModels.EditMessage.EmployeeManager
                                     // 获取当前员工
                                     var currentEmployee = await context.Employees
                                         .FirstOrDefaultAsync(e => e.EmployeeId == EmployeeId);
-                                        
+
                                     if (currentEmployee == null)
                                     {
                                         throw new Exception($"无法找到ID为 {EmployeeId} 的员工");
                                     }
-                                    
+
                                     // 获取部门ID
                                     int? tempDepartmentId = null;
                                     if (!string.IsNullOrEmpty(DepartmentName) && DepartmentName != "无部门")
@@ -345,37 +345,37 @@ namespace SIASGraduate.ViewModels.EditMessage.EmployeeManager
                                         AdminImage = currentEmployee.EmployeeImage,
                                         DepartmentId = tempDepartmentId
                                     };
-                                    
+
                                     // 添加新管理员
                                     context.Admins.Add(newAdmin);
                                     await context.SaveChangesAsync();
-                                    
+
                                     // 一次性处理所有外键引用
                                     await TransferRelatedRecords(EmployeeId, newAdmin.AdminId, context);
-                                    
+
                                     // 删除原员工
                                     context.Employees.Remove(currentEmployee);
                                     await context.SaveChangesAsync();
-                                    
+
                                     // 提交事务
                                     await transaction.CommitAsync();
-                                    
+
                                     // 发布事件通知视图更新
                                     eventAggregator.GetEvent<EmployeeUpdatedEvent>().Publish();
-                                    
+
                                     // 添加发布AdminAddEvent事件，确保管理员列表视图更新
                                     eventAggregator.GetEvent<AdminAddEvent>().Publish();
-                                    
+
                                     // 添加发布EmployeeRemovedEvent事件，确保员工列表视图删除该员工
                                     eventAggregator.GetEvent<EmployeeRemovedEvent>().Publish();
-                                    
+
                                     // 清空编辑区域
                                     var region = regionManager.Regions["EmployeeEditRegion"];
                                     region.RemoveAll();
-                                    
+
                                     // 显示成功消息
                                     Growl.SuccessGlobal($"已成功将员工 {EmployeeName} 提升为管理员");
-                                    
+
                                     // 不再需要通过OnCancel返回，因为已经手动清空区域
                                     return;
                                 }
@@ -393,7 +393,8 @@ namespace SIASGraduate.ViewModels.EditMessage.EmployeeManager
                 {
                     Growl.ErrorGlobal($"转换为管理员失败: {ex.Message}");
                     System.Diagnostics.Debug.WriteLine($"转换为管理员失败: {ex.Message}");
-                    if (ex.InnerException != null) {
+                    if (ex.InnerException != null)
+                    {
                         System.Diagnostics.Debug.WriteLine($"内部异常: {ex.InnerException.Message}");
                     }
                 }
@@ -412,7 +413,7 @@ namespace SIASGraduate.ViewModels.EditMessage.EmployeeManager
                     using (var context = new DataBaseContext())
                     {
                         var strategy = context.Database.CreateExecutionStrategy();
-                        
+
                         await strategy.ExecuteAsync(async () =>
                         {
                             using (var transaction = await context.Database.BeginTransactionAsync())
@@ -422,12 +423,12 @@ namespace SIASGraduate.ViewModels.EditMessage.EmployeeManager
                                     var currentEmployee = await context.Employees
                                         .Include(e => e.Department)
                                         .FirstOrDefaultAsync(e => e.EmployeeId == EmployeeId);
-                                    
+
                                     if (currentEmployee == null)
                                     {
                                         throw new Exception("未找到员工信息");
                                     }
-                                    
+
                                     // 更新员工信息
                                     currentEmployee.Account = Account; // 添加账号更新
                                     currentEmployee.EmployeeName = EmployeeName;
@@ -436,22 +437,22 @@ namespace SIASGraduate.ViewModels.EditMessage.EmployeeManager
                                     currentEmployee.HireDate = HireDate;
                                     currentEmployee.IsActive = IsActive;
                                     currentEmployee.RoleId = RoleId;
-                                    
+
                                     // 如果员工设置为离职状态，自动将部门设置为空
                                     if (IsActive == false)
                                     {
                                         DepartmentName = "无部门";
                                     }
-                                    
+
                                     // 先获取之前的部门ID，用于后面判断是否部门发生了变化
                                     int? oldDepartmentId = currentEmployee.DepartmentId;
-                                        
+
                                     // 设置新的部门ID
                                     if (!DepartmentName.IsNullOrEmpty() && DepartmentName != "无部门" && IsActive == true)
                                     {
                                         var department = await context.Departments
                                             .FirstOrDefaultAsync(d => d.DepartmentName == DepartmentName);
-                                        
+
                                         if (department != null)
                                         {
                                             currentEmployee.DepartmentId = department.DepartmentId;
@@ -464,42 +465,42 @@ namespace SIASGraduate.ViewModels.EditMessage.EmployeeManager
                                         currentEmployee.DepartmentId = null;
                                         System.Diagnostics.Debug.WriteLine("员工部门已设置为空");
                                     }
-                                    
+
                                     // 更新相关的提名记录中的部门信息
                                     if (oldDepartmentId != currentEmployee.DepartmentId)
                                     {
                                         // 直接使用SQL语句更新提名记录的部门信息
                                         System.Diagnostics.Debug.WriteLine($"开始更新提名记录的部门信息");
-                                        
+
                                         // 先获取受影响的提名记录数量
                                         var nominationCount = await context.Nominations
                                             .Where(n => n.NominatedEmployeeId == EmployeeId || n.ProposerEmployeeId == EmployeeId)
                                             .CountAsync();
-                                        
+
                                         // 使用原生SQL直接更新，完全绕过EF Core的实体跟踪
                                         await context.Database.ExecuteSqlInterpolatedAsync(
                                             $"UPDATE Nominations SET DepartmentId = {currentEmployee.DepartmentId} WHERE NominatedEmployeeId = {EmployeeId} OR ProposerEmployeeId = {EmployeeId}");
-                                            
+
                                         System.Diagnostics.Debug.WriteLine($"使用SQL直接更新了 {nominationCount} 条提名记录的部门信息");
                                     }
-                                    
+
                                     // 清理所有可能被跟踪的Nomination实体，避免保存时尝试更新不存在的列
                                     foreach (var entry in context.ChangeTracker.Entries<Nomination>())
                                     {
                                         entry.State = EntityState.Detached;
                                     }
-                                    
+
                                     System.Diagnostics.Debug.WriteLine("正在保存员工信息更改");
                                     await context.SaveChangesAsync();
-                                    
+
                                     // 提交事务
                                     System.Diagnostics.Debug.WriteLine("正在提交事务");
                                     await transaction.CommitAsync();
-                                    
+
                                     // 发布正确的事件通知左侧视图更新
                                     eventAggregator.GetEvent<EmployeeUpdatedEvent>().Publish();
                                     OnCancel();
-                                    
+
                                     // 显示成功消息
                                     Growl.SuccessGlobal($"员工 {EmployeeName} 信息已成功更新");
                                 }
@@ -536,67 +537,67 @@ namespace SIASGraduate.ViewModels.EditMessage.EmployeeManager
                 var nominationsAsProposer = await context.Nominations
                     .Where(n => n.ProposerEmployeeId == employeeId)
                     .ToListAsync();
-                    
+
                 var nominationsAsNominated = await context.Nominations
                     .Where(n => n.NominatedEmployeeId == employeeId)
                     .ToListAsync();
-                    
+
                 var voteRecords = await context.VoteRecords
                     .Where(v => v.VoterEmployeeId == employeeId)
                     .ToListAsync();
-                    
+
                 var commentRecords = await context.CommentRecords
                     .Where(c => c.CommenterEmployeeId == employeeId)
                     .ToListAsync();
-                    
+
                 var nominationLogs = await context.NominationLogs
                     .Where(nl => nl.OperatorEmployeeId == employeeId)
                     .ToListAsync();
-                
+
                 // 批量更新所有关联记录
-                
+
                 // 1. 更新提名表中的提名人引用
                 foreach (var nomination in nominationsAsProposer)
                 {
                     nomination.ProposerEmployeeId = null;
                     nomination.ProposerAdminId = adminId;
                 }
-                
+
                 // 2. 更新提名表中的被提名人引用
                 foreach (var nomination in nominationsAsNominated)
                 {
                     nomination.NominatedEmployeeId = null;
                     nomination.NominatedAdminId = adminId;
                 }
-                
+
                 // 3. 更新投票记录中的引用
                 foreach (var vote in voteRecords)
                 {
                     vote.VoterEmployeeId = null;
                     vote.VoterAdminId = adminId;
                 }
-                
+
                 // 4. 更新评论记录中的引用
                 foreach (var comment in commentRecords)
                 {
                     comment.CommenterEmployeeId = null;
                     comment.CommenterAdminId = adminId;
                 }
-                
+
                 // 5. 更新提名日志中的引用
                 foreach (var log in nominationLogs)
                 {
                     log.OperatorEmployeeId = null;
                     log.OperatorAdminId = adminId;
                 }
-                
+
                 // 保存所有更改
-                if (nominationsAsProposer.Any() || nominationsAsNominated.Any() || 
+                if (nominationsAsProposer.Any() || nominationsAsNominated.Any() ||
                     voteRecords.Any() || commentRecords.Any() || nominationLogs.Any())
                 {
                     await context.SaveChangesAsync();
                 }
-                
+
                 // 为确保所有外键关系已断开，执行SQL更新
                 await context.Database.ExecuteSqlInterpolatedAsync(
                     $"UPDATE NominationLogs SET OperatorEmployeeId = NULL WHERE OperatorEmployeeId = {employeeId}");
@@ -703,10 +704,10 @@ namespace SIASGraduate.ViewModels.EditMessage.EmployeeManager
                     HandyControl.Controls.Growl.Warning("密码长度必须在6-20位之间");
                     return;
                 }
-                
+
                 // 禁用保存按钮，防止重复提交
                 IsSaveEnabled = false;
-                
+
                 try
                 {
                     // 执行实际的保存操作
@@ -718,12 +719,12 @@ namespace SIASGraduate.ViewModels.EditMessage.EmployeeManager
                 {
                     // 特别处理数据库更新异常
                     System.Diagnostics.Debug.WriteLine($"数据库更新错误: {dbEx.Message}");
-                    
+
                     // 检查是否为IsUserVoted列错误
                     if (dbEx.Message.Contains("IsUserVoted"))
                     {
                         System.Diagnostics.Debug.WriteLine("检测到IsUserVoted列错误，尝试修复...");
-                        
+
                         try
                         {
                             // 尝试直接更新员工表，避开提名记录
@@ -739,7 +740,7 @@ namespace SIASGraduate.ViewModels.EditMessage.EmployeeManager
                                     employee.Email = Email;
                                     employee.HireDate = HireDate;
                                     employee.IsActive = IsActive;
-                                    
+
                                     // 更新部门ID
                                     if (!string.IsNullOrEmpty(DepartmentName) && DepartmentName != "无部门" && IsActive == true)
                                     {
@@ -754,17 +755,17 @@ namespace SIASGraduate.ViewModels.EditMessage.EmployeeManager
                                     {
                                         employee.DepartmentId = null;
                                     }
-                                    
+
                                     // 保存员工信息变更
                                     await context.SaveChangesAsync();
-                                    
+
                                     // 单独更新提名记录部门
                                     await context.Database.ExecuteSqlInterpolatedAsync(
                                         $"UPDATE Nominations SET DepartmentId = {employee.DepartmentId} WHERE NominatedEmployeeId = {EmployeeId} OR ProposerEmployeeId = {EmployeeId}");
-                                    
+
                                     // 提示成功
                                     Growl.SuccessGlobal($"员工 {EmployeeName} 信息已成功更新");
-                                    
+
                                     // 发布事件通知视图更新
                                     eventAggregator.GetEvent<EmployeeUpdatedEvent>().Publish();
                                     OnCancel();
@@ -778,7 +779,7 @@ namespace SIASGraduate.ViewModels.EditMessage.EmployeeManager
                             Growl.ErrorGlobal($"修复数据库错误失败: {fixEx.Message}");
                         }
                     }
-                    
+
                     if (dbEx.InnerException != null)
                     {
                         System.Diagnostics.Debug.WriteLine($"内部异常: {dbEx.InnerException.Message}");
@@ -800,7 +801,7 @@ namespace SIASGraduate.ViewModels.EditMessage.EmployeeManager
                 // 确保按钮重新启用
                 IsSaveEnabled = true;
                 IsCancelEnabled = true;
-                
+
                 System.Diagnostics.Debug.WriteLine("保存操作完成，已重新启用按钮");
             }
         }

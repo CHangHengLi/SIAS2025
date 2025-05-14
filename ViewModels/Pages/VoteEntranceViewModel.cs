@@ -1,25 +1,11 @@
-using SIASGraduate.Common;
-using SIASGraduate.Context;
-using SIASGraduate.Event;
-using SIASGraduate.Models;
+using System.Collections.ObjectModel;
+using System.Diagnostics;
+using System.Windows;
 using HandyControl.Controls;
 using Microsoft.EntityFrameworkCore;
-using Prism.Commands;
-using Prism.Mvvm;
-using System;
-using System.Collections.Generic;
-using System.Collections.ObjectModel;
-using System.ComponentModel;
-using System.Diagnostics;
-using System.Linq;
-using System.Threading.Tasks;
-using System.Windows;
-using System.Windows.Controls;
-using System.Windows.Media;
-using System.Windows.Input;
-using System.Windows.Threading;
-using SIASGraduate.ViewModels.EditMessage.NominationDetailsWindows;
-using SIASGraduate.Views.EditMessage.NominationDetailsWindows;
+using SIASGraduate.Common;
+using SIASGraduate.Context;
+using SIASGraduate.Models;
 
 namespace SIASGraduate.ViewModels.Pages
 {
@@ -66,8 +52,8 @@ namespace SIASGraduate.ViewModels.Pages
         public Award SelectedAward
         {
             get { return _selectedAward; }
-            set 
-            { 
+            set
+            {
                 SetProperty(ref _selectedAward, value);
                 if (value != null)
                 {
@@ -85,7 +71,7 @@ namespace SIASGraduate.ViewModels.Pages
         #endregion
 
         #region 提名相关属性
-        
+
         private ObservableCollection<Nomination> _nominations;
         /// <summary>
         /// 提名列表
@@ -119,7 +105,7 @@ namespace SIASGraduate.ViewModels.Pages
         #endregion
 
         #region 分页相关属性
-        
+
         private int _currentPage = 1;
         /// <summary>
         /// 当前页码
@@ -127,8 +113,8 @@ namespace SIASGraduate.ViewModels.Pages
         public int CurrentPage
         {
             get { return _currentPage; }
-            set 
-            { 
+            set
+            {
                 if (SetProperty(ref _currentPage, value))
                 {
                     UpdatePagedNominations();
@@ -143,8 +129,8 @@ namespace SIASGraduate.ViewModels.Pages
         public int PageSize
         {
             get { return _pageSize; }
-            set 
-            { 
+            set
+            {
                 SetProperty(ref _pageSize, value);
                 // 页大小改变后，重置为第一页并刷新数据
                 CurrentPage = 1;
@@ -205,7 +191,7 @@ namespace SIASGraduate.ViewModels.Pages
         #endregion
 
         #region 状态与搜索相关属性
-        
+
         private bool _isLoading;
         /// <summary>
         /// 是否正在加载
@@ -243,16 +229,16 @@ namespace SIASGraduate.ViewModels.Pages
         public string SearchedAwardName
         {
             get { return _searchedAwardName; }
-            set 
-            { 
+            set
+            {
                 SetProperty(ref _searchedAwardName, value);
-                
+
                 if (!string.IsNullOrEmpty(value))
                 {
                     // 当用户输入文本时，尝试在奖项列表中找到匹配项
-                    var matchedAward = Awards?.FirstOrDefault(a => a.AwardName != null && 
+                    var matchedAward = Awards?.FirstOrDefault(a => a.AwardName != null &&
                         a.AwardName.Contains(value, StringComparison.OrdinalIgnoreCase));
-                    
+
                     if (matchedAward != null && matchedAward != SelectedAward)
                     {
                         // 自动设置匹配的奖项为选中项
@@ -275,7 +261,7 @@ namespace SIASGraduate.ViewModels.Pages
         #endregion
 
         #region 用户与投票相关属性
-        
+
         private ObservableCollection<int> _votedAwardIds;
         /// <summary>
         /// 用户已投票的奖项ID集合
@@ -355,7 +341,7 @@ namespace SIASGraduate.ViewModels.Pages
             get { return _isAdmin; }
             private set { SetProperty(ref _isAdmin, value); }
         }
-        
+
         #endregion
 
         #endregion
@@ -363,7 +349,7 @@ namespace SIASGraduate.ViewModels.Pages
         #region 命令
 
         #region 基础操作命令
-        
+
         /// <summary>
         /// 投票命令
         /// </summary>
@@ -402,7 +388,7 @@ namespace SIASGraduate.ViewModels.Pages
         #endregion
 
         #region 评论相关命令
-        
+
         /// <summary>
         /// 显示评论区命令
         /// </summary>
@@ -431,7 +417,7 @@ namespace SIASGraduate.ViewModels.Pages
         #endregion
 
         #region 分页导航命令
-        
+
         /// <summary>
         /// 首页命令
         /// </summary>
@@ -470,14 +456,14 @@ namespace SIASGraduate.ViewModels.Pages
         #endregion
 
         #region 页面事件处理命令
-        
+
         private DelegateCommand<int> _pageUpdatedCommand;
         /// <summary>
         /// 页码更新命令
         /// </summary>
         public DelegateCommand<int> PageUpdatedCommand =>
             _pageUpdatedCommand ?? (_pageUpdatedCommand = new DelegateCommand<int>(ExecutePageUpdatedCommand));
-        
+
         private DelegateCommand _scrollToTopCommand;
         /// <summary>
         /// 滚动到顶部命令
@@ -489,7 +475,7 @@ namespace SIASGraduate.ViewModels.Pages
         /// 滚动到顶部请求事件
         /// </summary>
         public event Action ScrollToTopRequested;
-        
+
         /// <summary>
         /// 执行页码更新命令
         /// </summary>
@@ -500,12 +486,12 @@ namespace SIASGraduate.ViewModels.Pages
                 CurrentPage = pageNumber;
                 // 更新页面数据
                 UpdatePagedNominations();
-                
+
                 // 触发滚动到顶部命令
                 ScrollToTopCommand.Execute();
             }
         }
-        
+
         /// <summary>
         /// 执行滚动到顶部命令
         /// </summary>
@@ -514,21 +500,21 @@ namespace SIASGraduate.ViewModels.Pages
             // 通过事件通知View滚动到顶部
             ScrollToTopRequested?.Invoke();
         }
-        
+
         private DelegateCommand<object> _comboBoxPreviewKeyDownCommand;
         /// <summary>
         /// ComboBox预览键盘按下命令
         /// </summary>
         public DelegateCommand<object> ComboBoxPreviewKeyDownCommand =>
             _comboBoxPreviewKeyDownCommand ?? (_comboBoxPreviewKeyDownCommand = new DelegateCommand<object>(ExecuteComboBoxPreviewKeyDownCommand));
-        
+
         private DelegateCommand<object> _comboBoxKeyDownCommand;
         /// <summary>
         /// ComboBox键盘按下命令
         /// </summary>
         public DelegateCommand<object> ComboBoxKeyDownCommand =>
             _comboBoxKeyDownCommand ?? (_comboBoxKeyDownCommand = new DelegateCommand<object>(ExecuteComboBoxKeyDownCommand));
-        
+
         /// <summary>
         /// 处理ComboBox的PreviewKeyDown事件
         /// </summary>
@@ -540,7 +526,7 @@ namespace SIASGraduate.ViewModels.Pages
                 if (keyArgs.Key == System.Windows.Input.Key.Tab)
                 {
                     Debug.WriteLine("捕获PreviewKeyDown Tab键");
-                    
+
                     // 获取当前ComboBox (通过事件源)
                     var comboBox = keyArgs.Source as System.Windows.Controls.ComboBox;
                     if (comboBox != null)
@@ -552,12 +538,13 @@ namespace SIASGraduate.ViewModels.Pages
                             TabCompleteCommand.Execute(comboBox.Text);
                             Debug.WriteLine($"直接执行TabCompleteCommand，参数：{comboBox.Text}");
                         }
-                        
+
                         // 标记事件为已处理，阻止默认Tab行为
                         keyArgs.Handled = true;
-                        
+
                         // 确保焦点留在当前控件上
-                        Application.Current.Dispatcher.BeginInvoke(new Action(() => {
+                        Application.Current.Dispatcher.BeginInvoke(new Action(() =>
+                        {
                             var textBox = comboBox.Template.FindName("PART_EditableTextBox", comboBox) as System.Windows.Controls.TextBox;
                             if (textBox != null)
                             {
@@ -572,7 +559,7 @@ namespace SIASGraduate.ViewModels.Pages
                 }
             }
         }
-        
+
         /// <summary>
         /// 处理ComboBox的KeyDown事件
         /// </summary>
@@ -584,13 +571,13 @@ namespace SIASGraduate.ViewModels.Pages
                 if (keyArgs.Key == System.Windows.Input.Key.Tab)
                 {
                     Debug.WriteLine("Tab键被按下 - KeyDown阶段");
-                    
+
                     // 事件已在PreviewKeyDown阶段处理，这里只做备份处理
                     keyArgs.Handled = true;
                 }
             }
         }
-        
+
         #endregion
 
         #endregion
@@ -607,15 +594,15 @@ namespace SIASGraduate.ViewModels.Pages
             Nominations = new ObservableCollection<Nomination>();
             PagedNominations = new ObservableCollection<Nomination>();
             VotedAwardIds = new ObservableCollection<int>();
-            
+
             // 初始化分页选项，默认选中5
             PageSizeOptions = new ObservableCollection<int> { 5, 10, 20, 50 };
             PageSize = 5;
-            
+
             // 设置初始状态
             IsLoading = true;
             IsPaginationVisible = false;
-            
+
             // 初始化"全部奖项"选项
             AllAwards = new Award
             {
@@ -623,10 +610,10 @@ namespace SIASGraduate.ViewModels.Pages
                 AwardName = "全部奖项",
                 AwardDescription = "显示所有奖项的提名"
             };
-            
+
             // 初始化筛选后的奖项列表
             _filteredAwards = new List<Award>();
-            
+
             // 初始化命令
             VoteCommand = new DelegateCommand<Nomination>(ExecuteVoteCommand, CanExecuteVoteCommand);
             VoteButtonClickCommand = new DelegateCommand<Nomination>(ExecuteVoteButtonClickCommand);
@@ -640,7 +627,7 @@ namespace SIASGraduate.ViewModels.Pages
             AddCommentCommand = new DelegateCommand<Nomination>(ExecuteAddCommentCommand);
             DeleteCommentCommand = new DelegateCommand<CommentRecord>(ExecuteDeleteCommentCommand);
             LoadMoreCommentsCommand = new DelegateCommand<Nomination>(ExecuteLoadMoreCommentsCommand);
-            
+
             // 初始化分页命令
             FirstPageCommand = new DelegateCommand(ExecuteFirstPageCommand, CanExecuteFirstPageCommand);
             PreviousPageCommand = new DelegateCommand(ExecutePreviousPageCommand, CanExecutePreviousPageCommand);
@@ -649,11 +636,11 @@ namespace SIASGraduate.ViewModels.Pages
             PageSizeChangedCommand = new DelegateCommand<object>(ExecutePageSizeChangedCommand);
             JumpPageCommand = new DelegateCommand(ExecuteJumpPageCommand);
             PreviewTextInputCommand = new DelegateCommand<string>(ExecutePreviewTextInputCommand);
-            
+
             // 异步初始化数据
             InitializeDataAsync();
         }
-        
+
         /// <summary>
         /// 异步初始化数据
         /// </summary>
@@ -661,16 +648,16 @@ namespace SIASGraduate.ViewModels.Pages
         {
             try
             {
-            // 获取当前登录用户信息
-            GetCurrentUserInfo();
-            
+                // 获取当前登录用户信息
+                GetCurrentUserInfo();
+
                 // 加载奖项数据（等待完成）
                 await LoadAwardsAsync();
-                
+
                 // 加载提名数据
                 await LoadNominationsAsync();
-            
-            // 检查用户是否已投票
+
+                // 检查用户是否已投票
                 await CheckIfUserHasVotedAsync();
             }
             catch (Exception ex)
@@ -692,13 +679,13 @@ namespace SIASGraduate.ViewModels.Pages
             // 默认不是超级管理员
             IsSuperAdmin = false;
             IsAdmin = false;
-            
-            try 
+
+            try
             {
                 // 使用全局静态类属性直接获取ID，而不是从数据库再次查询
                 CurrentEmployeeId = CurrentUser.EmployeeId;
                 CurrentAdminId = CurrentUser.AdminId;
-                
+
                 // 使用CurrentUser静态类获取当前登录用户角色信息
                 if (CurrentUser.RoleId == 3) // 员工角色
                 {
@@ -713,7 +700,7 @@ namespace SIASGraduate.ViewModels.Pages
                     // 设置为超级管理员
                     IsSuperAdmin = true;
                     IsAdmin = true;
-                    
+
                     // 超级管理员的ID存储在AdminId中
                     CurrentSupAdminId = CurrentUser.AdminId;
                 }
@@ -734,10 +721,10 @@ namespace SIASGraduate.ViewModels.Pages
             {
                 IsLoading = true;
                 StatusMessage = "正在加载奖项...";
-                
+
                 // 清空当前集合
                 Awards.Clear();
-                
+
                 // 异步加载所有奖项
                 using (var dbContext = new DataBaseContext())
                 {
@@ -746,22 +733,22 @@ namespace SIASGraduate.ViewModels.Pages
                         .AsNoTracking()
                         .OrderBy(a => a.AwardName)
                         .ToListAsync();
-                    
+
                     // 将数据存储在完整的筛选集合中（缓存）
                     _filteredAwards = new List<Award>(awards);
-                    
+
                     // 添加全部奖项选项
                     Awards.Add(AllAwards);
-                    
+
                     // 添加所有奖项到集合
                     foreach (var award in awards)
                     {
                         Awards.Add(award);
                     }
-                    
+
                     StatusMessage = $"已加载 {Awards.Count - 1} 个奖项"; // 减去"全部奖项"选项
                 }
-                
+
                 // 默认选择"全部奖项"
                 SelectedAward = AllAwards;
             }
@@ -791,10 +778,10 @@ namespace SIASGraduate.ViewModels.Pages
 
             // 设置总记录数
             TotalItems = Nominations.Count;
-            
+
             // 计算总页数
             TotalPages = (int)Math.Ceiling(Nominations.Count / (double)PageSize);
-            
+
             // 确保当前页在有效范围内
             if (CurrentPage > TotalPages)
             {
@@ -808,7 +795,7 @@ namespace SIASGraduate.ViewModels.Pages
             // 计算当前页数据
             int startIndex = (CurrentPage - 1) * PageSize;
             int endIndex = Math.Min(startIndex + PageSize, Nominations.Count);
-            
+
             PagedNominations.Clear();
             for (int i = startIndex; i < endIndex; i++)
             {
@@ -817,13 +804,13 @@ namespace SIASGraduate.ViewModels.Pages
 
             // 更新分页控件的可见性
             IsPaginationVisible = TotalPages > 1;
-            
+
             // 更新命令状态
             FirstPageCommand.RaiseCanExecuteChanged();
             PreviousPageCommand.RaiseCanExecuteChanged();
             NextPageCommand.RaiseCanExecuteChanged();
             LastPageCommand.RaiseCanExecuteChanged();
-            
+
             // 更新显示的搜索文本框为当前页码
             SearchText = CurrentPage.ToString();
         }
@@ -845,25 +832,25 @@ namespace SIASGraduate.ViewModels.Pages
                         var query = context.Nominations
                             .AsNoTracking() // 只读操作，提高性能
                             .AsQueryable();
-                        
+
                         // 如果选择了特定奖项，则只加载该奖项的提名
                         if (SelectedAward != null && SelectedAward.AwardId != AllAwards.AwardId)
                         {
                             query = query.Where(n => n.AwardId == SelectedAward.AwardId);
                         }
-                        
+
                         #endregion
 
                         #region 关键词搜索筛选
-                        
+
                         // 根据搜索关键词筛选
                         if (!string.IsNullOrWhiteSpace(SearchKeyword))
                         {
                             var keyword = SearchKeyword.ToLower();
-                            
+
                             // 尝试将关键词转换为ID进行搜索
                             bool isNumeric = int.TryParse(keyword, out int searchId);
-                            
+
                             query = query.Where(n =>
                                 // 搜索提名ID
                                 (isNumeric && n.NominationId == searchId) ||
@@ -879,35 +866,36 @@ namespace SIASGraduate.ViewModels.Pages
                                 (n.NominateReason != null && n.NominateReason.ToLower().Contains(keyword))
                             );
                         }
-                        
+
                         #endregion
-                        
+
                         #region 计算总记录数和限制记录数
-                        
+
                         // 首先计算总数 - 单独执行以优化性能
                         var totalCount = await query.CountAsync();
-                        
+
                         // 设置TotalItems属性
                         TotalItems = totalCount;
-                        
+
                         // 限制最大记录数，避免加载过多数据
                         const int maxItems = 500;
                         bool hasMoreItems = totalCount > maxItems;
                         if (hasMoreItems)
                         {
                             // 如果记录数超过限制，显示警告
-                            Application.Current.Dispatcher.Invoke(() => {
+                            Application.Current.Dispatcher.Invoke(() =>
+                            {
                                 Growl.WarningGlobal($"查询结果超过{maxItems}条记录，只显示前{maxItems}条。请使用筛选功能缩小范围。");
                             });
                         }
-                        
+
                         #endregion
-                        
+
                         #region 使用高效查询优化数据获取
-                        
+
                         // 使用投影查询只获取需要的字段，避免加载完整的关联实体
                         var nominationsFromDb = await query
-                            .Select(n => new 
+                            .Select(n => new
                             {
                                 NominationId = n.NominationId,
                                 CoverImage = n.CoverImage,
@@ -925,24 +913,24 @@ namespace SIASGraduate.ViewModels.Pages
                             .OrderBy(n => n.NominationId) // 按提名ID从小到大排序
                             .Take(maxItems)
                             .ToListAsync();
-                        
+
                         #endregion
-                        
+
                         #region 处理评论数据
-                        
+
                         // 在内存中处理UI相关字段
                         var processedNominations = new List<Nomination>();
-                        
+
                         // 获取提名ID集合用于查询评论计数
                         var nominationIds = nominationsFromDb.Select(n => n.NominationId).ToList();
-                        
+
                         // 批量查询所有提名的评论数量
                         var commentCounts = await context.CommentRecords
                             .Where(c => nominationIds.Contains(c.NominationId) && !c.IsDeleted)
                             .GroupBy(c => c.NominationId)
                             .Select(g => new { NominationId = g.Key, Count = g.Count() })
                             .ToDictionaryAsync(k => k.NominationId, v => v.Count);
-                        
+
                         // 获取所有相关的奖项数据，包含MaxVoteCount
                         var awardIds = nominationsFromDb.Select(n => n.AwardId).Distinct().ToList();
                         var awardsDict = await context.Awards
@@ -950,11 +938,11 @@ namespace SIASGraduate.ViewModels.Pages
                             .Where(a => awardIds.Contains(a.AwardId))
                             .Select(a => new { a.AwardId, a.AwardName, a.MaxVoteCount }) // 只选择需要的字段
                             .ToDictionaryAsync(a => a.AwardId, a => new { a.AwardName, a.MaxVoteCount });
-                        
+
                         #endregion
-                        
+
                         #region 构建提名对象列表
-                        
+
                         // 在内存中构建对象
                         foreach (var item in nominationsFromDb)
                         {
@@ -966,7 +954,7 @@ namespace SIASGraduate.ViewModels.Pages
                                 maxVoteCount = awardData.MaxVoteCount;
                                 awardName = awardData.AwardName ?? awardName;
                             }
-                            
+
                             var nomination = new Nomination
                             {
                                 NominationId = item.NominationId,
@@ -975,62 +963,62 @@ namespace SIASGraduate.ViewModels.Pages
                                 NominateReason = item.NominateReason,
                                 AwardId = item.AwardId,
                                 DepartmentId = item.DepartmentId,
-                                
+
                                 // 创建关联对象，包含必要字段
-                                Award = new Award 
-                                { 
-                                    AwardId = item.AwardId, 
+                                Award = new Award
+                                {
+                                    AwardId = item.AwardId,
                                     AwardName = awardName,
                                     MaxVoteCount = maxVoteCount // 使用最新获取的值
                                 },
-                                
-                                Department = item.DepartmentName == null ? null : new Department 
-                                { 
-                                    DepartmentId = item.DepartmentId ?? 0, 
-                                    DepartmentName = item.DepartmentName 
+
+                                Department = item.DepartmentName == null ? null : new Department
+                                {
+                                    DepartmentId = item.DepartmentId ?? 0,
+                                    DepartmentName = item.DepartmentName
                                 },
-                                
+
                                 NominatedEmployee = item.EmployeeId == null ? null : new Employee
                                 {
                                     EmployeeId = item.EmployeeId.Value,
                                     EmployeeName = item.EmployeeName,
                                     EmployeePassword = "placeholder" // 填充required字段
                                 },
-                                
+
                                 NominatedAdmin = item.AdminId == null ? null : new Admin
                                 {
                                     AdminId = item.AdminId.Value,
                                     AdminName = item.AdminName,
                                     AdminPassword = "placeholder" // 填充required字段
                                 },
-                                
+
                                 // 设置UI相关属性
                                 IsActive = true,
                                 IsCommentSectionVisible = false,
                                 UIComments = new ObservableCollection<CommentRecord>(),
                                 NewCommentText = string.Empty,
-                                
+
                                 // 设置投票状态 - 修改为只在达到最大投票次数时才标记为已投票
                                 IsUserVoted = false, // 初始化为false，后续由CheckIfUserHasVotedAsync方法更新
-                                
+
                                 // 设置评论数量
                                 CommentCount = commentCounts.TryGetValue(item.NominationId, out int count) ? count : 0
                             };
-                            
+
                             processedNominations.Add(nomination);
                         }
-                        
+
                         #endregion
-                        
+
                         #region 在UI线程更新数据
-                        
+
                         // 在UI线程中更新集合
                         Application.Current.Dispatcher.Invoke(() =>
                         {
                             Nominations = new ObservableCollection<Nomination>(processedNominations);
                             UpdatePagedNominations();
                         });
-                        
+
                         #endregion
                     }
                     catch (Exception ex)
@@ -1038,7 +1026,7 @@ namespace SIASGraduate.ViewModels.Pages
                         StatusMessage = $"加载提名数据失败: {ex.Message}";
                         HandyControl.Controls.MessageBox.Error($"加载提名数据失败: {ex.Message}", "错误");
                         System.Diagnostics.Debug.WriteLine($"加载提名数据异常详情: {ex}");
-                        
+
                         // 尝试进行数据加载的恢复处理
                         try
                         {
@@ -1071,19 +1059,19 @@ namespace SIASGraduate.ViewModels.Pages
                     using (var context = new DataBaseContext())
                     {
                         #region 初始化和清空数据
-                        
+
                         // 清空已投票的奖项列表
                         VotedAwardIds.Clear();
                         AwardVoteCount.Clear();
                         bool hasVotedCurrentAward = false;
-                        
+
                         #endregion
-                        
+
                         #region 根据用户类型查询投票记录
-                        
+
                         // 获取用户已投票的记录
                         List<VoteRecord> userVotes = new List<VoteRecord>();
-                        
+
                         if (CurrentEmployeeId.HasValue)
                         {
                             // 查询员工的投票记录
@@ -1100,15 +1088,15 @@ namespace SIASGraduate.ViewModels.Pages
                                 .Where(v => v.VoterAdminId == CurrentAdminId)
                                 .ToListAsync();
                         }
-                        
+
                         #endregion
-                        
+
                         // 获取最新的奖项数据
                         var latestAwards = await context.Awards.AsNoTracking().ToListAsync();
                         var awardsDict = latestAwards.ToDictionary(a => a.AwardId, a => a);
-                        
+
                         #region 处理投票数据并更新状态
-                        
+
                         // 记录用户已投票的奖项ID
                         foreach (var vote in userVotes)
                         {
@@ -1121,49 +1109,50 @@ namespace SIASGraduate.ViewModels.Pages
                             {
                                 AwardVoteCount[vote.AwardId] = 1;
                             }
-                            
+
                             // 获取奖项的最大投票次数
                             int maxVotes = 1; // 默认为1
                             if (awardsDict.TryGetValue(vote.AwardId, out var award))
                             {
                                 maxVotes = award.MaxVoteCount;
                             }
-                            
+
                             // 只有当投票次数达到最大值时，才添加到已投票奖项列表
                             if (AwardVoteCount[vote.AwardId] >= maxVotes && !VotedAwardIds.Contains(vote.AwardId))
                             {
-                                Application.Current.Dispatcher.Invoke(() => {
+                                Application.Current.Dispatcher.Invoke(() =>
+                                {
                                     VotedAwardIds.Add(vote.AwardId);
                                 });
                             }
-                            
+
                             // 检查是否对当前选择的奖项投过票
                             if (SelectedAward != null && vote.AwardId == SelectedAward.AwardId)
                             {
                                 hasVotedCurrentAward = true;
                             }
                         }
-                        
+
                         #endregion
-                        
+
                         #region 更新UI状态
-                        
+
                         // 创建一个已达到最大投票数的奖项ID集合
                         var maxVotedAwardIds = new HashSet<int>();
-                        foreach(var awardId in AwardVoteCount.Keys)
+                        foreach (var awardId in AwardVoteCount.Keys)
                         {
                             int maxVotes = 1;
                             if (awardsDict.TryGetValue(awardId, out var award))
                             {
                                 maxVotes = award.MaxVoteCount;
                             }
-                            
+
                             if (AwardVoteCount[awardId] >= maxVotes)
                             {
                                 maxVotedAwardIds.Add(awardId);
                             }
                         }
-                        
+
                         Application.Current.Dispatcher.Invoke(() =>
                         {
                             // 更新状态消息
@@ -1183,7 +1172,7 @@ namespace SIASGraduate.ViewModels.Pages
                                 int maxVotes = latestAward.MaxVoteCount;
                                 int usedVotes = AwardVoteCount.ContainsKey(SelectedAward.AwardId) ? AwardVoteCount[SelectedAward.AwardId] : 0;
                                 int remainingVotes = maxVotes - usedVotes;
-                                
+
                                 if (usedVotes >= maxVotes)
                                 {
                                     StatusMessage = $"您已经对奖项 \"{SelectedAward.AwardName}\" 投了 {usedVotes} 次票，已达到最大次数 {maxVotes}";
@@ -1195,9 +1184,9 @@ namespace SIASGraduate.ViewModels.Pages
                                     HasVotedCurrentAward = (remainingVotes <= 0);
                                 }
                             }
-                            
+
                             System.Diagnostics.Debug.WriteLine($"已投票奖项数: {VotedAwardIds.Count}, 当前奖项已投票次数: {(SelectedAward != null && AwardVoteCount.ContainsKey(SelectedAward.AwardId) ? AwardVoteCount[SelectedAward.AwardId] : 0)}");
-                            
+
                             // 更新所有当前显示提名的投票状态 - 直接批量更新，避免一个一个设置导致的UI闪烁
                             if (Nominations != null && Nominations.Count > 0)
                             {
@@ -1205,7 +1194,7 @@ namespace SIASGraduate.ViewModels.Pages
                                 var nominationsByAward = Nominations
                                     .GroupBy(n => n.AwardId)
                                     .ToDictionary(g => g.Key, g => g.ToList());
-                                
+
                                 // 批量更新已达到最大投票次数的奖项下的所有提名
                                 foreach (var awardId in maxVotedAwardIds)
                                 {
@@ -1218,7 +1207,7 @@ namespace SIASGraduate.ViewModels.Pages
                                         }
                                     }
                                 }
-                                
+
                                 // 批量更新未达到最大投票次数的奖项下的所有提名
                                 foreach (var nomination in Nominations)
                                 {
@@ -1230,7 +1219,7 @@ namespace SIASGraduate.ViewModels.Pages
                                 }
                             }
                         });
-                        
+
                         #endregion
                     }
                 });
@@ -1256,14 +1245,14 @@ namespace SIASGraduate.ViewModels.Pages
                 // 获取奖项的最大投票次数和已投票次数
                 int maxVoteCount = nomination.Award?.MaxVoteCount ?? 1;
                 int usedVotes = AwardVoteCount.ContainsKey(nomination.AwardId) ? AwardVoteCount[nomination.AwardId] : 0;
-                
+
                 if (usedVotes >= maxVoteCount)
                 {
                     // 显示投票上限提示
-                    string nomineeName = nomination.NominatedEmployee?.EmployeeName ?? 
-                                       nomination.NominatedAdmin?.AdminName ?? 
+                    string nomineeName = nomination.NominatedEmployee?.EmployeeName ??
+                                       nomination.NominatedAdmin?.AdminName ??
                                        "未知提名人";
-                    
+
                     Application.Current.Dispatcher.Invoke(() =>
                     {
                         StatusMessage = $"您已经对奖项 '{nomination.Award?.AwardName}' 投票达到最大次数 {maxVoteCount}";
@@ -1296,12 +1285,12 @@ namespace SIASGraduate.ViewModels.Pages
                 return;
 
             #region 权限检查
-            
+
             // 超级管理员显示提示信息，但不进行实际投票操作
             if (IsSuperAdmin)
             {
-                string nomineeName = nomination.NominatedEmployee?.EmployeeName ?? 
-                                    nomination.NominatedAdmin?.AdminName ?? 
+                string nomineeName = nomination.NominatedEmployee?.EmployeeName ??
+                                    nomination.NominatedAdmin?.AdminName ??
                                     "未知提名人";
                 StatusMessage = $"超级管理员不能参与投票，仅可查看";
                 HandyControl.Controls.Growl.InfoGlobal($"超级管理员不能参与投票，仅可查看");
@@ -1309,40 +1298,40 @@ namespace SIASGraduate.ViewModels.Pages
             }
 
             #endregion
-            
+
             #region 投票验证
-            
+
             // 获取奖项的最新数据，确保使用最新的MaxVoteCount
             Award latestAward = null;
             int maxVoteCount = 1;
-            
+
             using (var context = new DataBaseContext())
             {
                 try
                 {
                     // 查询最新的奖项数据
-                latestAward = await context.Awards
-                    .AsNoTracking()
-                    .FirstOrDefaultAsync(a => a.AwardId == nomination.AwardId);
-                
-                if (latestAward != null)
-                {
-                    maxVoteCount = latestAward.MaxVoteCount;
-                }
+                    latestAward = await context.Awards
+                        .AsNoTracking()
+                        .FirstOrDefaultAsync(a => a.AwardId == nomination.AwardId);
+
+                    if (latestAward != null)
+                    {
+                        maxVoteCount = latestAward.MaxVoteCount;
+                    }
                 }
                 catch (Exception ex)
                 {
                     System.Diagnostics.Debug.WriteLine($"获取奖项最新数据失败: {ex.Message}");
                 }
             }
-            
+
             #endregion
 
             #region 投票操作
-            
+
             // 执行实际的投票操作
-                    using (var context = new DataBaseContext())
-                    {
+            using (var context = new DataBaseContext())
+            {
                 try
                 {
                     // 检查是否超过了最大投票次数
@@ -1351,105 +1340,105 @@ namespace SIASGraduate.ViewModels.Pages
                     {
                         currentVoteCount = AwardVoteCount[nomination.AwardId];
                     }
-                    
+
                     if (currentVoteCount >= maxVoteCount)
                     {
                         // 已达到最大投票次数，显示提示信息
-                            Application.Current.Dispatcher.Invoke(() =>
-                            {
+                        Application.Current.Dispatcher.Invoke(() =>
+                        {
                             StatusMessage = $"您已经对奖项 '{nomination.Award?.AwardName}' 投票达到最大次数 {maxVoteCount}";
                             HandyControl.Controls.Growl.WarningGlobal($"当前奖项 '{nomination.Award?.AwardName}' 能够进行的最大投票数量为：{maxVoteCount}，你已用完所有投票次数");
-                            });
-                            return;
-                        }
-                        
-                        // 创建新的投票记录
-                        var voteRecord = new VoteRecord
-                        {
-                            AwardId = nomination.AwardId,
+                        });
+                        return;
+                    }
+
+                    // 创建新的投票记录
+                    var voteRecord = new VoteRecord
+                    {
+                        AwardId = nomination.AwardId,
                         NominationId = nomination.NominationId,
                         VoteTime = DateTime.Now,
                         VoterEmployeeId = CurrentEmployeeId,
                         VoterAdminId = CurrentAdminId
-                        };
-                        
+                    };
+
                     // 添加到数据库并保存
-                        context.VoteRecords.Add(voteRecord);
+                    context.VoteRecords.Add(voteRecord);
                     await context.SaveChangesAsync();
-                        
+
                     // 更新UI
-                        Application.Current.Dispatcher.Invoke(() =>
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        // 更新当前奖项的投票次数统计
+                        if (AwardVoteCount.ContainsKey(nomination.AwardId))
                         {
-                            // 更新当前奖项的投票次数统计
-                            if (AwardVoteCount.ContainsKey(nomination.AwardId))
+                            AwardVoteCount[nomination.AwardId]++;
+                        }
+                        else
+                        {
+                            AwardVoteCount[nomination.AwardId] = 1;
+                        }
+
+                        // 获取更新后的投票次数
+                        int updatedVoteCount = AwardVoteCount[nomination.AwardId];
+
+                        // 检查是否已达到最大投票次数
+                        bool hasReachedMaxVotes = (updatedVoteCount >= maxVoteCount);
+
+                        // 更新当前奖项的投票状态
+                        HasVotedCurrentAward = hasReachedMaxVotes;
+
+                        // 更新UI和投票状态
+                        if (hasReachedMaxVotes)
+                        {
+                            // 如果达到最大投票次数，将该奖项的所有提名标记为已投票状态（显示红色边框）
+                            foreach (var nom in Nominations.Where(n => n.AwardId == nomination.AwardId))
                             {
-                                AwardVoteCount[nomination.AwardId]++;
-                            }
-                            else
-                            {
-                                AwardVoteCount[nomination.AwardId] = 1;
-                            }
-                            
-                            // 获取更新后的投票次数
-                            int updatedVoteCount = AwardVoteCount[nomination.AwardId];
-                            
-                            // 检查是否已达到最大投票次数
-                            bool hasReachedMaxVotes = (updatedVoteCount >= maxVoteCount);
-                            
-                            // 更新当前奖项的投票状态
-                            HasVotedCurrentAward = hasReachedMaxVotes;
-                            
-                            // 更新UI和投票状态
-                            if (hasReachedMaxVotes)
-                            {
-                                // 如果达到最大投票次数，将该奖项的所有提名标记为已投票状态（显示红色边框）
-                                foreach (var nom in Nominations.Where(n => n.AwardId == nomination.AwardId))
+                                // 避免触发不必要的UI更新，只在状态真正改变时才设置
+                                if (!nom.IsUserVoted)
                                 {
-                                    // 避免触发不必要的UI更新，只在状态真正改变时才设置
-                                    if (!nom.IsUserVoted)
-                                    {
-                                        nom.IsUserVoted = true;
-                                    }
+                                    nom.IsUserVoted = true;
                                 }
-                                
-                                // 添加到已投票奖项列表
-                                if (!VotedAwardIds.Contains(nomination.AwardId))
+                            }
+
+                            // 添加到已投票奖项列表
+                            if (!VotedAwardIds.Contains(nomination.AwardId))
                             {
                                 VotedAwardIds.Add(nomination.AwardId);
-                                }
                             }
-                            
-                            // 更新状态信息
-                            string nomineeName = nomination.NominatedEmployee?.EmployeeName ?? 
-                                               nomination.NominatedAdmin?.AdminName ?? 
-                                               "未知提名人";
-                            
-                            // 更新状态消息
-                            if (hasReachedMaxVotes)
-                            {
-                                StatusMessage = $"您已对 {nomineeName} 投票成功，已达到奖项 '{nomination.Award?.AwardName}' 的最大投票次数 {maxVoteCount}";
-                                HandyControl.Controls.Growl.SuccessGlobal($"投票成功！当前奖项 '{nomination.Award?.AwardName}' 能够进行的最大投票数量为：{maxVoteCount}，你已用完所有投票次数");
-                            }
-                            else
-                            {
-                                int remainingVotes = maxVoteCount - updatedVoteCount;
-                                StatusMessage = $"您已对 {nomineeName} 投票成功，对奖项 '{nomination.Award?.AwardName}' 还有 {remainingVotes} 次投票机会";
-                                HandyControl.Controls.Growl.SuccessGlobal($"投票成功！当前奖项 '{nomination.Award?.AwardName}' 能够进行的最大投票数量为：{maxVoteCount}，你还剩余投票次数为：{remainingVotes}");
-                            }
-                            
-                            // 刷新命令状态
-                            VoteCommand.RaiseCanExecuteChanged();
-                });
-            }
-            catch (Exception ex)
-            {
+                        }
+
+                        // 更新状态信息
+                        string nomineeName = nomination.NominatedEmployee?.EmployeeName ??
+                                           nomination.NominatedAdmin?.AdminName ??
+                                           "未知提名人";
+
+                        // 更新状态消息
+                        if (hasReachedMaxVotes)
+                        {
+                            StatusMessage = $"您已对 {nomineeName} 投票成功，已达到奖项 '{nomination.Award?.AwardName}' 的最大投票次数 {maxVoteCount}";
+                            HandyControl.Controls.Growl.SuccessGlobal($"投票成功！当前奖项 '{nomination.Award?.AwardName}' 能够进行的最大投票数量为：{maxVoteCount}，你已用完所有投票次数");
+                        }
+                        else
+                        {
+                            int remainingVotes = maxVoteCount - updatedVoteCount;
+                            StatusMessage = $"您已对 {nomineeName} 投票成功，对奖项 '{nomination.Award?.AwardName}' 还有 {remainingVotes} 次投票机会";
+                            HandyControl.Controls.Growl.SuccessGlobal($"投票成功！当前奖项 '{nomination.Award?.AwardName}' 能够进行的最大投票数量为：{maxVoteCount}，你还剩余投票次数为：{remainingVotes}");
+                        }
+
+                        // 刷新命令状态
+                        VoteCommand.RaiseCanExecuteChanged();
+                    });
+                }
+                catch (Exception ex)
+                {
                     // 投票失败
-                StatusMessage = $"投票失败: {ex.Message}";
-                HandyControl.Controls.Growl.ErrorGlobal($"投票失败: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"投票失败: {ex}");
+                    StatusMessage = $"投票失败: {ex.Message}";
+                    HandyControl.Controls.Growl.ErrorGlobal($"投票失败: {ex.Message}");
+                    System.Diagnostics.Debug.WriteLine($"投票失败: {ex}");
+                }
             }
-            }
-            
+
             #endregion
         }
 
@@ -1467,7 +1456,7 @@ namespace SIASGraduate.ViewModels.Pages
             {
                 int maxVoteCount = nomination.Award.MaxVoteCount;
                 int currentVoteCount = AwardVoteCount[nomination.AwardId];
-                
+
                 // 如果已达到最大投票次数，则禁用投票按钮
                 if (currentVoteCount >= maxVoteCount)
                     return false;
@@ -1480,7 +1469,7 @@ namespace SIASGraduate.ViewModels.Pages
         #endregion
 
         #region 搜索和筛选命令
-        
+
         /// <summary>
         /// 执行搜索命令
         /// </summary>
@@ -1489,7 +1478,7 @@ namespace SIASGraduate.ViewModels.Pages
             // 加载提名数据，会使用SearchKeyword参数进行过滤
             LoadNominationsAndCheckVoteStatusAsync();
         }
-        
+
         /// <summary>
         /// 执行奖项筛选命令
         /// </summary>
@@ -1513,7 +1502,7 @@ namespace SIASGraduate.ViewModels.Pages
         {
             // 在实际项目中实现按键预览处理逻辑
         }
-        
+
         /// <summary>
         /// 执行刷新命令
         /// </summary>
@@ -1566,7 +1555,7 @@ namespace SIASGraduate.ViewModels.Pages
         {
             // 在实际项目中实现删除评论逻辑
         }
-        
+
         /// <summary>
         /// 执行加载更多评论命令
         /// </summary>
@@ -1583,8 +1572,8 @@ namespace SIASGraduate.ViewModels.Pages
         /// 执行首页命令
         /// </summary>
         private void ExecuteFirstPageCommand()
-            {
-                CurrentPage = 1;
+        {
+            CurrentPage = 1;
         }
 
         /// <summary>
@@ -1690,7 +1679,7 @@ namespace SIASGraduate.ViewModels.Pages
         {
             // 先加载提名
             await LoadNominationsAsync();
-            
+
             // 然后检查投票状态
             await CheckIfUserHasVotedAsync();
         }

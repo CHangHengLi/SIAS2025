@@ -1,8 +1,8 @@
+using HandyControl.Controls;
 using SIASGraduate.Context;
 using SIASGraduate.Event;
 using SIASGraduate.Models;
 using SIASGraduate.Services;
-using HandyControl.Controls;
 
 namespace SIASGraduate.ViewModels.EditMessage.DepartmentManager
 {

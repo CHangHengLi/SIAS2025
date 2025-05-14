@@ -1,4 +1,3 @@
-using System;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
@@ -18,7 +17,7 @@ namespace SIASGraduate.Converter
                 // 当集合为空时显示提示
                 return count == 0 ? Visibility.Visible : Visibility.Collapsed;
             }
-            
+
             // 默认隐藏
             return Visibility.Collapsed;
         }
@@ -28,4 +27,4 @@ namespace SIASGraduate.Converter
             throw new NotImplementedException();
         }
     }
-} 
+}

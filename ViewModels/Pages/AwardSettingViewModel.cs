@@ -1,10 +1,3 @@
-using SIASGraduate.Context;
-using SIASGraduate.Event;
-using SIASGraduate.Models;
-using CsvHelper;
-using CsvHelper.Configuration;
-using HandyControl.Controls;
-using Microsoft.Win32;
 using System.Collections;
 using System.Collections.ObjectModel;
 using System.Globalization;
@@ -12,6 +5,13 @@ using System.IO;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
+using CsvHelper;
+using CsvHelper.Configuration;
+using HandyControl.Controls;
+using Microsoft.Win32;
+using SIASGraduate.Context;
+using SIASGraduate.Event;
+using SIASGraduate.Models;
 
 namespace SIASGraduate.ViewModels.Pages
 {
@@ -67,12 +67,12 @@ namespace SIASGraduate.ViewModels.Pages
                 {
                     award.MaxVoteCount = 1;
                 }
-                
+
                 if (awardsToUpdate.Any())
                 {
                     context.SaveChanges();
                 }
-                
+
                 //获取所有奖项
                 ListViewAwardSettings = TempAwardSettings = AwardSettings = new ObservableCollection<Award>(context.Awards);
                 TotalRecords = TempAwardSettings.Count;
@@ -185,16 +185,16 @@ namespace SIASGraduate.ViewModels.Pages
         private void OnDeleteAward(Award award)
         {
             if (award == null) return;
-            
+
             // 使用完全限定名称确保不会有命名空间冲突
             System.Windows.MessageBoxResult result = System.Windows.MessageBox.Show(
-                $"删除奖项「{award.AwardName}」将同时删除所有关联的提名记录！\n确定要继续吗？", 
-                "删除确认", 
+                $"删除奖项「{award.AwardName}」将同时删除所有关联的提名记录！\n确定要继续吗？",
+                "删除确认",
                 System.Windows.MessageBoxButton.OKCancel);
-                
-            if (result != System.Windows.MessageBoxResult.OK) 
+
+            if (result != System.Windows.MessageBoxResult.OK)
                 return;
-                
+
             try
             {
                 using (var context = new DataBaseContext())
@@ -203,7 +203,7 @@ namespace SIASGraduate.ViewModels.Pages
                     var relatedNominations = context.Nominations
                         .Where(n => n.AwardId == award.AwardId)
                         .ToList();
-                        
+
                     if (relatedNominations.Any())
                     {
                         // 先查找并删除所有关联的评论记录
@@ -211,34 +211,34 @@ namespace SIASGraduate.ViewModels.Pages
                         var relatedComments = context.CommentRecords
                             .Where(c => nominationIds.Contains(c.NominationId))
                             .ToList();
-                            
+
                         if (relatedComments.Any())
                         {
                             context.CommentRecords.RemoveRange(relatedComments);
                         }
-                            
+
                         // 查找并删除所有关联的投票记录
                         var relatedVotes = context.VoteRecords
                             .Where(v => nominationIds.Contains(v.NominationId))
                             .ToList();
-                            
+
                         if (relatedVotes.Any())
                         {
                             context.VoteRecords.RemoveRange(relatedVotes);
                         }
-                            
+
                         // 删除所有关联的提名记录
                         context.Nominations.RemoveRange(relatedNominations);
                     }
-                        
+
                     // 最后删除奖项本身
                     context.Awards.Remove(award);
                     context.SaveChanges();
-                        
+
                     // 刷新列表
                     TempAwardSettings = AwardSettings = new ObservableCollection<Award>(context.Awards.ToList());
                 }
-                    
+
                 Growl.SuccessGlobal("奖项删除成功");
                 OnSearchAward();
             }
@@ -344,7 +344,7 @@ namespace SIASGraduate.ViewModels.Pages
         {
             // 自动生成文件名：奖项设置_导出_年月日_时分秒.csv
             string defaultFileName = $"奖项设置_导出_{DateTime.Now:yyyyMMdd_HHmmss}.csv";
-            
+
             var saveFileDialog = new SaveFileDialog
             {
                 Filter = "CSV文件|*.csv|Excel文件|*.xlsx|所有文件|*.*",
@@ -352,7 +352,7 @@ namespace SIASGraduate.ViewModels.Pages
                 FileName = defaultFileName,
                 DefaultExt = ".csv"
             };
-            
+
             if (saveFileDialog.ShowDialog() == true)
             {
                 // 发布导出事件
@@ -369,11 +369,11 @@ namespace SIASGraduate.ViewModels.Pages
 
                 // 注册自定义映射，将属性名映射为中文标题
                 csv.Context.RegisterClassMap<AwardMap>();
-                
+
                 using var context = new DataBaseContext();
                 var awards = context.Awards.ToList();
                 csv.WriteRecords(awards);
-                
+
                 // 添加成功通知
                 Growl.SuccessGlobal($"成功导出{awards.Count}条奖项数据到: {filePath}");
             }

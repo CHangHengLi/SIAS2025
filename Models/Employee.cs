@@ -77,8 +77,8 @@ namespace SIASGraduate.Models
         /// 用于显示的名称
         /// </summary>
         [NotMapped]
-        public string DisplayName => Department != null 
-            ? $"{EmployeeName} ({Department.DepartmentName})" 
+        public string DisplayName => Department != null
+            ? $"{EmployeeName} ({Department.DepartmentName})"
             : EmployeeName;
 
         /// <summary>

@@ -1,19 +1,17 @@
-using SIASGraduate.Context;
-using SIASGraduate.Event;
-using SIASGraduate.Models;
-using SIASGraduate.Services;
-using CsvHelper;
-using CsvHelper.Configuration;
-using HandyControl.Controls;
-using Microsoft.Win32;
 using System.Collections;
 using System.Collections.ObjectModel;
 using System.Globalization;
 using System.IO;
-using System.Windows;
 using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Threading;
+using CsvHelper;
+using HandyControl.Controls;
+using Microsoft.Win32;
+using SIASGraduate.Context;
+using SIASGraduate.Event;
+using SIASGraduate.Models;
+using SIASGraduate.Services;
 
 namespace SIASGraduate.ViewModels.Pages
 {
@@ -302,7 +300,7 @@ namespace SIASGraduate.ViewModels.Pages
                         {
                             // 使用departmentService进行删除操作
                             bool success = departmentService.DeleteDepartment(department.DepartmentId);
-                            
+
                             if (success)
                             {
                                 Growl.SuccessGlobal("部门删除成功");
@@ -312,7 +310,7 @@ namespace SIASGraduate.ViewModels.Pages
                                     TempDepartments = Departments = new ObservableCollection<Department>(context.Departments);
                                 }
                                 OnSearchDepartment();
-                                
+
                                 // 发布部门删除事件，通知其他视图更新
                                 eventAggregator.GetEvent<DepartmentDeletedEvent>().Publish();
                             }

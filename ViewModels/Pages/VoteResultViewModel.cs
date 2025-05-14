@@ -1,16 +1,15 @@
-using SIASGraduate.Context;
-using SIASGraduate.Models;
-using SIASGraduate.ViewModels.EditMessage.NominationDetailsWindows;
-using SIASGraduate.Views.EditMessage.NominationDetailsWindows;
-using HandyControl.Controls;
-using Microsoft.EntityFrameworkCore;
-using Microsoft.Win32;
 using System.Collections.ObjectModel;
 using System.Diagnostics;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
+using HandyControl.Controls;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Win32;
+using SIASGraduate.Context;
+using SIASGraduate.Models;
+using SIASGraduate.Views.EditMessage.NominationDetailsWindows;
 
 namespace SIASGraduate.ViewModels.Pages
 {
@@ -56,12 +55,12 @@ namespace SIASGraduate.ViewModels.Pages
             get { return _isLoading; }
             set { SetProperty(ref _isLoading, value); }
         }
-        
+
         /// <summary>
         /// 已加载的提名ID集合
         /// </summary>
         private HashSet<int> LoadedNominationIds { get; } = new HashSet<int>();
-        
+
         /// <summary>
         /// 记录页面加载日志
         /// </summary>
@@ -69,7 +68,7 @@ namespace SIASGraduate.ViewModels.Pages
         {
             Debug.WriteLine("投票结果界面已加载");
         }
-        
+
         /// <summary>
         /// 处理行加载事件
         /// </summary>
@@ -81,7 +80,7 @@ namespace SIASGraduate.ViewModels.Pages
                 Debug.WriteLine($"行加载: 提名ID={nomination.NominationId}");
             }
         }
-        
+
         /// <summary>
         /// 处理行卸载事件
         /// </summary>
@@ -109,7 +108,7 @@ namespace SIASGraduate.ViewModels.Pages
         /// </summary>
         public DelegateCommand ExportResultCommand =>
             _exportResultCommand ?? (_exportResultCommand = new DelegateCommand(ExecuteExportResultCommand));
-            
+
         private DelegateCommand<Nomination> _displayNominationDetailsCommand;
         /// <summary>
         /// 显示提名详情命令
@@ -159,7 +158,7 @@ namespace SIASGraduate.ViewModels.Pages
             // 初始化集合
             Nominations = new ObservableCollection<Nomination>();
             SearchText = string.Empty;
-            
+
             // 加载数据
             LoadData();
         }
@@ -173,7 +172,7 @@ namespace SIASGraduate.ViewModels.Pages
         {
             if (nomination == null)
                 return;
-                
+
             // 显示详细信息
             HandyControl.Controls.MessageBox.Show(
                 $"提名ID: {nomination.NominationId}\n" +
@@ -184,7 +183,7 @@ namespace SIASGraduate.ViewModels.Pages
                 $"提名时间: {nomination.NominationTime}",
                 "提名详情", MessageBoxButton.OK, MessageBoxImage.Information);
         }
-        
+
         /// <summary>
         /// 查看提名详情
         /// </summary>
@@ -192,17 +191,17 @@ namespace SIASGraduate.ViewModels.Pages
         {
             if (nomination == null)
                 return;
-            
+
             // 显示加载状态
             IsLoading = true;
-            
+
             try
             {
                 // 使用更安全、分离的方式从数据库加载提名数据
                 using (var context = new DataBaseContext())
                 {
                     var nominationId = nomination.NominationId;
-                    
+
                     // 1. 首先只获取基本提名信息，不加载任何关联实体
                     var baseQuery = await context.Nominations
                         .AsNoTracking()
@@ -220,14 +219,14 @@ namespace SIASGraduate.ViewModels.Pages
                             n.CoverImage
                         })
                         .FirstOrDefaultAsync();
-                        
+
                     if (baseQuery == null)
                     {
                         Growl.ErrorGlobal("找不到该提名的详细信息");
                         IsLoading = false;
                         return;
                     }
-                    
+
                     // 2. 创建新的Nomination对象，避免EF追踪状态
                     var fullNomination = new Nomination
                     {
@@ -252,7 +251,7 @@ namespace SIASGraduate.ViewModels.Pages
                             .AsNoTracking()
                             .FirstOrDefaultAsync(a => a.AwardId == baseQuery.AwardId);
                     }
-                    
+
                     // 加载部门
                     if (baseQuery.DepartmentId > 0)
                     {
@@ -260,7 +259,7 @@ namespace SIASGraduate.ViewModels.Pages
                             .AsNoTracking()
                             .FirstOrDefaultAsync(d => d.DepartmentId == baseQuery.DepartmentId);
                     }
-                    
+
                     // 加载被提名员工
                     if (baseQuery.NominatedEmployeeId.HasValue)
                     {
@@ -268,7 +267,7 @@ namespace SIASGraduate.ViewModels.Pages
                             .AsNoTracking()
                             .FirstOrDefaultAsync(e => e.EmployeeId == baseQuery.NominatedEmployeeId.Value);
                     }
-                    
+
                     // 加载被提名管理员
                     if (baseQuery.NominatedAdminId.HasValue)
                     {
@@ -276,13 +275,13 @@ namespace SIASGraduate.ViewModels.Pages
                             .AsNoTracking()
                             .FirstOrDefaultAsync(a => a.AdminId == baseQuery.NominatedAdminId.Value);
                     }
-                    
+
                     // 4. 加载投票记录
                     var voteRecords = await context.VoteRecords
                         .AsNoTracking()
                         .Where(v => v.NominationId == baseQuery.NominationId)
                         .ToListAsync();
-                        
+
                     // 5. 对于每个投票记录，单独加载员工和管理员信息
                     foreach (var voteRecord in voteRecords)
                     {
@@ -292,7 +291,7 @@ namespace SIASGraduate.ViewModels.Pages
                             voteRecord.VoterEmployee = await context.Employees
                                 .AsNoTracking()
                                 .FirstOrDefaultAsync(e => e.EmployeeId == voteRecord.VoterEmployeeId.Value);
-                                
+
                             // 如果员工存在并有部门ID，单独加载部门
                             if (voteRecord.VoterEmployee != null && voteRecord.VoterEmployee.DepartmentId.HasValue)
                             {
@@ -301,14 +300,14 @@ namespace SIASGraduate.ViewModels.Pages
                                     .FirstOrDefaultAsync(d => d.DepartmentId == voteRecord.VoterEmployee.DepartmentId.Value);
                             }
                         }
-                        
+
                         // 加载投票管理员信息
                         if (voteRecord.VoterAdminId.HasValue)
                         {
                             voteRecord.VoterAdmin = await context.Admins
                                 .AsNoTracking()
                                 .FirstOrDefaultAsync(a => a.AdminId == voteRecord.VoterAdminId.Value);
-                                
+
                             // 如果管理员存在并有部门ID，单独加载部门
                             if (voteRecord.VoterAdmin != null && voteRecord.VoterAdmin.DepartmentId.HasValue)
                             {
@@ -317,14 +316,14 @@ namespace SIASGraduate.ViewModels.Pages
                                     .FirstOrDefaultAsync(d => d.DepartmentId == voteRecord.VoterAdmin.DepartmentId.Value);
                             }
                         }
-                        
+
                         // 添加到集合
                         fullNomination.VoteRecords.Add(voteRecord);
                     }
-                    
+
                     // 隐藏加载状态
                     IsLoading = false;
-                    
+
                     // 使用新窗口显示
                     try
                     {
@@ -363,7 +362,7 @@ namespace SIASGraduate.ViewModels.Pages
             Grid.SetRow(labelBlock, rowIndex);
             Grid.SetColumn(labelBlock, 0);
             grid.Children.Add(labelBlock);
-            
+
             // 值
             if (isMultiLine)
             {
@@ -397,7 +396,7 @@ namespace SIASGraduate.ViewModels.Pages
                 grid.Children.Add(valueBlock);
             }
         }
-        
+
         /// <summary>
         /// 加载数据
         /// </summary>
@@ -406,27 +405,27 @@ namespace SIASGraduate.ViewModels.Pages
             try
             {
                 IsLoading = true;
-                
+
                 // 清空现有数据
                 Nominations.Clear();
-                
+
                 // 从数据库加载提名记录
                 using (var context = new DataBaseContext())
                 {
                     // 配置数据库命令超时时间
                     context.Database.SetCommandTimeout(60); // 设置为60秒
-                    
+
                     // 先计算总记录数
                     NominationsCount = await context.Nominations.CountAsync();
-                    
+
                     // 限制查询结果数量
                     const int maxResults = 200;
-                    
+
                     // 使用优化的查询
                     var query = context.Nominations
                         .AsNoTracking() // 不跟踪实体变化
                         .AsSplitQuery() // 拆分为多个查询以提高性能
-                        .Select(n => new 
+                        .Select(n => new
                         {
                             NominationId = n.NominationId,
                             NominatedEmployeeName = n.NominatedEmployee != null ? n.NominatedEmployee.EmployeeName : null,
@@ -446,10 +445,10 @@ namespace SIASGraduate.ViewModels.Pages
                         .OrderByDescending(n => n.VotesCount) // 按票数排序
                         .ThenByDescending(n => n.NominationTime) // 票数相同时按时间排序
                         .Take(maxResults);
-                    
+
                     // 执行查询
                     var nominationsData = await query.ToListAsync();
-                    
+
                     // 在内存中构建显示对象
                     foreach (var item in nominationsData)
                     {
@@ -463,27 +462,27 @@ namespace SIASGraduate.ViewModels.Pages
                             DepartmentId = item.DepartmentId,
                             NominatedEmployeeId = item.NominatedEmployeeId,
                             NominatedAdminId = item.NominatedAdminId,
-                            
+
                             // 创建最小化的关联对象，只包含显示所需的字段
                             Award = item.AwardName == null ? null : new Award
                             {
                                 AwardId = item.AwardId,
                                 AwardName = item.AwardName
                             },
-                            
+
                             Department = item.DepartmentName == null ? null : new Department
                             {
                                 DepartmentId = item.DepartmentId ?? 0,
                                 DepartmentName = item.DepartmentName
                             },
-                            
+
                             NominatedEmployee = item.NominatedEmployeeName == null ? null : new Employee
                             {
                                 EmployeeId = item.NominatedEmployeeId ?? 0,
                                 EmployeeName = item.NominatedEmployeeName,
                                 EmployeePassword = "placeholder" // 填充required字段
                             },
-                            
+
                             NominatedAdmin = item.NominatedAdminName == null ? null : new Admin
                             {
                                 AdminId = item.NominatedAdminId ?? 0,
@@ -491,7 +490,7 @@ namespace SIASGraduate.ViewModels.Pages
                                 AdminPassword = "placeholder" // 填充required字段
                             }
                         };
-                        
+
                         // 创建表示投票数量的集合，但不包含实际投票数据
                         var voteRecords = new List<VoteRecord>();
                         for (int i = 0; i < item.VotesCount; i++)
@@ -499,10 +498,10 @@ namespace SIASGraduate.ViewModels.Pages
                             voteRecords.Add(new VoteRecord { NominationId = nomination.NominationId });
                         }
                         nomination.VoteRecords = new ObservableCollection<VoteRecord>(voteRecords);
-                        
+
                         Nominations.Add(nomination);
                     }
-                    
+
                     // 如果结果数量少于总数，显示提示
                     if (NominationsCount > maxResults)
                     {
@@ -534,29 +533,29 @@ namespace SIASGraduate.ViewModels.Pages
                     LoadData();
                     return;
                 }
-                
+
                 IsLoading = true;
-                
+
                 // 清空现有数据
                 Nominations.Clear();
-                
+
                 // 搜索关键词（去除前后空格并转为小写）
                 string keyword = SearchText.Trim().ToLower();
-                
+
                 // 从数据库搜索匹配的提名记录
                 using (var context = new DataBaseContext())
                 {
                     // 配置数据库命令超时时间
                     context.Database.SetCommandTimeout(60); // 设置为60秒
-                    
+
                     // 限制查询结果数量
                     const int maxResults = 200;
-                    
+
                     // 使用优化的查询
                     var query = context.Nominations
                         .AsNoTracking() // 不跟踪实体变化
                         .AsSplitQuery() // 拆分为多个查询
-                        .Where(n => 
+                        .Where(n =>
                             (n.NominatedEmployee != null && EF.Functions.Like(n.NominatedEmployee.EmployeeName.ToLower(), $"%{keyword}%")) ||
                             (n.NominatedAdmin != null && EF.Functions.Like(n.NominatedAdmin.AdminName.ToLower(), $"%{keyword}%")) ||
                             (n.Award != null && EF.Functions.Like(n.Award.AwardName.ToLower(), $"%{keyword}%")) ||
@@ -564,7 +563,7 @@ namespace SIASGraduate.ViewModels.Pages
                             (n.Introduction != null && EF.Functions.Like(n.Introduction.ToLower(), $"%{keyword}%")) ||
                             (n.NominateReason != null && EF.Functions.Like(n.NominateReason.ToLower(), $"%{keyword}%"))
                         )
-                        .Select(n => new 
+                        .Select(n => new
                         {
                             NominationId = n.NominationId,
                             NominatedEmployeeName = n.NominatedEmployee != null ? n.NominatedEmployee.EmployeeName : null,
@@ -584,10 +583,10 @@ namespace SIASGraduate.ViewModels.Pages
                         .OrderByDescending(n => n.VotesCount)
                         .ThenByDescending(n => n.NominationTime)
                         .Take(maxResults);
-                    
+
                     // 执行查询
                     var nominationsData = await query.ToListAsync();
-                    
+
                     // 在内存中构建显示对象
                     foreach (var item in nominationsData)
                     {
@@ -601,27 +600,27 @@ namespace SIASGraduate.ViewModels.Pages
                             DepartmentId = item.DepartmentId,
                             NominatedEmployeeId = item.NominatedEmployeeId,
                             NominatedAdminId = item.NominatedAdminId,
-                            
+
                             // 创建最小化的关联对象，只包含显示所需的字段
                             Award = item.AwardName == null ? null : new Award
                             {
                                 AwardId = item.AwardId,
                                 AwardName = item.AwardName
                             },
-                            
+
                             Department = item.DepartmentName == null ? null : new Department
                             {
                                 DepartmentId = item.DepartmentId ?? 0,
                                 DepartmentName = item.DepartmentName
                             },
-                            
+
                             NominatedEmployee = item.NominatedEmployeeName == null ? null : new Employee
                             {
                                 EmployeeId = item.NominatedEmployeeId ?? 0,
                                 EmployeeName = item.NominatedEmployeeName,
                                 EmployeePassword = "placeholder" // 填充required字段
                             },
-                            
+
                             NominatedAdmin = item.NominatedAdminName == null ? null : new Admin
                             {
                                 AdminId = item.NominatedAdminId ?? 0,
@@ -629,7 +628,7 @@ namespace SIASGraduate.ViewModels.Pages
                                 AdminPassword = "placeholder" // 填充required字段
                             }
                         };
-                        
+
                         // 创建表示投票数量的集合，但不包含实际投票数据
                         var voteRecords = new List<VoteRecord>();
                         for (int i = 0; i < item.VotesCount; i++)
@@ -637,13 +636,13 @@ namespace SIASGraduate.ViewModels.Pages
                             voteRecords.Add(new VoteRecord { NominationId = nomination.NominationId });
                         }
                         nomination.VoteRecords = new ObservableCollection<VoteRecord>(voteRecords);
-                        
+
                         Nominations.Add(nomination);
                     }
-                    
+
                     // 获取满足搜索条件的总记录数
                     NominationsCount = Nominations.Count;
-                    
+
                     // 显示搜索结果提示
                     Growl.InfoGlobal($"搜索结果: 找到 {NominationsCount} 条记录");
                 }
@@ -694,14 +693,14 @@ namespace SIASGraduate.ViewModels.Pages
                                 string introduction = nomination.Introduction ?? "";
                                 string reason = nomination.NominateReason ?? "";
                                 int voteCount = nomination.VoteRecords?.Count ?? 0;
-                                
+
                                 // 转义包含逗号的文本
                                 if (nominatedName.Contains(",")) nominatedName = $"\"{nominatedName}\"";
                                 if (awardName.Contains(",")) awardName = $"\"{awardName}\"";
                                 if (departmentName.Contains(",")) departmentName = $"\"{departmentName}\"";
                                 if (introduction.Contains(",")) introduction = $"\"{introduction}\"";
                                 if (reason.Contains(",")) reason = $"\"{reason}\"";
-                                
+
                                 writer.WriteLine($"{nominatedName},{nomination.NominationId},{awardName},{departmentName},{introduction},{reason},{voteCount}");
                             }
                         }

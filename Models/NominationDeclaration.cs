@@ -1,4 +1,3 @@
-using System;
 using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
@@ -81,7 +80,7 @@ namespace SIASGraduate.Models
         /// 申报人-员工ID
         /// </summary>
         public int? DeclarerEmployeeId { get; set; }
-        
+
         /// <summary>
         /// 申报人-员工
         /// </summary>
@@ -92,7 +91,7 @@ namespace SIASGraduate.Models
         /// 申报人-管理员ID
         /// </summary>
         public int? DeclarerAdminId { get; set; }
-        
+
         /// <summary>
         /// 申报人-管理员
         /// </summary>
@@ -103,7 +102,7 @@ namespace SIASGraduate.Models
         /// 申报人-超级管理员ID
         /// </summary>
         public int? DeclarerSupAdminId { get; set; }
-        
+
         /// <summary>
         /// 申报人-超级管理员
         /// </summary>
@@ -124,55 +123,55 @@ namespace SIASGraduate.Models
         /// 审核人-员工ID
         /// </summary>
         public int? ReviewerEmployeeId { get; set; }
-        
+
         /// <summary>
         /// 审核人-员工
         /// </summary>
         [ForeignKey("ReviewerEmployeeId")]
         public virtual Employee? ReviewerEmployee { get; set; }
-        
+
         /// <summary>
         /// 审核人-管理员ID
         /// </summary>
         public int? ReviewerAdminId { get; set; }
-        
+
         /// <summary>
         /// 审核人-管理员
         /// </summary>
         [ForeignKey("ReviewerAdminId")]
         public virtual Admin? ReviewerAdmin { get; set; }
-        
+
         /// <summary>
         /// 审核人-超级管理员ID
         /// </summary>
         public int? ReviewerSupAdminId { get; set; }
-        
+
         /// <summary>
         /// 审核人-超级管理员
         /// </summary>
         [ForeignKey("ReviewerSupAdminId")]
         public virtual SupAdmin? ReviewerSupAdmin { get; set; }
-        
+
         /// <summary>
         /// 审核时间
         /// </summary>
         public DateTime? ReviewTime { get; set; }
-        
+
         /// <summary>
         /// 审核意见
         /// </summary>
         public string? ReviewComment { get; set; }
-        
+
         /// <summary>
         /// 是否已转为正式提名
         /// </summary>
         public bool IsPromoted { get; set; } = false;
-        
+
         /// <summary>
         /// 转为正式提名ID
         /// </summary>
         public int? PromotedNominationId { get; set; }
-        
+
         /// <summary>
         /// 是否有效（UI属性，不映射到数据库）
         /// </summary>
@@ -196,7 +195,7 @@ namespace SIASGraduate.Models
                 };
             }
         }
-        
+
         /// <summary>
         /// 审核人名称（UI属性，不映射到数据库）
         /// </summary>
@@ -207,9 +206,9 @@ namespace SIASGraduate.Models
             {
                 // 1. 状态为0表示待审核，直接返回"未审核"
                 if (Status == 0) return "未审核";
-                
+
                 // 2. 如果有明确设置审核人ID，但未加载关联实体，尝试获取更简洁的信息
-                if ((ReviewerSupAdminId.HasValue || ReviewerAdminId.HasValue || ReviewerEmployeeId.HasValue) && 
+                if ((ReviewerSupAdminId.HasValue || ReviewerAdminId.HasValue || ReviewerEmployeeId.HasValue) &&
                     ReviewerSupAdmin == null && ReviewerAdmin == null && ReviewerEmployee == null)
                 {
                     // 只返回ID，不显示角色前缀
@@ -217,23 +216,23 @@ namespace SIASGraduate.Models
                     if (ReviewerAdminId.HasValue) return $"ID:{ReviewerAdminId}";
                     if (ReviewerEmployeeId.HasValue) return $"ID:{ReviewerEmployeeId}";
                 }
-                
+
                 // 3. 状态非0但缺少审核人信息，返回更明确的信息
                 if (!ReviewerSupAdminId.HasValue && !ReviewerAdminId.HasValue && !ReviewerEmployeeId.HasValue)
                 {
                     return Status == 1 ? "系统自动通过" : (Status == 2 ? "系统自动拒绝" : "未知审核人");
                 }
-                
+
                 // 4. 有审核人信息时直接返回名称，不加角色前缀
                 if (ReviewerSupAdmin != null) return ReviewerSupAdmin.SupAdminName ?? "未知";
                 if (ReviewerAdmin != null) return ReviewerAdmin.AdminName ?? "未知";
                 if (ReviewerEmployee != null) return ReviewerEmployee.EmployeeName ?? "未知";
-                
+
                 // 5. 兜底情况，仍然显示未知审核人
                 return "未知审核人";
             }
         }
-        
+
         /// <summary>
         /// 申报人名称（UI属性，不映射到数据库）
         /// </summary>
@@ -248,7 +247,7 @@ namespace SIASGraduate.Models
                 return "未知";
             }
         }
-        
+
         /// <summary>
         /// 被提名人名称（UI属性，不映射到数据库）
         /// </summary>
@@ -263,4 +262,4 @@ namespace SIASGraduate.Models
             }
         }
     }
-} 
+}

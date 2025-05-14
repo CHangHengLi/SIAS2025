@@ -1,4 +1,3 @@
-using System;
 using System.Globalization;
 using System.Windows.Data;
 
@@ -46,7 +45,7 @@ namespace SIASGraduate.Converter
             {
                 return fallbackValue;
             }
-            
+
             return 0;
         }
 
@@ -69,19 +68,19 @@ namespace SIASGraduate.Converter
             // 根据目标类型返回适当的值
             if (targetType == typeof(string))
                 return intValue.ToString();
-            
+
             if (targetType == typeof(double))
                 return (double)intValue;
-            
+
             if (targetType == typeof(float))
                 return (float)intValue;
-            
+
             if (targetType == typeof(decimal))
                 return (decimal)intValue;
-            
+
             if (targetType == typeof(long))
                 return (long)intValue;
-            
+
             return intValue;
         }
     }

@@ -109,21 +109,21 @@ namespace SIASGraduate.ViewModels.EditMessage.NominationDeclarationManager
                     Growl.WarningGlobal("请填写申报理由");
                     return;
                 }
-                
+
                 // 验证一句话介绍长度
                 if (Introduction.Length > 100)
                 {
                     Growl.WarningGlobal("一句话介绍请控制在100字以内");
                     return;
                 }
-                
+
                 // 验证申报理由长度
                 if (DeclarationReason.Length > 500)
                 {
                     Growl.WarningGlobal("申报理由请控制在500字以内");
                     return;
                 }
-                
+
                 // 验证申报对象是否被正确设置
                 if (Declaration.NominatedEmployeeId == null && Declaration.NominatedAdminId == null)
                 {

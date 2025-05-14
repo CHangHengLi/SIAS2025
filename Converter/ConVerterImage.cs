@@ -1,4 +1,3 @@
-using System;
 using System.Globalization;
 using System.IO;
 using System.Windows.Data;
@@ -24,7 +23,7 @@ namespace SIASGraduate.Converter
             }
             return null;
         }
-        
+
         /// <summary>
         /// 将图片文件转换为二进制数据（通用方法）。
         /// </summary>
@@ -34,7 +33,7 @@ namespace SIASGraduate.Converter
         {
             return ConvertPngToByteArray(filePath);
         }
-        
+
         /// <summary>
         /// 将二进制数据转换为BitmapImage。
         /// </summary>
@@ -59,7 +58,7 @@ namespace SIASGraduate.Converter
             image.Freeze();
             return image;
         }
-        
+
         /// <summary>
         /// 将BitmapImage转换为二进制数据。
         /// </summary>
@@ -104,7 +103,7 @@ namespace SIASGraduate.Converter
                     return null;
                 }
             }
-            
+
             // 如果value是字节数组，则转换为BitmapImage
             if (value is byte[] imageData && imageData.Length > 0)
             {

@@ -9,13 +9,13 @@ namespace SIASGraduate.Services
         {
             // 构造函数保留但不再保存context
         }
-        
+
         public List<SupAdmin> GetAllSupAdmins()
         {
             using var context = new DataBaseContext();
             return [.. context.SupAdmins];
         }
-        
+
         public SupAdmin GetSupAdminByName(string name)
         {
             using (var context = new DataBaseContext())

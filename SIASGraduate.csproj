@@ -8,6 +8,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWPF>true</UseWPF>
     <NoWarn>$(NoWarn);NU1701;MC3072</NoWarn>
+    <ApplicationIcon>Images\提名详情.ico</ApplicationIcon>
   </PropertyGroup>
 
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|AnyCPU'">
@@ -26,6 +27,8 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Remove="Images\gitee.png" />
+    <None Remove="Images\github.png" />
     <None Remove="Images\个人信息管理.png" />
     <None Remove="Images\员工管理.png" />
     <None Remove="Images\奖杯背景.png" />
@@ -65,6 +68,12 @@
   </ItemGroup>
 
   <ItemGroup>
+    <Resource Include="Images\gitee.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Resource>
+    <Resource Include="Images\github.png">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </Resource>
     <Resource Include="Images\个人信息管理.png">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Resource>
@@ -135,6 +144,9 @@
       <ProductName>.NET Desktop Runtime 8.0.4 (x64)</ProductName>
       <Install>true</Install>
     </BootstrapperPackage>
+  </ItemGroup>
+  <ItemGroup>
+    <Content Include="Images\提名详情.ico" />
   </ItemGroup>
 
 </Project> 

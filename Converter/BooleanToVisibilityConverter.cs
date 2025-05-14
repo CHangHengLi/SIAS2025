@@ -1,4 +1,3 @@
-using System;
 using System.Globalization;
 using System.Windows;
 using System.Windows.Data;
@@ -29,7 +28,7 @@ namespace SIASGraduate.Converter
             {
                 bValue = ((bool?)value).GetValueOrDefault();
             }
-            
+
             // 检查是否要反转逻辑
             bool invertLogic = false;
             if (parameter != null && parameter is bool)
@@ -40,12 +39,12 @@ namespace SIASGraduate.Converter
             {
                 bool.TryParse(parameter as string, out invertLogic);
             }
-            
+
             if (invertLogic)
             {
                 return bValue ? Visibility.Collapsed : Visibility.Visible;
             }
-            
+
             return bValue ? Visibility.Visible : Visibility.Collapsed;
         }
 
@@ -64,7 +63,7 @@ namespace SIASGraduate.Converter
             {
                 visibility = (Visibility)value;
             }
-            
+
             // 检查是否要反转逻辑
             bool invertLogic = false;
             if (parameter != null && parameter is bool)
@@ -75,13 +74,13 @@ namespace SIASGraduate.Converter
             {
                 bool.TryParse(parameter as string, out invertLogic);
             }
-            
+
             if (invertLogic)
             {
                 return visibility != Visibility.Visible;
             }
-            
+
             return visibility == Visibility.Visible;
         }
     }
-} 
+}

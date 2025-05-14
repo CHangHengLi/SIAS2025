@@ -1,10 +1,7 @@
-using System;
 using System.Globalization;
 using System.IO;
 using System.Windows.Data;
 using System.Windows.Media.Imaging;
-using System.Linq;
-using System.Windows;
 
 namespace SIASGraduate.Converter
 {
@@ -26,7 +23,7 @@ namespace SIASGraduate.Converter
             }
             return null;
         }
-        
+
         /// <summary>
         /// 将二进制数据转换为BitmapImage。
         /// </summary>
@@ -51,7 +48,7 @@ namespace SIASGraduate.Converter
             image.Freeze();
             return image;
         }
-        
+
         /// <summary>
         /// 将BitmapImage转换为二进制数据。
         /// </summary>
@@ -96,7 +93,7 @@ namespace SIASGraduate.Converter
                     return null;
                 }
             }
-            
+
             // 如果value是字节数组，则转换为BitmapImage
             if (value is byte[] imageData && imageData.Length > 0)
             {
@@ -166,4 +163,4 @@ namespace SIASGraduate.Converter
             throw new NotImplementedException("ByteArrayToImageConverter不支持从Image转换回byte[]");
         }
     }
-} 
+}

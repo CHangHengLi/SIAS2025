@@ -27,7 +27,7 @@ namespace SIASGraduate.Views.EditMessage.NominationLogViewer
                 await viewModel.LoadLogsAsync();
             }
         }
-        
+
         /// <summary>
         /// 关闭按钮点击事件
         /// </summary>
@@ -36,4 +36,4 @@ namespace SIASGraduate.Views.EditMessage.NominationLogViewer
             this.Close();
         }
     }
-} 
+}
