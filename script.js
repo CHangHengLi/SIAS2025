@@ -87,7 +87,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // 创建聚焦背景层
         const spotlightEffect = document.createElement('div');
         spotlightEffect.classList.add('spotlight-effect');
-        hero.appendChild(spotlightEffect);
+        hero.insertBefore(spotlightEffect, hero.firstChild); // 确保添加到hero的第一个子元素位置
         
         // 初始化聚焦点位置（默认中心点）
         let spotlightX = hero.offsetWidth / 2;
@@ -95,14 +95,16 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // 更新聚焦点位置和效果
         function updateSpotlight(x, y) {
-            spotlightEffect.style.background = `radial-gradient(
-                circle at ${x}px ${y}px,
-                rgba(255, 255, 255, 0.8) 0%,
-                rgba(176, 224, 255, 0.6) 20%,
-                rgba(135, 206, 250, 0.4) 40%,
-                rgba(52, 152, 219, 0.2) 60%,
-                rgba(44, 62, 80, 0.2) 100%
-            )`;
+            requestAnimationFrame(() => {
+                spotlightEffect.style.background = `radial-gradient(
+                    circle at ${x}px ${y}px,
+                    rgba(255, 255, 255, 0.8) 0%,
+                    rgba(176, 224, 255, 0.6) 20%,
+                    rgba(135, 206, 250, 0.4) 40%,
+                    rgba(52, 152, 219, 0.2) 60%,
+                    rgba(44, 62, 80, 0.2) 100%
+                )`;
+            });
         }
         
         // 鼠标移动事件
@@ -133,6 +135,9 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Hero区域动态光效果
     if (hero) {
+        // 清除可能存在的旧光点元素
+        hero.querySelectorAll('.hero-light').forEach(light => light.remove());
+        
         // 创建闪光点元素
         for (let i = 0; i < 20; i++) {
             const light = document.createElement('div');
