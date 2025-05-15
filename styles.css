@@ -845,3 +845,26 @@ footer .references-section {
 footer .footer-content {
     margin-top: 30px;
 }
+
+/* 上标引用样式 */
+sup.reference {
+    font-size: 0.75em;
+    line-height: 0;
+    position: relative;
+    top: -0.5em;
+    vertical-align: baseline;
+}
+
+sup.reference a {
+    color: #2980b9;
+    text-decoration: none;
+    padding: 0 2px;
+    font-weight: bold;
+    transition: all 0.2s ease;
+}
+
+sup.reference a:hover {
+    color: #27ae60;
+    background-color: rgba(41, 128, 185, 0.1);
+    border-radius: 3px;
+}
