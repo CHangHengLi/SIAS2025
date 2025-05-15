@@ -80,6 +80,11 @@ namespace SIASGraduate.ViewModels
         {
             return _supAdminService.GetSupAdminByAccount(account);
         }
+
+        private async Task<SupAdmin> GetSupAdminByAccountAsync(string account)
+        {
+            return await _supAdminService.GetSupAdminByAccountAsync(account);
+        }
         #endregion
 
         #region AdminService
@@ -122,6 +127,10 @@ namespace SIASGraduate.ViewModels
             return _employeeService.GetEmployeeByAccount(account);
         }
 
+        private async Task<Employee> GetEmployeeByAccountAsync(string account)
+        {
+            return await _employeeService.GetEmployeeByAccountAsync(account);
+        }
         #endregion
 
         public DelegateCommand LoginCommand
@@ -130,51 +139,69 @@ namespace SIASGraduate.ViewModels
             {
                 return new DelegateCommand(async () =>
                 {
-
-                    // 登录逻辑
-                    var supAdmin = GetSupAdminByAccount(Account);
-                    var admin = await GetAdminByAccountAsync(Account);
-                    var employee = GetEmployeeByAccount(Account);
-
-                    if ((supAdmin != null && supAdmin.SupAdminPassword == Password) || (admin != null && admin.AdminPassword == Password) && (admin.IsActive == true) || (employee != null && employee.EmployeePassword == Password) && (employee.IsActive == true))
+                    try
                     {
-                        DialogParameters parameters = new() {
-                            { "username", Account},
-                            { "password", Password},
-                            { "account", Account},
-                        };
-                        if (supAdmin != null && supAdmin.SupAdminPassword == Password)
+                        // 登录逻辑 - 使用异步方法
+                        var supAdminTask = GetSupAdminByAccountAsync(Account);
+                        var adminTask = GetAdminByAccountAsync(Account);
+                        var employeeTask = GetEmployeeByAccountAsync(Account);
+
+                        // 等待所有任务完成
+                        await Task.WhenAll(supAdminTask, adminTask, employeeTask);
+
+                        var supAdmin = await supAdminTask;
+                        var admin = await adminTask;
+                        var employee = await employeeTask;
+
+                        if ((supAdmin != null && supAdmin.SupAdminPassword == Password) || 
+                            (admin != null && admin.AdminPassword == Password) && (admin.IsActive == true) || 
+                            (employee != null && employee.EmployeePassword == Password) && (employee.IsActive == true))
                         {
-                            parameters.Add("roleId", 1);
-                            parameters.Add("image", supAdmin.SupAdminImage);
-                            parameters.Add("adminId", supAdmin.SupAdminId);
-                            parameters.Add("userName", supAdmin.SupAdminName);
-                        }
-                        else if (admin != null && admin.AdminPassword == Password)
-                        {
-                            parameters.Add("roleId", 2);
-                            parameters.Add("image", admin.AdminImage);
-                            parameters.Add("adminId", admin.AdminId);
-                            parameters.Add("userName", admin.AdminName);
-                        }
-                        else if (employee != null && employee.EmployeePassword == Password)
-                        {
-                            parameters.Add("roleId", 3);
-                            parameters.Add("image", employee.EmployeeImage);
-                            parameters.Add("employeeId", employee.EmployeeId);
-                            parameters.Add("userName", employee.EmployeeName);
+                            DialogParameters parameters = new() {
+                                { "username", Account},
+                                { "password", Password},
+                                { "account", Account},
+                            };
+                            if (supAdmin != null && supAdmin.SupAdminPassword == Password)
+                            {
+                                parameters.Add("roleId", 1);
+                                parameters.Add("image", supAdmin.SupAdminImage);
+                                parameters.Add("adminId", supAdmin.SupAdminId);
+                                parameters.Add("userName", supAdmin.SupAdminName);
+                            }
+                            else if (admin != null && admin.AdminPassword == Password)
+                            {
+                                parameters.Add("roleId", 2);
+                                parameters.Add("image", admin.AdminImage);
+                                parameters.Add("adminId", admin.AdminId);
+                                parameters.Add("userName", admin.AdminName);
+                            }
+                            else if (employee != null && employee.EmployeePassword == Password)
+                            {
+                                parameters.Add("roleId", 3);
+                                parameters.Add("image", employee.EmployeeImage);
+                                parameters.Add("employeeId", employee.EmployeeId);
+                                parameters.Add("userName", employee.EmployeeName);
+                            }
+                            else
+                            {
+                                parameters.Add("roleId", 4);
+                            }
+                            RequestClose.Invoke(parameters, ButtonResult.OK);
                         }
                         else
                         {
-                            parameters.Add("roleId", 4);
+                            System.Windows.MessageBox.Show("账号或密码错误", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                         }
-                        RequestClose.Invoke(parameters, ButtonResult.OK);
                     }
-                    else
+                    catch (Exception ex)
                     {
-                        System.Windows.MessageBox.Show("账号或密码错误", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
+                        System.Windows.MessageBox.Show($"登录过程中发生错误: {ex.Message}", "错误", MessageBoxButton.OK, MessageBoxImage.Error);
                     }
-                    Loading = Visibility.Hidden;
+                    finally
+                    {
+                        Loading = Visibility.Hidden;
+                    }
                 });
             }
         }

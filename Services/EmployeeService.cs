@@ -217,12 +217,34 @@ namespace SIASGraduate.Services
             }
         }
 
+        public Task<Employee> GetEmployeeByNameAsync(string name)
+        {
+            return Task.Run(() =>
+            {
+                using (var context = new DataBaseContext())
+                {
+                    return context.Employees.FirstOrDefault(e => e.EmployeeName == name);
+                }
+            });
+        }
+
         public bool IsEmployeeNameExist(string employeeName)
         {
             using (var context = new DataBaseContext())
             {
                 return context.Employees.Any(e => e.EmployeeName == employeeName);
             }
+        }
+
+        public Task<bool> IsEmployeeNameExistAsync(string employeeName)
+        {
+            return Task.Run(() =>
+            {
+                using (var context = new DataBaseContext())
+                {
+                    return context.Employees.Any(e => e.EmployeeName == employeeName);
+                }
+            });
         }
         #endregion
 
@@ -235,12 +257,34 @@ namespace SIASGraduate.Services
             }
         }
 
+        public Task<Employee> GetEmployeeByAccountAsync(string account)
+        {
+            return Task.Run(() =>
+            {
+                using (var context = new DataBaseContext())
+                {
+                    return context.Employees.FirstOrDefault(e => e.Account == account);
+                }
+            });
+        }
+
         public bool IsEmployeeAccountExist(string account)
         {
             using (var context = new DataBaseContext())
             {
                 return context.Employees.Any(e => e.Account == account);
             }
+        }
+
+        public Task<bool> IsEmployeeAccountExistAsync(string account)
+        {
+            return Task.Run(() =>
+            {
+                using (var context = new DataBaseContext())
+                {
+                    return context.Employees.Any(e => e.Account == account);
+                }
+            });
         }
         #endregion
 

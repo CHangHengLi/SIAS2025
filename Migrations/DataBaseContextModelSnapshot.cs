@@ -70,7 +70,7 @@ namespace SIASGraduate.Migrations
 
                     b.HasIndex("DepartmentId");
 
-                    b.ToTable("Admins", (string)null);
+                    b.ToTable("Admins");
                 });
 
             modelBuilder.Entity("SIASGraduate.Models.Award", b =>
@@ -102,7 +102,7 @@ namespace SIASGraduate.Migrations
 
                     b.HasKey("AwardId");
 
-                    b.ToTable("Awards", (string)null);
+                    b.ToTable("Awards");
                 });
 
             modelBuilder.Entity("SIASGraduate.Models.CommentRecord", b =>
@@ -163,7 +163,7 @@ namespace SIASGraduate.Migrations
 
                     b.HasIndex("NominationId");
 
-                    b.ToTable("CommentRecords", (string)null);
+                    b.ToTable("CommentRecords");
                 });
 
             modelBuilder.Entity("SIASGraduate.Models.Department", b =>
@@ -184,7 +184,7 @@ namespace SIASGraduate.Migrations
                     b.HasIndex("DepartmentName")
                         .IsUnique();
 
-                    b.ToTable("Departments", (string)null);
+                    b.ToTable("Departments");
                 });
 
             modelBuilder.Entity("SIASGraduate.Models.Employee", b =>
@@ -237,7 +237,7 @@ namespace SIASGraduate.Migrations
 
                     b.HasIndex("Email");
 
-                    b.ToTable("Employees", (string)null);
+                    b.ToTable("Employees");
                 });
 
             modelBuilder.Entity("SIASGraduate.Models.Nomination", b =>
@@ -315,7 +315,7 @@ namespace SIASGraduate.Migrations
 
                     b.HasIndex("ProposerSupAdminId");
 
-                    b.ToTable("Nominations", (string)null);
+                    b.ToTable("Nominations");
                 });
 
             modelBuilder.Entity("SIASGraduate.Models.NominationDeclaration", b =>
@@ -405,7 +405,7 @@ namespace SIASGraduate.Migrations
 
                     b.HasIndex("ReviewerSupAdminId");
 
-                    b.ToTable("NominationDeclarations", (string)null);
+                    b.ToTable("NominationDeclarations");
                 });
 
             modelBuilder.Entity("SIASGraduate.Models.NominationLog", b =>
@@ -447,7 +447,7 @@ namespace SIASGraduate.Migrations
 
                     b.HasIndex("OperatorSupAdminId");
 
-                    b.ToTable("NominationLogs", (string)null);
+                    b.ToTable("NominationLogs");
                 });
 
             modelBuilder.Entity("SIASGraduate.Models.SupAdmin", b =>
@@ -490,7 +490,7 @@ namespace SIASGraduate.Migrations
                     b.HasIndex("SupAdminName")
                         .IsUnique();
 
-                    b.ToTable("SupAdmins", (string)null);
+                    b.ToTable("SupAdmins");
                 });
 
             modelBuilder.Entity("SIASGraduate.Models.VoteRecord", b =>
@@ -526,7 +526,7 @@ namespace SIASGraduate.Migrations
 
                     b.HasIndex("VoterEmployeeId");
 
-                    b.ToTable("VoteRecords", (string)null);
+                    b.ToTable("VoteRecords");
                 });
 
             modelBuilder.Entity("SIASGraduate.Models.Admin", b =>

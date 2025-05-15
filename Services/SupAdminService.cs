@@ -24,12 +24,34 @@ namespace SIASGraduate.Services
             }
         }
 
+        public Task<SupAdmin> GetSupAdminByNameAsync(string name)
+        {
+            return Task.Run(() =>
+            {
+                using (var context = new DataBaseContext())
+                {
+                    return context.SupAdmins.FirstOrDefault(sa => sa.SupAdminName == name);
+                }
+            });
+        }
+
         public SupAdmin GetSupAdminByAccount(string account)
         {
             using (var context = new DataBaseContext())
             {
                 return context.SupAdmins.FirstOrDefault(sa => sa.Account == account);
             }
+        }
+
+        public Task<SupAdmin> GetSupAdminByAccountAsync(string account)
+        {
+            return Task.Run(() =>
+            {
+                using (var context = new DataBaseContext())
+                {
+                    return context.SupAdmins.FirstOrDefault(sa => sa.Account == account);
+                }
+            });
         }
 
         public bool IsSupAdminNameExist(string employeeName)
@@ -40,12 +62,34 @@ namespace SIASGraduate.Services
             }
         }
 
+        public Task<bool> IsSupAdminNameExistAsync(string employeeName)
+        {
+            return Task.Run(() =>
+            {
+                using (var context = new DataBaseContext())
+                {
+                    return context.SupAdmins.Any(sa => sa.SupAdminName == employeeName);
+                }
+            });
+        }
+
         public bool IsSupAdminAccountExist(string account)
         {
             using (var context = new DataBaseContext())
             {
                 return context.SupAdmins.Any(sa => sa.Account == account);
             }
+        }
+
+        public Task<bool> IsSupAdminAccountExistAsync(string account)
+        {
+            return Task.Run(() =>
+            {
+                using (var context = new DataBaseContext())
+                {
+                    return context.SupAdmins.Any(sa => sa.Account == account);
+                }
+            });
         }
     }
 }

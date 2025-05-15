@@ -5,8 +5,10 @@ namespace SIASGraduate.Services
     public interface IEmployeeService
     {
         List<Employee> GetAllEmployees();
+        Task<Employee> GetEmployeeByNameAsync(string name);
         Employee GetEmployeeByName(string name);
         Employee GetEmployeeById(int id);
+        Task<Employee> GetEmployeeByAccountAsync(string account);
         Employee GetEmployeeByAccount(string account);
         void AddEmployee(Employee employee);
         void UpdateEmployee(Employee employee);
@@ -20,7 +22,9 @@ namespace SIASGraduate.Services
         /// <param name="employeeId">要删除的员工ID</param>
         /// <returns>删除是否成功</returns>
         bool ExecuteDirectSqlDelete(int employeeId);
+        Task<bool> IsEmployeeNameExistAsync(string employeeName);
         bool IsEmployeeNameExist(string employeeName);
+        Task<bool> IsEmployeeAccountExistAsync(string account);
         bool IsEmployeeAccountExist(string account);
         IEnumerable<Employee> GetAllActiveEmployees();
         IEnumerable<Employee> GetAllInactiveEmployees();
