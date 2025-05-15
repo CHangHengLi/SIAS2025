@@ -22,8 +22,8 @@
 
             <!--  内置转换器  -->
             <converter:BooleanInvertConverter x:Key="BooleanInvertConverter"/>
-            <BooleanToVisibilityConverter x:Key="BoolToVisConverter" />
             <BooleanToVisibilityConverter x:Key="BoolToVisibilityConverter" />
+            <BooleanToVisibilityConverter x:Key="BoolToVisConverter" />
 
             <!--  页面专用转换器  -->
             <converter:ObjectToBooleanConverter x:Key="ObjectToBooleanConverter" />
@@ -196,7 +196,7 @@
             VerticalScrollBarVisibility="Auto">
             <Grid>
                 <!--  加载指示器  -->
-                <Grid Panel.ZIndex="999" Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisConverter}}">
+                <Grid Panel.ZIndex="999" Visibility="{Binding IsLoading, Converter={StaticResource BoolToVisibilityConverter}}">
                     <Grid MinHeight="300" Background="#80FFFFFF">
                         <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
                             <!--  使用标准控件替代hc:LoadingCircle  -->
@@ -534,7 +534,13 @@
                                         BorderThickness="1"
                                         CornerRadius="5"
                                         Effect="{StaticResource EffectShadow2}"
-                                        Visibility="{Binding IsCommentSectionVisible, Converter={StaticResource BoolToVisConverter}, UpdateSourceTrigger=PropertyChanged}">
+                                        Visibility="{Binding IsCommentSectionVisible, Converter={StaticResource BoolToVisibilityConverter}, UpdateSourceTrigger=PropertyChanged}">
+
+                                        <!-- 调试辅助指示器 -->
+                                        <Border.ToolTip>
+                                            <TextBlock Text="{Binding IsCommentSectionVisible, StringFormat=评论区可见性: {0}}" />
+                                        </Border.ToolTip>
+
                                         <Grid>
                                             <Grid.RowDefinitions>
                                                 <RowDefinition Height="Auto" />
@@ -697,14 +703,6 @@
                                                                                     Margin="0,5,0,0"
                                                                                     Text="{Binding Content}"
                                                                                     TextWrapping="Wrap" />
-
-                                                                                <!--  已删除标记  -->
-                                                                                <TextBlock
-                                                                                    Margin="0,5,0,0"
-                                                                                    FontStyle="Italic"
-                                                                                    Foreground="#E53935"
-                                                                                    Text="[此评论已被删除]"
-                                                                                    Visibility="{Binding IsDeleted, Converter={StaticResource BoolToVisConverter}}" />
                                                                             </StackPanel>
 
                                                                             <!--  删除按钮 (仅对管理员和超级管理员可见)  -->
@@ -721,8 +719,17 @@
                                                                                 Command="{Binding DataContext.DeleteCommentCommand, ElementName=NominationsItemsControl}"
                                                                                 CommandParameter="{Binding}"
                                                                                 Foreground="White"
-                                                                                ToolTip="删除此评论"
-                                                                                Visibility="{Binding DataContext.IsAdmin, ElementName=NominationsItemsControl, Converter={StaticResource BoolToVisConverter}}">
+                                                                                ToolTip="删除此评论">
+                                                                                <Button.Style>
+                                                                                    <Style TargetType="Button">
+                                                                                        <Setter Property="Visibility" Value="Collapsed" />
+                                                                                        <Style.Triggers>
+                                                                                            <DataTrigger Binding="{Binding DataContext.IsAdmin, ElementName=NominationsItemsControl}" Value="True">
+                                                                                                <Setter Property="Visibility" Value="Visible" />
+                                                                                            </DataTrigger>
+                                                                                        </Style.Triggers>
+                                                                                    </Style>
+                                                                                </Button.Style>
                                                                                 <StackPanel Orientation="Horizontal">
                                                                                     <TextBlock
                                                                                         Margin="0,0,5,0"
@@ -753,7 +760,7 @@
                                                             CommandParameter="{Binding}"
                                                             Content="加载更多评论"
                                                             Foreground="White"
-                                                            Visibility="{Binding HasMoreComments, Converter={StaticResource BoolToVisConverter}}" />
+                                                            Visibility="{Binding HasMoreComments, Converter={StaticResource BoolToVisibilityConverter}}" />
                                                     </StackPanel>
                                                 </ScrollViewer>
                                             </Grid>

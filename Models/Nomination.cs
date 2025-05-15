@@ -131,19 +131,58 @@ namespace SIASGraduate.Models
         /// 评论区是否可见
         /// </summary>
         [NotMapped]
-        public bool IsCommentSectionVisible { get; set; }
+        private bool _isCommentSectionVisible;
+        [NotMapped]
+        public bool IsCommentSectionVisible
+        {
+            get { return _isCommentSectionVisible; }
+            set
+            {
+                if (_isCommentSectionVisible != value)
+                {
+                    _isCommentSectionVisible = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
 
         /// <summary>
         /// UI显示用评论列表 (非数据库字段)
         /// </summary>
         [NotMapped]
-        public ObservableCollection<CommentRecord> UIComments { get; set; } = new ObservableCollection<CommentRecord>();
+        private ObservableCollection<CommentRecord> _uiComments = new ObservableCollection<CommentRecord>();
+        [NotMapped]
+        public ObservableCollection<CommentRecord> UIComments
+        {
+            get { return _uiComments; }
+            set
+            {
+                if (_uiComments != value)
+                {
+                    _uiComments = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
 
         /// <summary>
         /// 新评论内容
         /// </summary>
         [NotMapped]
-        public string NewCommentText { get; set; } = string.Empty;
+        private string _newCommentText = string.Empty;
+        [NotMapped]
+        public string NewCommentText
+        {
+            get { return _newCommentText; }
+            set
+            {
+                if (_newCommentText != value)
+                {
+                    _newCommentText = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
 
         /// <summary>
         /// 评论数量
@@ -177,7 +216,20 @@ namespace SIASGraduate.Models
         /// 是否有更多评论
         /// </summary>
         [NotMapped]
-        public bool HasMoreComments { get; set; }
+        private bool _hasMoreComments;
+        [NotMapped]
+        public bool HasMoreComments
+        {
+            get { return _hasMoreComments; }
+            set
+            {
+                if (_hasMoreComments != value)
+                {
+                    _hasMoreComments = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
 
         /// <summary>
         /// 当前用户是否已投票（不映射到数据库）

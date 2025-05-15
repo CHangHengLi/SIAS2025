@@ -1,9 +1,20 @@
+using System.ComponentModel;
 using System.ComponentModel.DataAnnotations;
+using System.Runtime.CompilerServices;
 
 namespace SIASGraduate.Models
 {
-    public class CommentRecord
+    public class CommentRecord : INotifyPropertyChanged
     {
+        /// <summary>
+        /// 实现INotifyPropertyChanged接口
+        /// </summary>
+        public event PropertyChangedEventHandler? PropertyChanged;
+        protected void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+        {
+            PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+        }
+
         /// <summary>
         /// 评论ID
         /// </summary>
@@ -45,7 +56,19 @@ namespace SIASGraduate.Models
         /// <summary>
         /// 评论是否被删除
         /// </summary>
-        public bool IsDeleted { get; set; } = false;
+        private bool _isDeleted = false;
+        public bool IsDeleted
+        {
+            get { return _isDeleted; }
+            set
+            {
+                if (_isDeleted != value)
+                {
+                    _isDeleted = value;
+                    OnPropertyChanged();
+                }
+            }
+        }
         /// <summary>
         /// 评论删除时间
         /// </summary>

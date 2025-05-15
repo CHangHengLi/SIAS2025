@@ -1519,12 +1519,93 @@ namespace SIASGraduate.ViewModels.Pages
         /// <summary>
         /// 执行显示评论命令
         /// </summary>
-        private void ExecuteShowCommentsCommand(Nomination nomination)
+        private async void ExecuteShowCommentsCommand(Nomination nomination)
         {
-            // 在实际项目中实现显示评论逻辑
-            if (nomination != null)
+            // 验证输入
+            if (nomination == null)
             {
+                Growl.Warning("无法显示评论: 未选择提名");
+                return;
+            }
+
+            try
+            {
+                // 确保UIComments集合已初始化
+                if (nomination.UIComments == null)
+                {
+                    nomination.UIComments = new ObservableCollection<CommentRecord>();
+                }
+
+                // 设置评论区可见
                 nomination.IsCommentSectionVisible = true;
+                
+                // 立即强制UI更新，确保可见性变更生效
+                Application.Current.Dispatcher.Invoke(() => { });
+
+                // 如果评论已经加载过，则不重新加载
+                if (nomination.UIComments.Count > 0)
+                    return;
+
+                // 显示加载指示器
+                IsLoading = true;
+
+                using (var dbContext = new DataBaseContext())
+                {
+                    try
+                    {
+                        // 加载评论数据
+                        var comments = await dbContext.CommentRecords
+                            .AsNoTracking()
+                            .Include(c => c.CommenterEmployee)
+                            .Include(c => c.CommenterAdmin)
+                            .Include(c => c.CommenterSupAdmin)
+                            .Where(c => c.NominationId == nomination.NominationId)
+                            .OrderByDescending(c => c.CommentTime)
+                            .Take(10) // 只获取前10条
+                            .ToListAsync();
+
+                        // 更新评论数量
+                        nomination.CommentCount = await dbContext.CommentRecords
+                            .CountAsync(c => c.NominationId == nomination.NominationId);
+
+                        // 更新UI显示
+                        Application.Current.Dispatcher.Invoke(() => {
+                            // 确保清空之前的评论
+                            nomination.UIComments.Clear();
+                            // 添加新评论
+                            foreach (var comment in comments)
+                            {
+                                nomination.UIComments.Add(comment);
+                            }
+                            
+                            // 强制触发UIComments集合变更通知
+                            var temp = nomination.UIComments;
+                            nomination.UIComments = new ObservableCollection<CommentRecord>(temp);
+                        });
+
+                        // 检查是否还有更多评论
+                        int totalComments = await dbContext.CommentRecords
+                            .CountAsync(c => c.NominationId == nomination.NominationId);
+                        
+                        nomination.HasMoreComments = totalComments > comments.Count;
+                    }
+                    catch (Exception ex)
+                    {
+                        Growl.Error($"加载评论失败: {ex.Message}");
+                        Debug.WriteLine($"加载评论数据异常: {ex}");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Growl.Error($"显示评论区失败: {ex.Message}");
+                Debug.WriteLine($"显示评论区异常: {ex}");
+                // 如果加载失败，隐藏评论区
+                nomination.IsCommentSectionVisible = false;
+            }
+            finally
+            {
+                IsLoading = false;
             }
         }
 
@@ -1543,25 +1624,246 @@ namespace SIASGraduate.ViewModels.Pages
         /// <summary>
         /// 执行添加评论命令
         /// </summary>
-        private void ExecuteAddCommentCommand(Nomination nomination)
+        private async void ExecuteAddCommentCommand(Nomination nomination)
         {
-            // 在实际项目中实现添加评论逻辑
+            // 验证输入
+            if (nomination == null)
+            {
+                Growl.Warning("无法添加评论: 未选择提名");
+                return;
+            }
+
+            if (string.IsNullOrWhiteSpace(nomination.NewCommentText))
+            {
+                Growl.Warning("请输入评论内容");
+                return;
+            }
+
+            try
+            {
+                // 创建新评论
+                var newComment = new CommentRecord
+                {
+                    Content = nomination.NewCommentText.Trim(),
+                    NominationId = nomination.NominationId,
+                    AwardId = nomination.AwardId,
+                    CommentTime = DateTime.Now
+                };
+
+                // 根据当前用户角色设置评论者ID
+                if (IsSuperAdmin && CurrentSupAdminId.HasValue)
+                {
+                    newComment.CommenterSupAdminId = CurrentSupAdminId.Value;
+                }
+                else if (CurrentAdminId.HasValue)
+                {
+                    newComment.CommenterAdminId = CurrentAdminId.Value;
+                }
+                else if (CurrentEmployeeId.HasValue)
+                {
+                    newComment.CommenterEmployeeId = CurrentEmployeeId.Value;
+                }
+                else
+                {
+                    Growl.Error("添加评论失败: 未能确定您的身份");
+                    return;
+                }
+
+                // 保存到数据库
+                using (var dbContext = new DataBaseContext())
+                {
+                    dbContext.CommentRecords.Add(newComment);
+                    await dbContext.SaveChangesAsync();
+
+                    // 重新加载评论
+                    var comments = await dbContext.CommentRecords
+                        .AsNoTracking()
+                        .Include(c => c.CommenterEmployee)
+                        .Include(c => c.CommenterAdmin)
+                        .Include(c => c.CommenterSupAdmin)
+                        .Where(c => c.NominationId == nomination.NominationId)
+                        .OrderByDescending(c => c.CommentTime)
+                        .Take(10) // 只获取前10条
+                        .ToListAsync();
+
+                    // 更新评论数量
+                    nomination.CommentCount = await dbContext.CommentRecords
+                        .CountAsync(c => c.NominationId == nomination.NominationId);
+
+                    // 更新UI显示
+                    Application.Current.Dispatcher.Invoke(() => {
+                        nomination.UIComments.Clear();
+                        foreach (var comment in comments)
+                        {
+                            nomination.UIComments.Add(comment);
+                        }
+
+                        // 清空评论输入框
+                        nomination.NewCommentText = string.Empty;
+                    });
+
+                    nomination.HasMoreComments = await dbContext.CommentRecords
+                        .CountAsync(c => c.NominationId == nomination.NominationId) > 10;
+
+                    Growl.Success("评论发表成功");
+                }
+            }
+            catch (Exception ex)
+            {
+                Growl.Error($"添加评论失败: {ex.Message}");
+                Debug.WriteLine($"添加评论异常: {ex}");
+            }
         }
 
         /// <summary>
         /// 执行删除评论命令
         /// </summary>
-        private void ExecuteDeleteCommentCommand(CommentRecord comment)
+        private async void ExecuteDeleteCommentCommand(CommentRecord comment)
         {
-            // 在实际项目中实现删除评论逻辑
+            if (comment == null)
+            {
+                Growl.Warning("无法删除: 未选择评论");
+                return;
+            }
+
+            // 确认对话框
+            var result = HandyControl.Controls.MessageBox.Show("确定要删除这条评论吗？此操作不可撤销。", "删除确认", MessageBoxButton.YesNo, MessageBoxImage.Question);
+            if (result != MessageBoxResult.Yes)
+            {
+                return;
+            }
+
+            try
+            {
+                using (var dbContext = new DataBaseContext())
+                {
+                    // 查找需要被删除的评论
+                    var commentToDelete = await dbContext.CommentRecords
+                        .FirstOrDefaultAsync(c => c.CommentId == comment.CommentId);
+
+                    if (commentToDelete == null)
+                    {
+                        Growl.Warning("评论已不存在");
+                        return;
+                    }
+
+                    // 物理删除评论，而不是设置IsDeleted标志
+                    dbContext.CommentRecords.Remove(commentToDelete);
+                    
+                    // 保存更改
+                    await dbContext.SaveChangesAsync();
+
+                    // 在UI线程中从UI集合中移除评论
+                    Application.Current.Dispatcher.Invoke(() => 
+                    {
+                        // 找到提名并从其评论集合中移除该评论
+                        var nomination = PagedNominations.FirstOrDefault(n => n.NominationId == comment.NominationId);
+                        if (nomination != null && nomination.UIComments != null)
+                        {
+                            // 从集合中移除评论
+                            if (nomination.UIComments.Contains(comment))
+                            {
+                                nomination.UIComments.Remove(comment);
+                            }
+                        }
+                    });
+
+                    // 更新评论计数
+                    var nominationForCount = PagedNominations.FirstOrDefault(n => n.NominationId == comment.NominationId);
+                    if (nominationForCount != null)
+                    {
+                        nominationForCount.CommentCount = await dbContext.CommentRecords
+                            .CountAsync(c => c.NominationId == nominationForCount.NominationId);
+                    }
+
+                    Growl.Success("评论已永久删除");
+                }
+            }
+            catch (Exception ex)
+            {
+                Growl.Error($"删除评论失败: {ex.Message}");
+                Debug.WriteLine($"删除评论异常: {ex}");
+            }
         }
 
         /// <summary>
         /// 执行加载更多评论命令
         /// </summary>
-        private void ExecuteLoadMoreCommentsCommand(Nomination nomination)
+        private async void ExecuteLoadMoreCommentsCommand(Nomination nomination)
         {
-            // 在实际项目中实现加载更多评论逻辑
+            if (nomination == null)
+            {
+                Growl.Warning("无法加载评论: 未选择提名");
+                return;
+            }
+
+            try
+            {
+                // 显示加载指示器
+                IsLoading = true;
+
+                using (var dbContext = new DataBaseContext())
+                {
+                    // 计算当前已加载的评论数量，用于分页
+                    int currentCount = nomination.UIComments?.Count ?? 0;
+                    
+                    // 加载下一批评论
+                    var moreComments = await dbContext.CommentRecords
+                        .AsNoTracking()
+                        .Include(c => c.CommenterEmployee)
+                        .Include(c => c.CommenterAdmin)
+                        .Include(c => c.CommenterSupAdmin)
+                        .Where(c => c.NominationId == nomination.NominationId)
+                        .OrderByDescending(c => c.CommentTime)
+                        .Skip(currentCount)  // 跳过已加载的评论
+                        .Take(10)  // 再加载10条
+                        .ToListAsync();
+
+                    // 添加到现有评论列表
+                    Application.Current.Dispatcher.Invoke(() => {
+                        foreach (var comment in moreComments)
+                        {
+                            nomination.UIComments.Add(comment);
+                        }
+                    });
+
+                    // 检查是否还有更多评论
+                    int totalComments = await dbContext.CommentRecords
+                        .CountAsync(c => c.NominationId == nomination.NominationId);
+                    
+                    nomination.HasMoreComments = totalComments > nomination.UIComments.Count;
+
+                    if (moreComments.Count > 0)
+                    {
+                        Growl.Info($"已加载{moreComments.Count}条评论");
+                    }
+                    else if (!nomination.HasMoreComments)
+                    {
+                        Growl.Info("已加载全部评论");
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Growl.Error($"加载评论失败: {ex.Message}");
+                Debug.WriteLine($"加载评论异常: {ex}");
+            }
+            finally
+            {
+                IsLoading = false;
+            }
+        }
+
+        /// <summary>
+        /// 加载提名并按顺序检查投票状态，确保UI状态一致
+        /// </summary>
+        private async void LoadNominationsAndCheckVoteStatusAsync()
+        {
+            // 先加载提名
+            await LoadNominationsAsync();
+
+            // 然后检查投票状态
+            await CheckIfUserHasVotedAsync();
         }
 
         #endregion
@@ -1671,17 +1973,5 @@ namespace SIASGraduate.ViewModels.Pages
         }
 
         #endregion
-
-        /// <summary>
-        /// 加载提名并按顺序检查投票状态，确保UI状态一致
-        /// </summary>
-        private async void LoadNominationsAndCheckVoteStatusAsync()
-        {
-            // 先加载提名
-            await LoadNominationsAsync();
-
-            // 然后检查投票状态
-            await CheckIfUserHasVotedAsync();
-        }
     }
 }
