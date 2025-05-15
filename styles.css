@@ -735,14 +735,15 @@ footer {
 .references-section {
     margin: 40px 0;
     padding: 25px;
-    background-color: #2c3e50; /* 深色背景 */
+    background-color: #f8f9fa; /* 浅色背景 */
     border-radius: 8px;
-    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
-    color: #f8f9fa; /* 浅色文字 */
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    color: #333333; /* 黑色文字 */
+    border: 1px solid #e0e0e0;
 }
 
 .references-section h3 {
-    color: #ffffff; /* 白色标题 */
+    color: #2c3e50; /* 深蓝色标题 */
     margin-bottom: 20px;
     padding-bottom: 10px;
     border-bottom: 2px solid var(--secondary-color);
@@ -760,7 +761,7 @@ footer {
     padding-left: 35px;
     position: relative;
     line-height: 1.6;
-    color: #ecf0f1; /* 浅灰白色文字 */
+    color: #333333; /* 黑色文字 */
 }
 
 .reference-list li::before {
@@ -769,32 +770,44 @@ footer {
     position: absolute;
     left: 0;
     font-weight: bold;
-    color: #3498db; /* 亮蓝色编号 */
-    background-color: rgba(52, 152, 219, 0.15);
+    color: #2980b9; /* 深蓝色编号 */
+    background-color: rgba(52, 152, 219, 0.1);
     padding: 0 5px;
     border-radius: 3px;
     min-width: 28px;
     text-align: center;
 }
 
-.reference-list a {
-    color: #3498db; /* 亮蓝色链接 */
-    word-break: break-all;
+/* 添加强调样式 */
+.reference-list li strong {
+    color: #2c3e50; /* 深蓝色强调 */
     font-weight: bold;
 }
 
-.reference-list a:hover {
-    color: #2ecc71; /* 鼠标悬停时变为绿色 */
+.reference-list a {
+    color: #2980b9; /* 深蓝色链接 */
+    text-decoration: none;
+    border-bottom: 1px dotted #2980b9;
+    transition: all 0.3s ease;
+    padding-bottom: 2px;
+    font-weight: bold;
+    word-break: break-all; /* 确保长URL能够换行 */
 }
 
+.reference-list a:hover {
+    color: #27ae60; /* 深绿色悬停效果 */
+    border-bottom: 1px solid #27ae60;
+}
+
+/* 研究现状部分的链接样式 */
 #research a {
-    color: #2980b9; /* 稍深的蓝色，在浅色背景上更易读 */
+    color: #2980b9; /* 深蓝色，在浅色背景上更易读 */
     text-decoration: underline;
     font-weight: bold;
 }
 
 #research a:hover {
-    color: #27ae60; /* 稍深的绿色 */
+    color: #27ae60; /* 深绿色 */
 }
 
 @keyframes moveParticles {
@@ -831,24 +844,4 @@ footer .references-section {
 
 footer .footer-content {
     margin-top: 30px;
-}
-
-/* 添加强调样式 */
-.reference-list li strong {
-    color: #ffffff;
-    font-weight: bold;
-}
-
-/* 美化链接样式 */
-.reference-list a {
-    color: #3498db;
-    text-decoration: none;
-    border-bottom: 1px dotted #3498db;
-    transition: all 0.3s ease;
-    padding-bottom: 2px;
-}
-
-.reference-list a:hover {
-    color: #2ecc71;
-    border-bottom: 1px solid #2ecc71;
 }
