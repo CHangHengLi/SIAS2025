@@ -84,6 +84,8 @@ ul {
     background-color: #27ae60;
     color: white;
     border: 2px solid #27ae60;
+}
+
 .btn-secondary {
     align-items: center;
     gap: 8px;
@@ -255,7 +257,6 @@ ul {
     max-width: 700px;
     margin: 0 auto 2rem auto;
     opacity: 0.8;
-}
 }
 
 /* 图标 */
@@ -716,4 +717,56 @@ footer {
     font-size: 3.5rem;
     margin-bottom: 0.5rem;
     letter-spacing: 2px;
+}
+
+/* 参考文献样式 */
+.references-section {
+    margin: 40px 0;
+    padding: 20px;
+    background-color: #f8f9fa;
+    border-radius: 8px;
+}
+
+.references-section h3 {
+    color: var(--primary-color);
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 2px solid var(--secondary-color);
+}
+
+.reference-list {
+    counter-reset: reference-counter;
+    list-style-type: none;
+    padding-left: 0;
+}
+
+.reference-list li {
+    margin-bottom: 10px;
+    padding-left: 30px;
+    position: relative;
+    line-height: 1.6;
+}
+
+.reference-list li::before {
+    content: "[" counter(reference-counter) "]";
+    counter-increment: reference-counter;
+    position: absolute;
+    left: 0;
+    font-weight: bold;
+    color: var(--secondary-color);
+}
+
+.reference-list a {
+    color: var(--secondary-color);
+    word-break: break-all;
+}
+
+#research a {
+    color: var(--secondary-color);
+    text-decoration: none;
+    font-weight: bold;
+}
+
+#research a:hover {
+    text-decoration: underline;
 }
