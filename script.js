@@ -33,10 +33,10 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 波浪参数 - 明显增加振幅和调整波浪位置使其更加可见
     const waves = [
-        { y: height * 0.6, length: 0.008, amplitude: 60, speed: 0.005, color: getComputedStyle(document.documentElement).getPropertyValue('--wave-color-1') },
-        { y: height * 0.55, length: 0.01, amplitude: 50, speed: 0.003, color: getComputedStyle(document.documentElement).getPropertyValue('--wave-color-2') },
-        { y: height * 0.65, length: 0.012, amplitude: 70, speed: 0.002, color: getComputedStyle(document.documentElement).getPropertyValue('--wave-color-1') },
-        { y: height * 0.7, length: 0.014, amplitude: 40, speed: 0.004, color: getComputedStyle(document.documentElement).getPropertyValue('--wave-color-2') }
+        { y: height * 0.75, length: 0.008, amplitude: 80, speed: 0.006, color: 'rgba(52, 152, 219, 0.9)' },
+        { y: height * 0.7, length: 0.01, amplitude: 70, speed: 0.004, color: 'rgba(187, 222, 251, 0.95)' },
+        { y: height * 0.8, length: 0.012, amplitude: 90, speed: 0.003, color: 'rgba(52, 152, 219, 0.85)' },
+        { y: height * 0.85, length: 0.014, amplitude: 60, speed: 0.005, color: 'rgba(187, 222, 251, 0.9)' }
     ];
     
     // 动画状态
@@ -45,6 +45,13 @@ document.addEventListener('DOMContentLoaded', function() {
     // 绘制波浪
     function drawWaves() {
         ctx.clearRect(0, 0, width, height);
+        
+        // 绘制渐变背景
+        const gradient = ctx.createLinearGradient(0, 0, 0, height);
+        gradient.addColorStop(0, 'rgba(230, 247, 255, 0.1)');
+        gradient.addColorStop(1, 'rgba(187, 222, 251, 0.3)');
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, width, height);
         
         waves.forEach(wave => {
             ctx.beginPath();

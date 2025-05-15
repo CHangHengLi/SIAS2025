@@ -6,6 +6,16 @@
     <title>SIAS2025 - 员工奖项线上评选系统</title>
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script>
+        // 立即执行这段代码，确保在DOM加载前初始化适配
+        (function() {
+            // 移动设备适配
+            var isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+            if (isMobile) {
+                document.documentElement.classList.add('mobile');
+            }
+        })();
+    </script>
 </head>
 <body>
     <!-- 动态背景元素 -->

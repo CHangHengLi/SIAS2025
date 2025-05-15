@@ -9,19 +9,29 @@
     --text-light: #f8f9fa;
     --shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
     --transition: all 0.3s ease;
-    --wave-color-1: rgba(52, 152, 219, 0.8); /* 更深的蓝色，更高的不透明度 */
-    --wave-color-2: rgba(187, 222, 251, 0.9); /* 更亮的蓝色，更高的不透明度 */
+    --wave-color-1: rgba(52, 152, 219, 0.9); /* 更深的蓝色，更高的不透明度 */
+    --wave-color-2: rgba(187, 222, 251, 0.95); /* 更亮的蓝色，更高的不透明度 */
 }
 
 /* 动态背景样式 */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(135deg, #e6f7ff 0%, #cbe8f9 100%);
+    z-index: -2;
+}
+
 #background-canvas {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    z-index: -1;
-    background: linear-gradient(135deg, #cbe8f9 0%, #a1d8f8 100%); /* 更明显的背景色对比 */
+    z-index: -1; /* 波浪在纯色背景之上，但在内容之下 */
 }
 
 * {
@@ -109,6 +119,7 @@ ul {
     box-shadow: var(--shadow);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
+    width: 100%;
 }
 
 #main-nav .container {
@@ -160,7 +171,7 @@ ul {
 
 /* 英雄区样式 */
 .hero {
-    background: #e6f7ff; /* 亮蓝色基础背景 */
+    background: transparent; /* 改为透明，让背景画布显示 */
     color: #2c3e50; /* 深色文字，提高可读性 */
     padding: 5rem 0;
     text-align: center;
@@ -168,6 +179,32 @@ ul {
     margin-top: 0;
     overflow: hidden;
     z-index: 1;
+}
+
+.hero::before, .hero::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+}
+
+.hero::before {
+    background: radial-gradient(circle, rgba(0,0,0,0) 0%, rgba(0,0,0,0.15) 100%);
+    z-index: 1;
+}
+
+/* 添加动态粒子背景 */
+.hero::after {
+    background-image: 
+        radial-gradient(rgba(255, 255, 255, 0.1) 2px, transparent 2px),
+        radial-gradient(rgba(255, 255, 255, 0.15) 1px, transparent 1px);
+    background-size: 50px 50px, 25px 25px;
+    background-position: 0 0, 15px 15px;
+    animation: moveParticles 20s linear infinite;
+    z-index: 2;
 }
 
 /* 聚焦效果容器 */
@@ -178,7 +215,7 @@ ul {
     width: 100%;
     height: 100%;
     pointer-events: none; /* 避免影响鼠标事件 */
-    z-index: 0; /* 修改z-index从-1到0，确保在背景之上但在内容之下 */
+    z-index: 3; /* 在粒子背景之上 */
     background: radial-gradient(
         circle at center,
         rgba(255, 255, 255, 0.8) 0%,
@@ -194,43 +231,6 @@ ul {
 .hero h1, .hero .subtitle, .hero .description {
     color: #2c3e50;
     text-shadow: 0 1px 2px rgba(255, 255, 255, 0.5);
-}
-
-.hero::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background: radial-gradient(circle, rgba(0,0,0,0) 0%, rgba(0,0,0,0.3) 100%);
-    z-index: 0;
-}
-
-/* 添加动态粒子背景 */
-.hero::after {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-image: 
-        radial-gradient(rgba(255, 255, 255, 0.1) 2px, transparent 2px),
-        radial-gradient(rgba(255, 255, 255, 0.15) 1px, transparent 1px);
-    background-size: 50px 50px, 25px 25px;
-    background-position: 0 0, 15px 15px;
-    animation: moveParticles 20s linear infinite;
-    z-index: 0;
-}
-
-@keyframes moveParticles {
-    0% {
-        background-position: 0 0, 15px 15px;
-    }
-    100% {
-        background-position: 100px 100px, 115px 115px;
-    }
 }
 
 .hero h1 {
@@ -629,17 +629,22 @@ footer {
     }
     
     #main-nav .container {
-        flex-direction: column;
+        flex-direction: row; /* 强制使用水平布局 */
         text-align: center;
+        flex-wrap: wrap;
+        justify-content: center;
     }
     
     #main-nav ul {
         margin-top: 15px;
         justify-content: center;
+        flex-wrap: wrap;
+        width: 100%;
     }
     
     #main-nav li {
         margin: 0 10px;
+        margin-bottom: 5px;
     }
     
     .section-content {
@@ -697,7 +702,7 @@ footer {
     border-radius: 50%;
     pointer-events: none;
     animation: pulse 5s ease-in-out infinite;
-    z-index: 1; /* 确保在背景层之上，但在内容层之下 */
+    z-index: 4; /* 在聚光灯效果之上 */
 }
 
 @keyframes pulse {
@@ -717,7 +722,7 @@ footer {
 
 .hero .container {
     position: relative;
-    z-index: 2; /* 确保内容在所有背景和效果之上 */
+    z-index: 5; /* 确保内容在所有背景和效果之上 */
 }
 
 .hero h1 {
@@ -776,4 +781,30 @@ footer {
 
 #research a:hover {
     text-decoration: underline;
+}
+
+@keyframes moveParticles {
+    0% {
+        background-position: 0 0, 15px 15px;
+    }
+    100% {
+        background-position: 100px 100px, 115px 115px;
+    }
+}
+
+/* 移动设备特殊处理 */
+html.mobile #main-nav {
+    position: relative;
+}
+
+html.mobile #main-nav .container {
+    flex-direction: column;
+    text-align: center;
+}
+
+html.mobile #main-nav ul {
+    margin-top: 15px;
+    justify-content: center;
+    flex-wrap: wrap;
+    width: 100%;
 }
