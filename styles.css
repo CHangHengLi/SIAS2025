@@ -510,7 +510,7 @@ ul {
     margin: 0 auto;
     overflow: hidden;
     border-radius: 10px;
-    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.2);
 }
 
 .carousel-slides {
@@ -599,6 +599,12 @@ ul {
     display: block;
     object-fit: contain;
     border-radius: 10px 10px 0 0;
+    transition: transform 0.3s ease, filter 0.3s ease;
+}
+
+.screenshot:hover .screenshot-img {
+    filter: brightness(1.1);
+    transform: scale(1.02);
 }
 
 .screenshot-caption {
@@ -987,10 +993,6 @@ sup.reference a:hover {
 /* 鼠标样式 */
 .screenshot {
     cursor: pointer;
-}
-
-.screenshot:hover .screenshot-img {
-    filter: brightness(1.1);
 }
 
 /* 动画效果 */
