@@ -97,11 +97,10 @@
                         </div>
                         <h3>用户管理</h3>
                         <ul>
-                            <li>超级管理员管理</li>
+                            <li>个人信息管理</li>
                             <li>管理员管理</li>
                             <li>员工管理</li>
                             <li>部门管理</li>
-                            <li>个人信息管理</li>
                         </ul>
                     </div>
                     
@@ -127,7 +126,7 @@
                             <li>提名申报创建与管理</li>
                             <li>提名审核流程</li>
                             <li>上级提名下级</li>
-                            <li>员工自我提名</li>
+                            <li>员工自我申报</li>
                             <li>提名日志记录</li>
                         </ul>
                     </div>
@@ -292,27 +291,56 @@
         <section id="screenshots" class="section section-alt">
             <div class="container">
                 <h2 class="section-title">系统截图</h2>
-                <div class="screenshots-gallery">
-                    <div class="screenshot">
-                        <img src="Images/登陆界面.png" alt="系统登录界面" class="screenshot-img">
-                        <div class="screenshot-caption">系统登录界面</div>
+                <div class="carousel-container">
+                    <div class="carousel-slides">
+                        <div class="carousel-slide">
+                            <div class="screenshot">
+                                <img src="Images/登陆界面.png" alt="系统登录界面" class="screenshot-img" data-full="Images/登陆界面.png">
+                                <div class="screenshot-caption">系统登录界面</div>
+                            </div>
+                        </div>
+                        <div class="carousel-slide">
+                            <div class="screenshot">
+                                <img src="Images/主界面.png" alt="系统主界面" class="screenshot-img" data-full="Images/主界面.png">
+                                <div class="screenshot-caption">系统主界面</div>
+                            </div>
+                        </div>
+                        <div class="carousel-slide">
+                            <div class="screenshot">
+                                <img src="Images/奖项设置界面.png" alt="奖项管理界面" class="screenshot-img" data-full="Images/奖项设置界面.png">
+                                <div class="screenshot-caption">奖项管理界面</div>
+                            </div>
+                        </div>
+                        <div class="carousel-slide">
+                            <div class="screenshot">
+                                <img src="Images/投票界面.png" alt="投票界面" class="screenshot-img" data-full="Images/投票界面.png">
+                                <div class="screenshot-caption">投票界面</div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="screenshot">
-                        <img src="Images/主界面.png" alt="系统主界面" class="screenshot-img">
-                        <div class="screenshot-caption">系统主界面</div>
-                    </div>
-                    <div class="screenshot">
-                        <img src="Images/奖项设置界面.png" alt="奖项管理界面" class="screenshot-img">
-                        <div class="screenshot-caption">奖项管理界面</div>
-                    </div>
-                    <div class="screenshot">
-                        <img src="Images/投票界面.png" alt="投票界面" class="screenshot-img">
-                        <div class="screenshot-caption">投票界面</div>
+                    
+                    <!-- 轮播图导航按钮 -->
+                    <button class="carousel-button prev" aria-label="上一张"><i class="fas fa-chevron-left"></i></button>
+                    <button class="carousel-button next" aria-label="下一张"><i class="fas fa-chevron-right"></i></button>
+                    
+                    <!-- 轮播图指示器 -->
+                    <div class="carousel-indicators">
+                        <button class="indicator active" data-slide="0" aria-label="第1张幻灯片"></button>
+                        <button class="indicator" data-slide="1" aria-label="第2张幻灯片"></button>
+                        <button class="indicator" data-slide="2" aria-label="第3张幻灯片"></button>
+                        <button class="indicator" data-slide="3" aria-label="第4张幻灯片"></button>
                     </div>
                 </div>
             </div>
         </section>
     </main>
+    
+    <!-- 图片放大蒙版 -->
+    <div id="lightbox" class="lightbox">
+        <span class="close-lightbox">&times;</span>
+        <img class="lightbox-content" id="lightbox-img">
+        <div class="lightbox-caption"></div>
+    </div>
     
     <footer>
         <div class="container">
