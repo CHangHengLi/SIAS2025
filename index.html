@@ -387,5 +387,150 @@
     </footer>
     
     <script src="script.js"></script>
+    
+    <!-- 轮播图修复脚本 -->
+    <script>
+        // 在页面完全加载后执行
+        window.addEventListener('load', function() {
+            // 等待1秒，确保所有内容都已渲染
+            setTimeout(function() {
+                console.log("执行轮播图紧急修复脚本");
+                
+                // 检查轮播图是否正确初始化
+                const carousel = document.querySelector('.carousel-slides');
+                if (carousel && !carousel.style.transform.includes('translateX')) {
+                    console.log("轮播图未正确初始化，开始紧急修复");
+                    
+                    // 确保轮播图容器可见
+                    document.querySelector('.carousel-container').style.display = 'block';
+                    document.querySelector('.carousel-container').style.visibility = 'visible';
+                    
+                    // 重新初始化轮播图
+                    let currentSlide = 0;
+                    const slides = document.querySelectorAll('.carousel-slide');
+                    const totalSlides = slides.length;
+                    const prevButton = document.querySelector('.carousel-button.prev');
+                    const nextButton = document.querySelector('.carousel-button.next');
+                    const indicators = document.querySelectorAll('.indicator');
+                    
+                    function updateCarousel() {
+                        carousel.style.transform = `translateX(-${currentSlide * 100}%)`;
+                        
+                        indicators.forEach((indicator, index) => {
+                            if (index === currentSlide) {
+                                indicator.classList.add('active');
+                            } else {
+                                indicator.classList.remove('active');
+                            }
+                        });
+                    }
+                    
+                    // 初始显示第一张
+                    updateCarousel();
+                    
+                    // 下一张幻灯片
+                    function nextSlide() {
+                        currentSlide = (currentSlide + 1) % totalSlides;
+                        updateCarousel();
+                    }
+                    
+                    // 上一张幻灯片
+                    function prevSlide() {
+                        currentSlide = (currentSlide - 1 + totalSlides) % totalSlides;
+                        updateCarousel();
+                    }
+                    
+                    // 清除可能存在的事件监听器
+                    if (prevButton._hasListener) {
+                        prevButton.removeEventListener('click', prevButton._listener);
+                    }
+                    if (nextButton._hasListener) {
+                        nextButton.removeEventListener('click', nextButton._listener);
+                    }
+                    
+                    // 重新添加事件监听器
+                    prevButton._listener = prevSlide;
+                    prevButton._hasListener = true;
+                    prevButton.addEventListener('click', prevSlide);
+                    
+                    nextButton._listener = nextSlide;
+                    nextButton._hasListener = true;
+                    nextButton.addEventListener('click', nextSlide);
+                    
+                    // 指示器事件
+                    indicators.forEach((indicator, index) => {
+                        indicator.addEventListener('click', () => {
+                            currentSlide = index;
+                            updateCarousel();
+                        });
+                    });
+                    
+                    // 自动轮播
+                    let autoplayInterval = setInterval(nextSlide, 5000);
+                    
+                    // 鼠标悬停暂停
+                    const carouselContainer = document.querySelector('.carousel-container');
+                    carouselContainer.addEventListener('mouseenter', () => {
+                        clearInterval(autoplayInterval);
+                    });
+                    
+                    carouselContainer.addEventListener('mouseleave', () => {
+                        autoplayInterval = setInterval(nextSlide, 5000);
+                    });
+                    
+                    console.log("轮播图紧急修复完成");
+                }
+                
+                // 检查图片放大功能是否正确初始化
+                const lightbox = document.getElementById('lightbox');
+                const screenshotImages = document.querySelectorAll('.screenshot-img');
+                
+                if (lightbox && screenshotImages.length > 0) {
+                    // 确保图片点击事件正常
+                    screenshotImages.forEach(img => {
+                        // 移除可能存在的事件监听器
+                        img.removeEventListener('click', img._clickHandler);
+                        
+                        // 添加新的事件监听器
+                        img._clickHandler = function() {
+                            lightbox.style.display = 'block';
+                            document.getElementById('lightbox-img').src = this.getAttribute('data-full') || this.src;
+                            document.querySelector('.lightbox-caption').textContent = this.alt || '';
+                            document.body.style.overflow = 'hidden';
+                        };
+                        
+                        img.addEventListener('click', img._clickHandler);
+                    });
+                    
+                    // 确保关闭按钮正常工作
+                    const closeLightbox = document.querySelector('.close-lightbox');
+                    if (closeLightbox) {
+                        closeLightbox.removeEventListener('click', closeLightbox._clickHandler);
+                        
+                        closeLightbox._clickHandler = function() {
+                            lightbox.style.display = 'none';
+                            document.body.style.overflow = 'auto';
+                        };
+                        
+                        closeLightbox.addEventListener('click', closeLightbox._clickHandler);
+                    }
+                    
+                    // 点击蒙版关闭
+                    lightbox.removeEventListener('click', lightbox._clickHandler);
+                    
+                    lightbox._clickHandler = function(e) {
+                        if (e.target === lightbox) {
+                            lightbox.style.display = 'none';
+                            document.body.style.overflow = 'auto';
+                        }
+                    };
+                    
+                    lightbox.addEventListener('click', lightbox._clickHandler);
+                    
+                    console.log("图片放大功能检查完成");
+                }
+            }, 1000);
+        });
+    </script>
 </body>
 </html>

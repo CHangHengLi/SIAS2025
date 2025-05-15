@@ -528,3 +528,173 @@ document.addEventListener('DOMContentLoaded', function() {
         console.error('Carousel elements not found');
     }
 });
+
+// 添加window.onload事件，确保所有资源（包括图片）都已完全加载
+window.onload = function() {
+    console.log("所有资源已加载完毕，初始化轮播图和图片放大功能");
+    
+    // 轮播图功能 - 重新初始化
+    initCarousel();
+    
+    // 图片放大功能 - 重新初始化
+    initLightbox();
+};
+
+// 轮播图初始化函数
+function initCarousel() {
+    const carousel = document.querySelector('.carousel-slides');
+    const slides = document.querySelectorAll('.carousel-slide');
+    const prevButton = document.querySelector('.carousel-button.prev');
+    const nextButton = document.querySelector('.carousel-button.next');
+    const indicators = document.querySelectorAll('.indicator');
+    
+    // 确保所有轮播图元素都存在
+    if (!carousel || slides.length === 0 || !prevButton || !nextButton || indicators.length === 0) {
+        console.error('轮播图组件未完全加载，无法初始化轮播图');
+        return;
+    }
+    
+    let currentSlide = 0;
+    const totalSlides = slides.length;
+    
+    // 更新轮播图显示
+    function updateCarousel() {
+        carousel.style.transform = `translateX(-${currentSlide * 100}%)`;
+        
+        // 更新指示器状态
+        indicators.forEach((indicator, index) => {
+            if (index === currentSlide) {
+                indicator.classList.add('active');
+            } else {
+                indicator.classList.remove('active');
+            }
+        });
+    }
+    
+    // 初始化轮播图
+    updateCarousel();
+    
+    // 下一张幻灯片
+    function nextSlide() {
+        currentSlide = (currentSlide + 1) % totalSlides;
+        updateCarousel();
+    }
+    
+    // 上一张幻灯片
+    function prevSlide() {
+        currentSlide = (currentSlide - 1 + totalSlides) % totalSlides;
+        updateCarousel();
+    }
+    
+    // 按钮点击事件
+    nextButton.addEventListener('click', nextSlide);
+    prevButton.addEventListener('click', prevSlide);
+    
+    // 指示器点击事件
+    indicators.forEach((indicator, index) => {
+        indicator.addEventListener('click', () => {
+            currentSlide = index;
+            updateCarousel();
+        });
+    });
+    
+    // 自动播放
+    let autoplayInterval = setInterval(nextSlide, 5000);
+    
+    // 鼠标悬停时暂停自动播放
+    const carouselContainer = document.querySelector('.carousel-container');
+    if (carouselContainer) {
+        carouselContainer.addEventListener('mouseenter', () => {
+            clearInterval(autoplayInterval);
+        });
+        
+        // 鼠标离开时恢复自动播放
+        carouselContainer.addEventListener('mouseleave', () => {
+            autoplayInterval = setInterval(nextSlide, 5000);
+        });
+    }
+    
+    // 触摸滑动支持
+    let touchStartX = 0;
+    let touchEndX = 0;
+    
+    carousel.addEventListener('touchstart', e => {
+        touchStartX = e.changedTouches[0].screenX;
+    });
+    
+    carousel.addEventListener('touchend', e => {
+        touchEndX = e.changedTouches[0].screenX;
+        handleSwipe();
+    });
+    
+    function handleSwipe() {
+        // 检测滑动方向
+        const swipeThreshold = 50; // 最小滑动距离
+        if (touchEndX < touchStartX - swipeThreshold) {
+            // 向左滑动 -> 下一张
+            nextSlide();
+        } else if (touchEndX > touchStartX + swipeThreshold) {
+            // 向右滑动 -> 上一张
+            prevSlide();
+        }
+    }
+    
+    console.log('轮播图功能已初始化');
+}
+
+// 图片放大功能初始化
+function initLightbox() {
+    const lightbox = document.getElementById('lightbox');
+    const lightboxImg = document.getElementById('lightbox-img');
+    const lightboxCaption = document.querySelector('.lightbox-caption');
+    const closeLightbox = document.querySelector('.close-lightbox');
+    const screenshotImages = document.querySelectorAll('.screenshot-img');
+    
+    // 确保所有元素都存在
+    if (!lightbox || !lightboxImg || !lightboxCaption || !closeLightbox || screenshotImages.length === 0) {
+        console.error('图片放大蒙版组件未完全加载，无法初始化图片放大功能');
+        return;
+    }
+    
+    // 打开放大图片
+    screenshotImages.forEach(img => {
+        img.addEventListener('click', function() {
+            lightbox.style.display = 'block';
+            lightboxImg.src = this.getAttribute('data-full') || this.src;
+            if (this.alt) {
+                lightboxCaption.textContent = this.alt;
+            } else {
+                lightboxCaption.textContent = '';
+            }
+            
+            // 防止背景滚动
+            document.body.style.overflow = 'hidden';
+        });
+    });
+    
+    // 关闭放大图片
+    closeLightbox.addEventListener('click', function() {
+        lightbox.style.display = 'none';
+        
+        // 恢复背景滚动
+        document.body.style.overflow = 'auto';
+    });
+    
+    // 点击蒙版任意位置也可关闭
+    lightbox.addEventListener('click', function(e) {
+        if (e.target === lightbox) {
+            lightbox.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+    });
+    
+    // 按ESC键关闭图片
+    document.addEventListener('keydown', function(e) {
+        if (e.key === 'Escape' && lightbox.style.display === 'block') {
+            lightbox.style.display = 'none';
+            document.body.style.overflow = 'auto';
+        }
+    });
+    
+    console.log('图片放大功能已初始化');
+}
