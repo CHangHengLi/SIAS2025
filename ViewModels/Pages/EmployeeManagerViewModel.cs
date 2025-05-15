@@ -672,49 +672,63 @@ namespace SIASGraduate.ViewModels.Pages
             // 显示正在处理的提示
             Growl.InfoGlobal("正在处理级联删除，请稍候...");
 
-            // 异步调用服务层删除员工及其关联记录
-            bool success = false;
-            bool shouldUseSqlMethod = false;
-            Exception caughtException = null;
-
             try
             {
-                // 首先尝试使用EF Core方式删除
-                logger.Info($"尝试使用EF Core方式删除员工 ID={employee.EmployeeId}");
-                success = employeeService.DeleteEmployeeWithRelatedRecords(employee.EmployeeId);
-            }
-            catch (Exception ex)
-            {
-                caughtException = ex;
-                logger.Error(ex, $"级联删除员工时发生异常: {ex.Message}");
+                // 优先使用ExecuteDirectSqlDelete方法，而不是DeleteEmployeeWithRelatedRecords
+                // 因为ExecuteDirectSqlDelete方法不使用EF Core事务，避免事务执行策略冲突
+                bool success = await Task.Run(() => employeeService.ExecuteDirectSqlDelete(employee.EmployeeId));
 
-                // 外键约束错误，标记使用SQL方法尝试
-                if (ex.Message.Contains("foreign key") || ex.Message.Contains("FOREIGN KEY") ||
-                    ex.Message.Contains("constraint") || ex.Message.Contains("REFERENCE"))
+                // 如果直接SQL删除成功
+                if (success)
                 {
-                    shouldUseSqlMethod = true;
-                    logger.Info("将尝试使用直接SQL语句方法删除");
+                    // 直接更新UI界面，避免重复消息
+                    App.Current.Dispatcher.Invoke(() =>
+                    {
+                        // 从本地集合中移除员工
+                        if (Employees.Contains(employee))
+                            Employees.Remove(employee);
+
+                        if (TempEmployees.Contains(employee))
+                            TempEmployees.Remove(employee);
+
+                        if (ListViewEmployees.Contains(employee))
+                            ListViewEmployees.Remove(employee);
+
+                        if (_allEmployeesCache != null)
+                            _allEmployeesCache.Remove(employee);
+
+                        // 更新计数和分页
+                        TotalRecords = TempEmployees.Count;
+                        MaxPage = TotalRecords == 0 ? 1 :
+                                 (TotalRecords % PageSize == 0 ?
+                                 TotalRecords / PageSize : (TotalRecords / PageSize) + 1);
+
+                        // 如果当前页超出范围，修正为最大页
+                        if (CurrentPage > MaxPage)
+                            CurrentPage = MaxPage > 0 ? MaxPage : 1;
+
+                        // 刷新当前页数据
+                        UpdateListViewData();
+
+                        // 通知用户
+                        Growl.SuccessGlobal($"已成功删除员工 {employee.EmployeeName} 及其所有关联记录");
+
+                        // 发布员工删除事件，通知其他组件
+                        eventAggregator.GetEvent<EmployeeRemovedEvent>().Publish();
+                    });
+
+                    logger.Info($"直接SQL删除员工及关联记录成功：ID={employee.EmployeeId}，姓名={employee.EmployeeName}");
                 }
-            }
-
-            // 如果首次尝试失败且是外键约束问题，尝试使用直接SQL方法
-            if (!success && shouldUseSqlMethod)
-            {
-                try
+                else
                 {
-                    // 使用直接SQL方法再次尝试
-                    Growl.InfoGlobal("正在使用直接SQL方法尝试删除，请稍候...");
-                    logger.Info($"尝试使用SQL方式删除员工 ID={employee.EmployeeId}");
+                    // 如果直接SQL删除失败，尝试使用改进后的DeleteEmployeeWithRelatedRecords方法
+                    logger.Warn($"直接SQL删除失败，尝试使用DeleteEmployeeWithRelatedRecords方法：ID={employee.EmployeeId}");
+                    Growl.InfoGlobal("正在尝试另一种删除方式...");
 
-                    // 使用直接SQL方法执行删除
-                    success = employeeService.ExecuteDirectSqlDelete(employee.EmployeeId);
+                    success = await Task.Run(() => employeeService.DeleteEmployeeWithRelatedRecords(employee.EmployeeId));
 
                     if (success)
                     {
-                        // 清除之前的异常
-                        caughtException = null;
-                        logger.Info("使用直接SQL方法删除成功");
-
                         // 直接更新UI界面，避免重复消息
                         App.Current.Dispatcher.Invoke(() =>
                         {
@@ -749,113 +763,56 @@ namespace SIASGraduate.ViewModels.Pages
 
                             // 发布员工删除事件，通知其他组件
                             eventAggregator.GetEvent<EmployeeRemovedEvent>().Publish();
-
-                            // 隐藏加载状态
-                            IsLoading = false;
                         });
 
-                        logger.Info($"成功级联删除员工及关联记录：ID={employee.EmployeeId}，姓名={employee.EmployeeName}");
-                        return; // 直接返回，避免后续重复处理
+                        logger.Info($"DeleteEmployeeWithRelatedRecords删除成功：ID={employee.EmployeeId}，姓名={employee.EmployeeName}");
                     }
                     else
                     {
-                        logger.Error("直接SQL方法删除失败");
-                        Growl.ErrorGlobal("SQL方法删除失败，可能是数据库权限问题");
+                        // 两种方法都失败，尝试更强力的直接删除方法
+                        Growl.WarningGlobal("常规删除失败，尝试强制删除...");
+                        await ForceDeleteEmployee(employee);
                     }
-                }
-                catch (Exception ex)
-                {
-                    caughtException = ex;
-                    logger.Error(ex, $"使用直接SQL删除员工时发生异常: {ex.Message}");
-                    Growl.ErrorGlobal($"SQL删除失败: {ex.Message}");
                 }
             }
-
-            // 在UI线程上更新界面（仅处理失败情况，成功情况已在上面直接返回）
-            App.Current.Dispatcher.Invoke(() =>
+            catch (Exception ex)
             {
-                if (!success)
-                {
-                    // 分析异常类型，给出更具体的错误提示
-                    string errorMsg = "删除员工失败";
-                    string detailedError = "";
-
-                    if (caughtException != null)
-                    {
-                        if (caughtException is TimeoutException)
-                        {
-                            errorMsg = "删除操作超时";
-                            detailedError = "数据库处理时间过长，可能是因为相关记录太多或数据库负载高";
-                        }
-                        else if (caughtException.Message.Contains("foreign key") ||
-                                 caughtException.Message.Contains("FOREIGN KEY") ||
-                                 caughtException.Message.Contains("constraint"))
-                        {
-                            errorMsg = "删除失败：存在外键约束";
-                            detailedError = "员工还存在其他系统中未能自动处理的关联记录";
-                        }
-                        else if (caughtException.Message.Contains("permission") ||
-                                 caughtException.Message.Contains("权限"))
-                        {
-                            errorMsg = "删除失败：数据库权限不足";
-                            detailedError = "SQL操作没有足够的权限完成，请联系系统管理员";
-                        }
-                        else
-                        {
-                            errorMsg = "删除失败";
-                            detailedError = caughtException.Message;
-                        }
-                    }
-                    else
-                    {
-                        detailedError = "尝试了所有删除方法但均未成功，可能是数据库结构问题";
-                    }
-
-                    logger.Error($"级联删除员工失败：ID={employee.EmployeeId}，姓名={employee.EmployeeName}，错误：{errorMsg}，详情：{detailedError}");
-
-                    // 提示用户并询问是否重试，添加更具体的错误信息
-                    Growl.AskGlobal($"{errorMsg}：{detailedError}\n\n是否尝试更彻底的删除方式？", isConfirmed =>
-                    {
-                        if (isConfirmed)
-                        {
-                            // 记录用户选择重试
-                            logger.Info($"用户选择重试删除员工：ID={employee.EmployeeId}，姓名={employee.EmployeeName}");
-
-                            // 如果用户确认，尝试使用更直接的方式处理
-                            TryForceDeleteEmployee(employee);
-                        }
-                        return true;
-                    });
-                }
-
-                // 隐藏加载状态
+                logger.Error(ex, $"级联删除员工异常: {ex.Message}");
+                Growl.ErrorGlobal($"删除失败: {ex.Message}");
+                
+                // 捕获到异常，尝试更强力的直接删除方法
+                Growl.WarningGlobal("发生异常，尝试强制删除...");
+                await ForceDeleteEmployee(employee);
+            }
+            finally
+            {
                 IsLoading = false;
-            });
+            }
         }
 
         /// <summary>
-        /// 尝试强制删除员工，绕过EF Core处理投票记录可能存在的问题
+        /// 尝试使用强制方式删除员工
         /// </summary>
-        private async void TryForceDeleteEmployee(Employee employee)
+        private async Task ForceDeleteEmployee(Employee employee)
         {
             try
             {
                 IsLoading = true;
-                Growl.InfoGlobal("正在尝试强制删除关联投票记录...");
+                logger.Info($"开始强制删除员工：ID={employee.EmployeeId}，姓名={employee.EmployeeName}");
+                Growl.InfoGlobal("正在强制删除员工，这可能需要些时间...");
 
-                // 直接通过数据库查询获取关联的投票记录数量
                 using (var context = new DataBaseContext())
                 {
-                    // 查找员工的所有投票记录
-                    var voteRecords = context.VoteRecords
+                    // 先查找所有与该员工相关的投票记录
+                    var voteRecords = await context.VoteRecords
                         .Where(v => v.VoterEmployeeId == employee.EmployeeId)
-                        .ToList();
+                        .ToListAsync();
 
-                    if (voteRecords.Any())
+                    if (voteRecords.Count > 0)
                     {
                         Growl.InfoGlobal($"找到 {voteRecords.Count} 条投票记录，正在删除...");
 
-                        // 直接删除投票记录
+                        // 删除所有投票记录
                         context.VoteRecords.RemoveRange(voteRecords);
 
                         // 尝试保存更改
@@ -866,7 +823,7 @@ namespace SIASGraduate.ViewModels.Pages
                         // 直接尝试使用SQL方法删除员工，避免再次调用ExecuteCascadeDelete导致重复提示
                         Growl.InfoGlobal("正在尝试直接删除员工...");
 
-                        bool success = employeeService.ExecuteDirectSqlDelete(employee.EmployeeId);
+                        bool success = await Task.Run(() => employeeService.ExecuteDirectSqlDelete(employee.EmployeeId));
 
                         if (success)
                         {

@@ -1,12 +1,31 @@
 using System.Globalization;
 using System.IO;
 using CsvHelper;
+using CsvHelper.Configuration;
 using Microsoft.EntityFrameworkCore;
 using SIASGraduate.Context;
 using SIASGraduate.Models;
 
 namespace SIASGraduate.Services
 {
+    // 添加CSV导出映射类
+    public class EmployeeExportMap : ClassMap<Employee>
+    {
+        public EmployeeExportMap()
+        {
+            Map(m => m.EmployeeId).Name("员工ID");
+            Map(m => m.Account).Name("账号");
+            Map(m => m.EmployeeName).Name("姓名");
+            Map(m => m.EmployeePassword).Name("密码");
+            Map(m => m.Email).Name("邮箱");
+            Map(m => m.DepartmentId).Name("部门ID");
+            Map(m => m.IsActive).Name("在职状态");
+            Map(m => m.HireDate).Name("入职日期");
+            Map(m => m.RoleId).Name("角色ID");
+            // 不导出图片数据
+        }
+    }
+
     public class EmployeeService : IEmployeeService
     {
         #region  构造函数
@@ -77,7 +96,6 @@ namespace SIASGraduate.Services
         {
             try
             {
-                // 不要使用Task.Run或异步方法，直接执行同步操作
                 using (var context = new DataBaseContext())
                 {
                     // 查找员工
@@ -88,75 +106,113 @@ namespace SIASGraduate.Services
                         return false;
                     }
 
-                    // 使用事务确保数据完整性
-                    using (var transaction = context.Database.BeginTransaction())
+                    // 使用创建的执行策略来执行事务操作，避免与SqlServerRetryingExecutionStrategy冲突
+                    var strategy = context.Database.CreateExecutionStrategy();
+                    return strategy.Execute(() =>
                     {
-                        try
+                        using (var transaction = context.Database.BeginTransaction())
                         {
-                            // 记录开始删除过程
-                            System.Diagnostics.Debug.WriteLine($"开始删除员工: ID={employeeId}, 名称={employee.EmployeeName}");
-
-                            // 1. 首先删除所有直接引用该员工ID的投票记录 - 使用SQL语句
-                            string deleteVotesSql = "DELETE FROM VoteRecords WHERE VoterEmployeeId = @p0";
-                            var voteDeleteResult = context.Database.ExecuteSqlRaw(deleteVotesSql, employeeId);
-                            System.Diagnostics.Debug.WriteLine($"删除员工投票记录: {voteDeleteResult}条");
-
-                            // 2. 获取相关提名ID
-                            var nominationIds = context.Nominations
-                                .Where(n => n.NominatedEmployeeId == employeeId || n.ProposerEmployeeId == employeeId)
-                                .Select(n => n.NominationId)
-                                .ToList();
-
-                            // 删除提名关联的评论和投票
-                            foreach (var nominationId in nominationIds)
+                            try
                             {
-                                // 删除评论
-                                string deleteCommentsSql = "DELETE FROM CommentRecords WHERE NominationId = @p0";
-                                var commentDeleteResult = context.Database.ExecuteSqlRaw(deleteCommentsSql, nominationId);
-                                System.Diagnostics.Debug.WriteLine($"删除提名ID={nominationId}的评论: {commentDeleteResult}条");
+                                // 记录开始删除过程
+                                System.Diagnostics.Debug.WriteLine($"开始删除员工: ID={employeeId}, 名称={employee.EmployeeName}");
+                                
+                                // 获取相关的申报ID
+                                var declarationIds = context.NominationDeclarations
+                                    .Where(d => d.NominatedEmployeeId == employeeId || 
+                                           d.DeclarerEmployeeId == employeeId || 
+                                           d.ReviewerEmployeeId == employeeId)
+                                    .Select(d => d.DeclarationId)
+                                    .ToList();
+                                    
+                                System.Diagnostics.Debug.WriteLine($"找到关联申报ID: {string.Join(",", declarationIds)}");
+                                
+                                // 删除申报相关的日志记录
+                                if (declarationIds.Any())
+                                {
+                                    foreach (var declarationId in declarationIds)
+                                    {
+                                        string deleteLogsSql = "DELETE FROM NominationLogs WHERE DeclarationId = @p0";
+                                        var logsResult = context.Database.ExecuteSqlRaw(deleteLogsSql, declarationId);
+                                        System.Diagnostics.Debug.WriteLine($"删除申报ID={declarationId}的日志记录: {logsResult}条");
+                                    }
+                                }
+                                
+                                // 删除提名员工作为操作人的NominationLog记录
+                                string deleteOperatorLogsSql = "DELETE FROM NominationLogs WHERE OperatorEmployeeId = @p0";
+                                var operatorLogsResult = context.Database.ExecuteSqlRaw(deleteOperatorLogsSql, employeeId);
+                                System.Diagnostics.Debug.WriteLine($"删除员工作为操作人的审核日志: {operatorLogsResult}条");
 
-                                // 删除投票
-                                string deleteNominationVotesSql = "DELETE FROM VoteRecords WHERE NominationId = @p0";
-                                var voteRecDeleteResult = context.Database.ExecuteSqlRaw(deleteNominationVotesSql, nominationId);
-                                System.Diagnostics.Debug.WriteLine($"删除提名ID={nominationId}的投票: {voteRecDeleteResult}条");
+                                // 1. 首先删除所有直接引用该员工ID的投票记录 - 使用SQL语句
+                                string deleteVotesSql = "DELETE FROM VoteRecords WHERE VoterEmployeeId = @p0";
+                                var voteDeleteResult = context.Database.ExecuteSqlRaw(deleteVotesSql, employeeId);
+                                System.Diagnostics.Debug.WriteLine($"删除员工投票记录: {voteDeleteResult}条");
+
+                                // 2. 获取相关提名ID
+                                var nominationIds = context.Nominations
+                                    .Where(n => n.NominatedEmployeeId == employeeId || n.ProposerEmployeeId == employeeId)
+                                    .Select(n => n.NominationId)
+                                    .ToList();
+
+                                // 删除提名关联的评论和投票
+                                foreach (var nominationId in nominationIds)
+                                {
+                                    // 删除评论
+                                    string deleteCommentsSql = "DELETE FROM CommentRecords WHERE NominationId = @p0";
+                                    var commentDeleteResult = context.Database.ExecuteSqlRaw(deleteCommentsSql, nominationId);
+                                    System.Diagnostics.Debug.WriteLine($"删除提名ID={nominationId}的评论: {commentDeleteResult}条");
+
+                                    // 删除投票
+                                    string deleteNominationVotesSql = "DELETE FROM VoteRecords WHERE NominationId = @p0";
+                                    var voteRecDeleteResult = context.Database.ExecuteSqlRaw(deleteNominationVotesSql, nominationId);
+                                    System.Diagnostics.Debug.WriteLine($"删除提名ID={nominationId}的投票: {voteRecDeleteResult}条");
+                                }
+
+                                // 3. 删除提名记录
+                                string deleteNominationsSql1 = "DELETE FROM Nominations WHERE NominatedEmployeeId = @p0";
+                                var nom1Result = context.Database.ExecuteSqlRaw(deleteNominationsSql1, employeeId);
+                                System.Diagnostics.Debug.WriteLine($"删除员工被提名记录: {nom1Result}条");
+
+                                string deleteNominationsSql2 = "DELETE FROM Nominations WHERE ProposerEmployeeId = @p0";
+                                var nom2Result = context.Database.ExecuteSqlRaw(deleteNominationsSql2, employeeId);
+                                System.Diagnostics.Debug.WriteLine($"删除员工提议记录: {nom2Result}条");
+
+                                // 4. 删除申报记录 - 更新以处理员工作为审核人的记录
+                                string deleteDeclarationsSql1 = "DELETE FROM NominationDeclarations WHERE NominatedEmployeeId = @p0";
+                                var decl1Result = context.Database.ExecuteSqlRaw(deleteDeclarationsSql1, employeeId);
+                                System.Diagnostics.Debug.WriteLine($"删除员工被申报记录: {decl1Result}条");
+
+                                string deleteDeclarationsSql2 = "DELETE FROM NominationDeclarations WHERE DeclarerEmployeeId = @p0";
+                                var decl2Result = context.Database.ExecuteSqlRaw(deleteDeclarationsSql2, employeeId);
+                                System.Diagnostics.Debug.WriteLine($"删除员工申报人记录: {decl2Result}条");
+                                
+                                string deleteDeclarationsSql3 = "DELETE FROM NominationDeclarations WHERE ReviewerEmployeeId = @p0";
+                                var decl3Result = context.Database.ExecuteSqlRaw(deleteDeclarationsSql3, employeeId);
+                                System.Diagnostics.Debug.WriteLine($"删除员工审核人记录: {decl3Result}条");
+
+                                // 5. 解除部门关联
+                                employee.DepartmentId = null;
+                                context.SaveChanges();
+
+                                // 6. 最后删除员工本身
+                                context.Employees.Remove(employee);
+                                context.SaveChanges();
+
+                                // 提交事务
+                                transaction.Commit();
+                                System.Diagnostics.Debug.WriteLine($"员工ID={employeeId}级联删除成功");
+                                return true;
                             }
-
-                            // 3. 删除提名记录
-                            string deleteNominationsSql1 = "DELETE FROM Nominations WHERE NominatedEmployeeId = @p0";
-                            var nom1Result = context.Database.ExecuteSqlRaw(deleteNominationsSql1, employeeId);
-                            System.Diagnostics.Debug.WriteLine($"删除员工被提名记录: {nom1Result}条");
-
-                            string deleteNominationsSql2 = "DELETE FROM Nominations WHERE ProposerEmployeeId = @p0";
-                            var nom2Result = context.Database.ExecuteSqlRaw(deleteNominationsSql2, employeeId);
-                            System.Diagnostics.Debug.WriteLine($"删除员工提议记录: {nom2Result}条");
-
-                            // 4. 删除申报记录
-                            string deleteDeclarationsSql = "DELETE FROM NominationDeclarations WHERE NominatedEmployeeId = @p0 OR DeclarerEmployeeId = @p0";
-                            var declResult = context.Database.ExecuteSqlRaw(deleteDeclarationsSql, employeeId);
-                            System.Diagnostics.Debug.WriteLine($"删除员工申报记录: {declResult}条");
-
-                            // 5. 解除部门关联
-                            employee.DepartmentId = null;
-                            context.SaveChanges();
-
-                            // 6. 最后删除员工本身
-                            context.Employees.Remove(employee);
-                            context.SaveChanges();
-
-                            // 提交事务
-                            transaction.Commit();
-                            System.Diagnostics.Debug.WriteLine($"员工ID={employeeId}级联删除成功");
-                            return true;
+                            catch (Exception ex)
+                            {
+                                // 回滚事务
+                                transaction.Rollback();
+                                System.Diagnostics.Debug.WriteLine($"级联删除失败，回滚事务: {ex.Message}");
+                                System.Diagnostics.Debug.WriteLine($"异常详情: {ex.StackTrace}");
+                                throw;
+                            }
                         }
-                        catch (Exception ex)
-                        {
-                            // 回滚事务
-                            transaction.Rollback();
-                            System.Diagnostics.Debug.WriteLine($"级联删除失败，回滚事务: {ex.Message}");
-                            System.Diagnostics.Debug.WriteLine($"异常详情: {ex.StackTrace}");
-                            throw;
-                        }
-                    }
+                    });
                 }
             }
             catch (Exception ex)
@@ -213,38 +269,16 @@ namespace SIASGraduate.Services
         {
             using (var context = new DataBaseContext())
             {
-                return context.Employees.FirstOrDefault(sa => sa.EmployeeName == name);
+                return context.Employees.FirstOrDefault(e => e.EmployeeName == name);
             }
         }
 
-        public Task<Employee> GetEmployeeByNameAsync(string name)
-        {
-            return Task.Run(() =>
-            {
-                using (var context = new DataBaseContext())
-                {
-                    return context.Employees.FirstOrDefault(e => e.EmployeeName == name);
-                }
-            });
-        }
-
-        public bool IsEmployeeNameExist(string employeeName)
+        public async Task<Employee> GetEmployeeByNameAsync(string name)
         {
             using (var context = new DataBaseContext())
             {
-                return context.Employees.Any(e => e.EmployeeName == employeeName);
+                return await context.Employees.FirstOrDefaultAsync(e => e.EmployeeName == name);
             }
-        }
-
-        public Task<bool> IsEmployeeNameExistAsync(string employeeName)
-        {
-            return Task.Run(() =>
-            {
-                using (var context = new DataBaseContext())
-                {
-                    return context.Employees.Any(e => e.EmployeeName == employeeName);
-                }
-            });
         }
         #endregion
 
@@ -257,17 +291,34 @@ namespace SIASGraduate.Services
             }
         }
 
-        public Task<Employee> GetEmployeeByAccountAsync(string account)
+        public async Task<Employee> GetEmployeeByAccountAsync(string account)
         {
-            return Task.Run(() =>
+            using (var context = new DataBaseContext())
             {
-                using (var context = new DataBaseContext())
-                {
-                    return context.Employees.FirstOrDefault(e => e.Account == account);
-                }
-            });
+                return await context.Employees.FirstOrDefaultAsync(e => e.Account == account);
+            }
+        }
+        #endregion
+
+        #region 判断员工姓名是否存在
+        public bool IsEmployeeNameExist(string employeeName)
+        {
+            using (var context = new DataBaseContext())
+            {
+                return context.Employees.Any(e => e.EmployeeName == employeeName);
+            }
         }
 
+        public async Task<bool> IsEmployeeNameExistAsync(string employeeName)
+        {
+            using (var context = new DataBaseContext())
+            {
+                return await context.Employees.AnyAsync(e => e.EmployeeName == employeeName);
+            }
+        }
+        #endregion
+
+        #region 判断员工账号是否存在
         public bool IsEmployeeAccountExist(string account)
         {
             using (var context = new DataBaseContext())
@@ -276,134 +327,43 @@ namespace SIASGraduate.Services
             }
         }
 
-        public Task<bool> IsEmployeeAccountExistAsync(string account)
-        {
-            return Task.Run(() =>
-            {
-                using (var context = new DataBaseContext())
-                {
-                    return context.Employees.Any(e => e.Account == account);
-                }
-            });
-        }
-        #endregion
-
-        #region 更新员工信息
-        public void UpdateEmployee(Employee employee)
+        public async Task<bool> IsEmployeeAccountExistAsync(string account)
         {
             using (var context = new DataBaseContext())
             {
-                try
-                {
-                    // 查询任何可能包含Nomination且与此员工相关的数据
-                    var relatedNominations = context.Nominations
-                        .Where(n => n.NominatedEmployeeId == employee.EmployeeId ||
-                                   n.ProposerEmployeeId == employee.EmployeeId)
-                        .ToList();
-
-                    // 将这些相关的Nomination实体分离出来，避免EF Core追踪它们
-                    foreach (var nomination in relatedNominations)
-                    {
-                        context.Entry(nomination).State = EntityState.Detached;
-                    }
-
-                    // 手动更新员工信息
-                    var existingEmployee = context.Employees.Find(employee.EmployeeId);
-                    if (existingEmployee != null)
-                    {
-                        // 更新每个属性
-                        existingEmployee.EmployeeName = employee.EmployeeName;
-                        existingEmployee.EmployeePassword = employee.EmployeePassword;
-                        existingEmployee.Email = employee.Email;
-                        existingEmployee.DepartmentId = employee.DepartmentId;
-                        existingEmployee.IsActive = employee.IsActive;
-                        existingEmployee.HireDate = employee.HireDate;
-                        existingEmployee.RoleId = employee.RoleId;
-                        existingEmployee.EmployeeImage = employee.EmployeeImage;
-                        existingEmployee.EmployeeFileData = employee.EmployeeFileData;
-                        existingEmployee.Account = employee.Account;
-
-                        // 保存更改
-                        context.SaveChanges();
-
-                        // 如果涉及部门变更，则使用SQL语句更新相关提名记录的部门
-                        if (relatedNominations.Any())
-                        {
-                            string updateNominationDepartmentSql =
-                                "UPDATE Nominations SET DepartmentId = @p0 WHERE NominatedEmployeeId = @p1";
-                            context.Database.ExecuteSqlRaw(updateNominationDepartmentSql,
-                                employee.DepartmentId, employee.EmployeeId);
-                        }
-                    }
-                }
-                catch (Exception ex)
-                {
-                    // 特殊处理IsUserVoted错误
-                    if (ex.Message.Contains("IsUserVoted"))
-                    {
-                        // 使用SQL语句直接更新员工记录，避开EF Core追踪问题
-                        string updateSql = @"
-                            UPDATE Employees 
-                            SET EmployeeName = @p1, 
-                                EmployeePassword = @p2, 
-                                Email = @p3, 
-                                DepartmentId = @p4, 
-                                IsActive = @p5, 
-                                HireDate = @p6, 
-                                RoleId = @p7, 
-                                Account = @p8
-                            WHERE EmployeeId = @p0";
-
-                        context.Database.ExecuteSqlRaw(updateSql,
-                            employee.EmployeeId,
-                            employee.EmployeeName,
-                            employee.EmployeePassword,
-                            employee.Email,
-                            employee.DepartmentId,
-                            employee.IsActive,
-                            employee.HireDate,
-                            employee.RoleId,
-                            employee.Account);
-
-                        // 如果需要更新二进制数据(图片等)，单独处理
-                        if (employee.EmployeeImage != null || employee.EmployeeFileData != null)
-                        {
-                            var existing = context.Employees.Find(employee.EmployeeId);
-                            if (existing != null)
-                            {
-                                if (employee.EmployeeImage != null)
-                                    existing.EmployeeImage = employee.EmployeeImage;
-                                if (employee.EmployeeFileData != null)
-                                    existing.EmployeeFileData = employee.EmployeeFileData;
-
-                                context.SaveChanges();
-                            }
-                        }
-
-                        // 如果部门变更，更新相关提名记录的部门
-                        string updateNominationDepartmentSql =
-                            "UPDATE Nominations SET DepartmentId = @p0 WHERE NominatedEmployeeId = @p1";
-                        context.Database.ExecuteSqlRaw(updateNominationDepartmentSql,
-                            employee.DepartmentId, employee.EmployeeId);
-                    }
-                    else
-                    {
-                        // 重新抛出其他异常
-                        throw;
-                    }
-                }
+                return await context.Employees.AnyAsync(e => e.Account == account);
             }
         }
         #endregion
 
-        #region 导入,导出
+        #region 根据Id更新员工
+        public void UpdateEmployee(Employee employee)
+        {
+            using (var context = new DataBaseContext())
+            {
+                context.Employees.Update(employee);
+                context.SaveChanges();
+            }
+        }
+        #endregion
+
+        #region 导出员工数据
         public bool ExportEmployees(List<Employee> employees, string filePath)
         {
             try
             {
-                // 使用UTF-8编码（带BOM）确保Excel可以正确识别中文
-                using var writer = new StreamWriter(filePath, false, new System.Text.UTF8Encoding(true));
+                var directoryName = Path.GetDirectoryName(filePath);
+                if (!Directory.Exists(directoryName))
+                {
+                    Directory.CreateDirectory(directoryName);
+                }
+
+                // 导出员工数据到CSV文件
+                using var writer = new StreamWriter(filePath);
                 using var csv = new CsvWriter(writer, CultureInfo.InvariantCulture);
+
+                // 使用自定义映射来决定要导出的字段
+                csv.Context.RegisterClassMap<EmployeeExportMap>();
 
                 // 创建不包含图片字段的数据列表
                 var exportData = employees.Select(e => new
@@ -458,9 +418,34 @@ namespace SIASGraduate.Services
                             .Select(n => n.NominationId)
                             .ToList();
 
-                        System.Diagnostics.Debug.WriteLine($"找到关联提名ID: {string.Join(",", nominationIds)}");
+                        // 获取关联的申报记录ID
+                        var declarationIds = context.NominationDeclarations
+                            .Where(d => d.NominatedEmployeeId == employeeId || 
+                                   d.DeclarerEmployeeId == employeeId || 
+                                   d.ReviewerEmployeeId == employeeId)
+                            .Select(d => d.DeclarationId)
+                            .ToList();
 
-                        // 1. 首先清空所有投票记录 - 这是最关键的一步，因为投票记录会和员工以及提名记录双重关联
+                        System.Diagnostics.Debug.WriteLine($"找到关联提名ID: {string.Join(",", nominationIds)}");
+                        System.Diagnostics.Debug.WriteLine($"找到关联申报ID: {string.Join(",", declarationIds)}");
+
+                        // 1. 删除申报相关的日志记录
+                        if (declarationIds.Any())
+                        {
+                            foreach (var declarationId in declarationIds)
+                            {
+                                string deleteLogsSql = "DELETE FROM NominationLogs WHERE DeclarationId = @p0";
+                                var logsResult = context.Database.ExecuteSqlRaw(deleteLogsSql, declarationId);
+                                System.Diagnostics.Debug.WriteLine($"删除申报ID={declarationId}的日志记录: {logsResult}行受影响");
+                            }
+                        }
+
+                        // 2. 删除提名员工作为操作人的NominationLog记录
+                        string deleteOperatorLogsSql = "DELETE FROM NominationLogs WHERE OperatorEmployeeId = @p0";
+                        var operatorLogsResult = context.Database.ExecuteSqlRaw(deleteOperatorLogsSql, employeeId);
+                        System.Diagnostics.Debug.WriteLine($"删除员工作为操作人的审核日志: {operatorLogsResult}行受影响");
+
+                        // 3. 删除所有投票记录 - 这是最关键的一步，因为投票记录会和员工以及提名记录双重关联
                         string deleteVotesSql = "DELETE FROM VoteRecords WHERE VoterEmployeeId = @p0";
                         var result = context.Database.ExecuteSqlRaw(deleteVotesSql, employeeId);
                         System.Diagnostics.Debug.WriteLine($"删除员工投票记录: {result}行受影响");
@@ -476,7 +461,7 @@ namespace SIASGraduate.Services
                             }
                         }
 
-                        // 2. 删除评论记录
+                        // 4. 删除评论记录
                         if (nominationIds.Any())
                         {
                             foreach (var nominationId in nominationIds)
@@ -487,7 +472,7 @@ namespace SIASGraduate.Services
                             }
                         }
 
-                        // 3. 删除提名记录
+                        // 5. 删除提名记录
                         string deleteNominationsSql1 = "DELETE FROM Nominations WHERE NominatedEmployeeId = @p0";
                         var nom1Result = context.Database.ExecuteSqlRaw(deleteNominationsSql1, employeeId);
                         System.Diagnostics.Debug.WriteLine($"删除员工被提名记录: {nom1Result}行受影响");
@@ -496,7 +481,7 @@ namespace SIASGraduate.Services
                         var nom2Result = context.Database.ExecuteSqlRaw(deleteNominationsSql2, employeeId);
                         System.Diagnostics.Debug.WriteLine($"删除员工提议记录: {nom2Result}行受影响");
 
-                        // 4. 删除申报记录
+                        // 6. 删除申报记录
                         string deleteDeclarationsSql1 = "DELETE FROM NominationDeclarations WHERE NominatedEmployeeId = @p0";
                         var decl1Result = context.Database.ExecuteSqlRaw(deleteDeclarationsSql1, employeeId);
                         System.Diagnostics.Debug.WriteLine($"删除员工被申报记录: {decl1Result}行受影响");
@@ -505,7 +490,11 @@ namespace SIASGraduate.Services
                         var decl2Result = context.Database.ExecuteSqlRaw(deleteDeclarationsSql2, employeeId);
                         System.Diagnostics.Debug.WriteLine($"删除员工申报人记录: {decl2Result}行受影响");
 
-                        // 5. 解除部门关联
+                        string deleteDeclarationsSql3 = "DELETE FROM NominationDeclarations WHERE ReviewerEmployeeId = @p0";
+                        var decl3Result = context.Database.ExecuteSqlRaw(deleteDeclarationsSql3, employeeId);
+                        System.Diagnostics.Debug.WriteLine($"删除员工审核人记录: {decl3Result}行受影响");
+
+                        // 7. 解除部门关联
                         if (employee.DepartmentId != null)
                         {
                             string updateDepSql = "UPDATE Employees SET DepartmentId = NULL WHERE EmployeeId = @p0";
@@ -513,7 +502,7 @@ namespace SIASGraduate.Services
                             System.Diagnostics.Debug.WriteLine($"解除部门关联: {depResult}行受影响");
                         }
 
-                        // 6. 最后删除员工本身
+                        // 8. 最后删除员工本身
                         string deleteEmployeeSql = "DELETE FROM Employees WHERE EmployeeId = @p0";
                         var empResult = context.Database.ExecuteSqlRaw(deleteEmployeeSql, employeeId);
                         System.Diagnostics.Debug.WriteLine($"删除员工: {empResult}行受影响");
