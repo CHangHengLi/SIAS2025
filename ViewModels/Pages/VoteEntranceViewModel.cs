@@ -1524,7 +1524,7 @@ namespace SIASGraduate.ViewModels.Pages
             // 验证输入
             if (nomination == null)
             {
-                Growl.Warning("无法显示评论: 未选择提名");
+                // 删除Growl.Warning("无法显示评论: 未选择提名");
                 return;
             }
 
@@ -1591,14 +1591,14 @@ namespace SIASGraduate.ViewModels.Pages
                     }
                     catch (Exception ex)
                     {
-                        Growl.Error($"加载评论失败: {ex.Message}");
+                        // 删除Growl.Error($"加载评论失败: {ex.Message}");
                         Debug.WriteLine($"加载评论数据异常: {ex}");
                     }
                 }
             }
             catch (Exception ex)
             {
-                Growl.Error($"显示评论区失败: {ex.Message}");
+                // 删除Growl.Error($"显示评论区失败: {ex.Message}");
                 Debug.WriteLine($"显示评论区异常: {ex}");
                 // 如果加载失败，隐藏评论区
                 nomination.IsCommentSectionVisible = false;
@@ -1629,13 +1629,13 @@ namespace SIASGraduate.ViewModels.Pages
             // 验证输入
             if (nomination == null)
             {
-                Growl.Warning("无法添加评论: 未选择提名");
+                // 删除Growl.Warning("无法添加评论: 未选择提名");
                 return;
             }
 
             if (string.IsNullOrWhiteSpace(nomination.NewCommentText))
             {
-                Growl.Warning("请输入评论内容");
+                // 删除Growl.Warning("请输入评论内容");
                 return;
             }
 
@@ -1665,7 +1665,7 @@ namespace SIASGraduate.ViewModels.Pages
                 }
                 else
                 {
-                    Growl.Error("添加评论失败: 未能确定您的身份");
+                    // 删除Growl.Error("添加评论失败: 未能确定您的身份");
                     return;
                 }
 
@@ -1705,12 +1705,12 @@ namespace SIASGraduate.ViewModels.Pages
                     nomination.HasMoreComments = await dbContext.CommentRecords
                         .CountAsync(c => c.NominationId == nomination.NominationId) > 10;
 
-                    Growl.Success("评论发表成功");
+                    // 删除Growl.Success("评论发表成功");
                 }
             }
             catch (Exception ex)
             {
-                Growl.Error($"添加评论失败: {ex.Message}");
+                // 删除Growl.Error($"添加评论失败: {ex.Message}");
                 Debug.WriteLine($"添加评论异常: {ex}");
             }
         }
@@ -1722,7 +1722,7 @@ namespace SIASGraduate.ViewModels.Pages
         {
             if (comment == null)
             {
-                Growl.Warning("无法删除: 未选择评论");
+                // 删除Growl.Warning("无法删除: 未选择评论");
                 return;
             }
 
@@ -1743,7 +1743,7 @@ namespace SIASGraduate.ViewModels.Pages
 
                     if (commentToDelete == null)
                     {
-                        Growl.Warning("评论已不存在");
+                        // 删除Growl.Warning("评论已不存在");
                         return;
                     }
 
@@ -1776,12 +1776,12 @@ namespace SIASGraduate.ViewModels.Pages
                             .CountAsync(c => c.NominationId == nominationForCount.NominationId);
                     }
 
-                    Growl.Success("评论已永久删除");
+                    // 删除Growl.Success("评论已永久删除");
                 }
             }
             catch (Exception ex)
             {
-                Growl.Error($"删除评论失败: {ex.Message}");
+                // 删除Growl.Error($"删除评论失败: {ex.Message}");
                 Debug.WriteLine($"删除评论异常: {ex}");
             }
         }
@@ -1793,7 +1793,7 @@ namespace SIASGraduate.ViewModels.Pages
         {
             if (nomination == null)
             {
-                Growl.Warning("无法加载评论: 未选择提名");
+                // 删除Growl.Warning("无法加载评论: 未选择提名");
                 return;
             }
 
@@ -1835,17 +1835,17 @@ namespace SIASGraduate.ViewModels.Pages
 
                     if (moreComments.Count > 0)
                     {
-                        Growl.Info($"已加载{moreComments.Count}条评论");
+                        // 删除Growl.Info($"已加载{moreComments.Count}条评论");
                     }
                     else if (!nomination.HasMoreComments)
                     {
-                        Growl.Info("已加载全部评论");
+                        // 删除Growl.Info("已加载全部评论");
                     }
                 }
             }
             catch (Exception ex)
             {
-                Growl.Error($"加载评论失败: {ex.Message}");
+                // 删除Growl.Error($"加载评论失败: {ex.Message}");
                 Debug.WriteLine($"加载评论异常: {ex}");
             }
             finally
