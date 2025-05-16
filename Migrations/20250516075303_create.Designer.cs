@@ -12,7 +12,7 @@ using SIASGraduate.Context;
 namespace SIASGraduate.Migrations
 {
     [DbContext(typeof(DataBaseContext))]
-    [Migration("20250514065009_create")]
+    [Migration("20250516075303_create")]
     partial class create
     {
         /// <inheritdoc />
