@@ -989,215 +989,62 @@ namespace SIASGraduate.ViewModels
         /// </summary>
         private void LoadChartData()
         {
-            try
+            // 设置同步上下文，确保UI操作在UI线程上执行
+            SynchronizationContext uiContext = SynchronizationContext.Current;
+
+            // 使用Task异步加载图表数据
+            Task.Run(async () =>
             {
-                using (var context = new DataBaseContext())
+                try
                 {
-                    // 获取所有奖项名称和对应的提名数量
-                    var awardNominations = context.Nominations
-                        .Include(n => n.Award)
+                    // 在IO线程中使用新的DbContext实例
+                    using var context = new DataBaseContext();
+
+                    // 查询每个奖项的提名数量
+                    var awardNominationCountsQuery = context.Nominations
                         .AsNoTracking()
+                        .Include(n => n.Award)
+                        .Where(n => n.Award != null)
                         .GroupBy(n => n.Award.AwardName)
                         .Select(g => new { AwardName = g.Key, Count = g.Count() })
-                        .OrderByDescending(x => x.Count)
+                        .OrderByDescending(g => g.Count)
                         .ToList();
 
-                    if (awardNominations.Count > 0)
+                    // 查询每个奖项的投票总数
+                    var awardVoteCountsQuery = (from vr in context.VoteRecords
+                                            join a in context.Awards on vr.AwardId equals a.AwardId
+                                            group vr by a.AwardName into g
+                                            select new { AwardName = g.Key, VoteCount = g.Count() })
+                                            .OrderByDescending(g => g.VoteCount)
+                                            .ToList();
+
+                    // 切换回UI线程更新图表
+                    uiContext.Post(_ =>
                     {
-                        // 清空现有集合
-                        SeriesCollection.Clear();
-
-                        // 生成饼图数据
-                        foreach (var award in awardNominations)
+                        try
                         {
-                            var color = GetRandomColor();
-                            SeriesCollection.Add(new PieSeries
-                            {
-                                Title = award.AwardName,
-                                Values = new ChartValues<int> { award.Count },
-                                DataLabels = false,
-                                LabelPoint = PieChartTitleOnlyFormat,
-                                Fill = new SolidColorBrush(color)
-                            });
+                            // 更新提名占比饼图
+                            UpdatePieChart(awardNominationCountsQuery);
+
+                            // 更新奖项得票总数条形图
+                            UpdateRankingBarChart(awardVoteCountsQuery);
+
+                            // 更新投票排名图表
+                            // 调用FilterRanking方法而不是直接调用LoadNomineeRankingData
+                            FilterRanking();
                         }
-
-                        // 获取所有奖项对应的投票数量
-                        var awardVotes = context.VoteRecords
-                            .Include(v => v.Award)
-                            .AsNoTracking()
-                            .GroupBy(v => v.Award.AwardName)
-                            .Select(g => new { AwardName = g.Key, Count = g.Count() })
-                            .OrderByDescending(x => x.Count)
-                            .ToList();
-
-                        // 准备条形图数据
-                        var rankingLabelsArray = awardVotes.Select(a => a.AwardName).ToArray();
-                        var rankingValues = awardVotes.Select(a => a.Count).ToArray();
-
-                        // 设置各奖项得票总数图表的轴
-                        RankingAxisX = new AxesCollection
+                        catch (Exception uiEx)
                         {
-                            new Axis
-                            {
-                                Title = "奖项",
-                                Labels = rankingLabelsArray,
-                                FontWeight = FontWeights.Bold,
-                                Position = AxisPosition.LeftBottom,
-                                Separator = new LiveCharts.Wpf.Separator { Step = 1 },
-                                LabelsRotation = 0,
-                                Margin = new Thickness(0, 20, 0, 0)  // 向下移动标签
-                            }
-                        };
-
-                        RankingAxisY = new AxesCollection
-                        {
-                            new Axis
-                            {
-                                Title = "票数",
-                                MinValue = 0,
-                                Foreground = Brushes.Black
-                            }
-                        };
-
-                        // 清空现有集合
-                        RankingSeriesCollection.Clear();
-
-                        // 添加条形图数据
-                        RankingSeriesCollection.Add(new ColumnSeries
-                        {
-                            Title = "得票数",
-                            Values = new ChartValues<int>(rankingValues),
-                            Fill = Brushes.CornflowerBlue,
-                            DataLabels = true
-                        });
-
-                        // 获取得票最多的前10名提名者
-                        var topVoteRecords = context.VoteRecords
-                            .AsNoTracking()
-                            .GroupBy(v => v.NominationId)
-                            .Select(g => new { NominationId = g.Key, VoteCount = g.Count() })
-                            .OrderByDescending(x => x.VoteCount)
-                            .Take(10)
-                            .ToList();
-
-                        // 分步加载被提名者信息，避免SQL查询中包含NotMapped属性
-                        var topNominees = new List<NomineeVoteCount>();
-
-                        foreach (var record in topVoteRecords)
-                        {
-                            // 先获取基本提名信息
-                            var nomination = context.Nominations
-                                .AsNoTracking()
-                                .Where(n => n.NominationId == record.NominationId)
-                                .Select(n => new
-                                {
-                                    n.NominationId,
-                                    n.NominatedEmployeeId,
-                                    n.NominatedAdminId
-                                })
-                                .FirstOrDefault();
-
-                            if (nomination != null)
-                            {
-                                string nomineeName = "未知";
-
-                                // 单独加载被提名员工
-                                if (nomination.NominatedEmployeeId.HasValue)
-                                {
-                                    var employee = context.Employees
-                                        .AsNoTracking()
-                                        .Where(e => e.EmployeeId == nomination.NominatedEmployeeId.Value)
-                                        .Select(e => e.EmployeeName)
-                                        .FirstOrDefault();
-
-                                    if (!string.IsNullOrEmpty(employee))
-                                    {
-                                        nomineeName = employee;
-                                    }
-                                }
-                                // 单独加载被提名管理员
-                                else if (nomination.NominatedAdminId.HasValue)
-                                {
-                                    var admin = context.Admins
-                                        .AsNoTracking()
-                                        .Where(a => a.AdminId == nomination.NominatedAdminId.Value)
-                                        .Select(a => a.AdminName)
-                                        .FirstOrDefault();
-
-                                    if (!string.IsNullOrEmpty(admin))
-                                    {
-                                        nomineeName = admin;
-                                    }
-                                }
-
-                                // 添加到结果列表
-                                topNominees.Add(new NomineeVoteCount
-                                {
-                                    NomineeName = nomineeName,
-                                    VoteCount = record.VoteCount
-                                });
-                            }
+                            Debug.WriteLine($"在UI线程更新图表时出错: {uiEx.Message}");
                         }
-
-                        if (topNominees.Count > 0)
-                        {
-                            var nomineeLabels = topNominees.Select(n => n.NomineeName).ToArray();
-                            var nomineeVotes = topNominees.Select(n => n.VoteCount).ToArray();
-
-                            // 设置投票排名图表的轴
-                            NomineeRankingAxisX = new AxesCollection
-                            {
-                                new Axis
-                                {
-                                    Title = "提名人",
-                                    Labels = nomineeLabels,
-                                    FontWeight = FontWeights.Bold,
-                                    Position = AxisPosition.LeftBottom,
-                                    Separator = new LiveCharts.Wpf.Separator { Step = 1 },
-                                    LabelsRotation = 0,
-                                    Margin = new Thickness(0, 20, 0, 0)  // 向下移动标签
-                                }
-                            };
-
-                            NomineeRankingAxisY = new AxesCollection
-                            {
-                                new Axis
-                                {
-                                    Title = "票数",
-                                    MinValue = 0,
-                                    Foreground = Brushes.Black
-                                }
-                            };
-
-                            // 清空现有集合
-                            NomineeRankingSeriesCollection.Clear();
-
-                            // 添加条形图数据
-                            NomineeRankingSeriesCollection.Add(new ColumnSeries
-                            {
-                                Title = "得票数",
-                                Values = new ChartValues<int>(nomineeVotes),
-                                Fill = Brushes.MediumSeaGreen,
-                                DataLabels = true
-                            });
-                        }
-                        else
-                        {
-                            SetDefaultCharts();
-                        }
-                    }
-                    else
-                    {
-                        SetDefaultCharts();
-                    }
+                    }, null);
                 }
-            }
-            catch (Exception ex)
-            {
-                Debug.WriteLine($"加载图表数据时出错: {ex.Message}");
-                Debug.WriteLine(ex.StackTrace);
-                SetDefaultCharts();
-            }
+                catch (Exception ex)
+                {
+                    Debug.WriteLine($"加载图表数据时出错: {ex.Message}");
+                    uiContext.Post(_ => SetDefaultCharts(), null);
+                }
+            });
         }
 
         // 获取随机颜色的辅助方法
@@ -1462,11 +1309,19 @@ namespace SIASGraduate.ViewModels
             set
             {
                 SetProperty(ref selectedAward, value);
-                // 当选中奖项改变时，可以自动触发筛选
-                if (value != null)
-                {
-                    FilterVoteDetails();
-                }
+                RaisePropertyChanged(nameof(SelectedAward));
+            }
+        }
+
+        // 添加用于投票排名筛选的属性
+        private Award selectedRankingAward;
+        public Award SelectedRankingAward
+        {
+            get { return selectedRankingAward; }
+            set
+            {
+                SetProperty(ref selectedRankingAward, value);
+                RaisePropertyChanged(nameof(SelectedRankingAward));
             }
         }
 
@@ -1481,10 +1336,15 @@ namespace SIASGraduate.ViewModels
         // 所有投票详情数据（未经筛选）
         private List<VoteDetailDto> allVoteDetails;
 
-        // 筛选投票详情命令
+        // 投票详情筛选命令
         private DelegateCommand filterVoteDetailsCommand;
         public DelegateCommand FilterVoteDetailsCommand =>
             filterVoteDetailsCommand ??= new DelegateCommand(FilterVoteDetails);
+
+        // 投票排名筛选命令
+        private DelegateCommand filterRankingCommand;
+        public DelegateCommand FilterRankingCommand =>
+            filterRankingCommand ??= new DelegateCommand(FilterRanking);
 
         // 查看提名详情命令
         private DelegateCommand<VoteDetailDto> viewNominationDetailsCommand;
@@ -1494,132 +1354,205 @@ namespace SIASGraduate.ViewModels
         // 筛选投票详情方法
         private void FilterVoteDetails()
         {
-            if (allVoteDetails == null || allVoteDetails.Count == 0)
+            if (SelectedAward == null || allVoteDetails == null)
             {
-                LoadVoteDetails();
+                VoteDetails = new ObservableCollection<VoteDetailDto>(allVoteDetails ?? new List<VoteDetailDto>());
                 return;
             }
 
-            if (selectedAward == null)
+            // 全部奖项特殊处理 - AwardId = 0或负数表示"全部"
+            if (SelectedAward.AwardId <= 0)
             {
-                // 如果未选择奖项，显示所有数据
                 VoteDetails = new ObservableCollection<VoteDetailDto>(allVoteDetails);
             }
             else
             {
-                // 根据选中的奖项筛选
-                var filtered = allVoteDetails.Where(v => v.AwardId == selectedAward.AwardId).ToList();
-                VoteDetails = new ObservableCollection<VoteDetailDto>(filtered);
+                // 根据奖项ID筛选
+                VoteDetails = new ObservableCollection<VoteDetailDto>(
+                    allVoteDetails.Where(v => v.AwardId == SelectedAward.AwardId).ToList());
             }
         }
 
-        // 加载投票详情数据
-        private void LoadVoteDetails()
+        // 添加筛选投票排名方法
+        private void FilterRanking()
+        {
+            if (SelectedRankingAward == null)
+            {
+                // 如果未选择筛选条件，则加载全部数据
+                LoadNomineeRankingData();
+                return;
+            }
+
+            // 全部奖项特殊处理 - AwardId = 0或负数表示"全部"
+            if (SelectedRankingAward.AwardId <= 0)
+            {
+                LoadNomineeRankingData();
+            }
+            else
+            {
+                // 根据奖项ID筛选并更新图表
+                LoadNomineeRankingDataByAwardId(SelectedRankingAward.AwardId);
+            }
+        }
+
+        // 修改加载投票排名数据方法
+        private void LoadNomineeRankingData()
         {
             try
             {
                 using (var context = new DataBaseContext())
                 {
-                    // 加载奖项列表
-                    if (Awards == null || Awards.Count == 0)
-                    {
-                        var awardsList = context.Awards.ToList();
-                        Awards = new ObservableCollection<Award>(awardsList);
-                    }
+                    // 获取所有提名的投票数据
+                    var nomineeVotes = context.VoteRecords
+                        .AsNoTracking()
+                        .Include(v => v.Nomination)
+                        .ThenInclude(n => n.NominatedEmployee)
+                        .Include(v => v.Nomination)
+                        .ThenInclude(n => n.NominatedAdmin)
+                        .Where(v => v.Nomination != null)
+                        .GroupBy(v => new { 
+                            v.NominationId, 
+                            EmployeeName = v.Nomination.NominatedEmployee != null ? v.Nomination.NominatedEmployee.EmployeeName : null,
+                            AdminName = v.Nomination.NominatedAdmin != null ? v.Nomination.NominatedAdmin.AdminName : null
+                        })
+                        .Select(g => new NomineeVoteData
+                        {
+                            NominationId = g.Key.NominationId,
+                            NomineeName = g.Key.EmployeeName ?? g.Key.AdminName ?? "未知",
+                            VoteCount = g.Count()
+                        })
+                        .OrderByDescending(v => v.VoteCount)
+                        .Take(10)  // 只展示前10名
+                        .ToList();
 
-                    // 查询投票详情数据
-                    var voteDetailsQuery = (from n in context.Nominations
-                                            join a in context.Awards on n.AwardId equals a.AwardId
-                                            join d in context.Departments on n.DepartmentId equals d.DepartmentId into depts
-                                            from dept in depts.DefaultIfEmpty()
-                                            select new VoteDetailDto
-                                            {
-                                                NominationId = n.NominationId,
-                                                AwardId = a.AwardId,
-                                                AwardName = a.AwardName,
-                                                DepartmentId = n.DepartmentId,
-                                                DepartmentName = dept != null ? dept.DepartmentName : "未指定",
-                                                NomineeName = n.NominatedEmployeeId.HasValue ?
-                                                    context.Employees.Where(e => e.EmployeeId == n.NominatedEmployeeId.Value)
-                                                        .Select(e => e.EmployeeName).FirstOrDefault() :
-                                                    (n.NominatedAdminId.HasValue ?
-                                                        context.Admins.Where(ad => ad.AdminId == n.NominatedAdminId.Value)
-                                                            .Select(ad => ad.AdminName).FirstOrDefault() : "未知"),
-                                                Introduction = n.Introduction,
-                                                NominateReason = n.NominateReason,
-                                                VoteCount = context.VoteRecords.Count(vr => vr.NominationId == n.NominationId),
-                                                EmployeeVoteCount = context.VoteRecords
-                                                    .Join(context.Employees,
-                                                        vr => vr.VoterEmployeeId,
-                                                        e => e.EmployeeId,
-                                                        (vr, e) => new { VoteRecord = vr, Employee = e })
-                                                    .Count(x => x.VoteRecord.NominationId == n.NominationId),
-                                                AdminVoteCount = context.VoteRecords
-                                                    .Join(context.Admins,
-                                                        vr => vr.VoterAdminId,
-                                                        a => a.AdminId,
-                                                        (vr, a) => new { VoteRecord = vr, Admin = a })
-                                                    .Count(x => x.VoteRecord.NominationId == n.NominationId)
-                                            }).ToList();
-
-                    // 保存所有数据
-                    allVoteDetails = voteDetailsQuery;
-
-                    // 更新显示的数据
-                    VoteDetails = new ObservableCollection<VoteDetailDto>(voteDetailsQuery);
+                    UpdateNomineeRankingChart(nomineeVotes);
                 }
             }
             catch (Exception ex)
             {
-                Debug.WriteLine($"加载投票详情时出错: {ex.Message}");
-                Debug.WriteLine(ex.StackTrace);
-
-                // 确保集合初始化
-                if (VoteDetails == null)
-                {
-                    VoteDetails = new ObservableCollection<VoteDetailDto>();
-                }
-
-                if (Awards == null)
-                {
-                    Awards = new ObservableCollection<Award>();
-                }
+                Debug.WriteLine($"加载提名投票排名数据失败: {ex.Message}");
             }
         }
 
-        /// <summary>
-        /// 查看提名详情
-        /// </summary>
-        private void ViewNominationDetails(VoteDetailDto voteDetail)
+        // 添加根据奖项ID加载投票排名数据方法
+        private void LoadNomineeRankingDataByAwardId(int awardId)
         {
-            if (voteDetail == null) return;
-
             try
             {
-                // 创建并显示提名详情窗口，使用完整类型名以避免歧义
-                var detailsWindow = new SIASGraduate.Views.EditMessage.NominationDetailsWindows.NominationDetailsWindow();
-
-                // 加载提名详情前先确保显示窗口，以便UI上下文初始化
-                detailsWindow.Show();
-
-                try
+                using (var context = new DataBaseContext())
                 {
-                    // 使用更安全的方式加载详情，避免立即使用EF查询
-                    System.Windows.Threading.Dispatcher.CurrentDispatcher.BeginInvoke(
-                        new Action(() => detailsWindow.LoadNominationDetails(voteDetail)),
-                        System.Windows.Threading.DispatcherPriority.Background);
-                }
-                catch (Exception ex)
-                {
-                    HandyControl.Controls.Growl.ErrorGlobal($"加载详情异常: {ex.Message}");
-                    System.Diagnostics.Debug.WriteLine($"加载详情异常: {ex}");
+                    // 获取指定奖项的投票数据
+                    var nomineeVotes = context.VoteRecords
+                        .AsNoTracking()
+                        .Include(v => v.Nomination)
+                        .ThenInclude(n => n.NominatedEmployee)
+                        .Include(v => v.Nomination)
+                        .ThenInclude(n => n.NominatedAdmin)
+                        .Where(v => v.Nomination != null && v.AwardId == awardId)
+                        .GroupBy(v => new { 
+                            v.NominationId, 
+                            EmployeeName = v.Nomination.NominatedEmployee != null ? v.Nomination.NominatedEmployee.EmployeeName : null,
+                            AdminName = v.Nomination.NominatedAdmin != null ? v.Nomination.NominatedAdmin.AdminName : null
+                        })
+                        .Select(g => new NomineeVoteData
+                        {
+                            NominationId = g.Key.NominationId,
+                            NomineeName = g.Key.EmployeeName ?? g.Key.AdminName ?? "未知",
+                            VoteCount = g.Count()
+                        })
+                        .OrderByDescending(v => v.VoteCount)
+                        .Take(10)  // 只展示前10名
+                        .ToList();
+
+                    UpdateNomineeRankingChart(nomineeVotes);
                 }
             }
             catch (Exception ex)
             {
-                HandyControl.Controls.Growl.ErrorGlobal($"打开详情窗口异常: {ex.Message}");
-                System.Diagnostics.Debug.WriteLine($"打开详情窗口异常: {ex}");
+                Debug.WriteLine($"加载奖项ID={awardId}的投票排名数据失败: {ex.Message}");
             }
+        }
+
+        // 添加投票数据类
+        public class NomineeVoteData
+        {
+            public int NominationId { get; set; }
+            public string NomineeName { get; set; }
+            public int VoteCount { get; set; }
+        }
+
+        // 修改更新排名图表的方法，修复List<dynamic>类型问题
+        private void UpdateNomineeRankingChart<T>(List<T> nomineeVotes) where T : class
+        {
+            if (nomineeVotes == null || nomineeVotes.Count == 0)
+            {
+                // 如果没有数据，设置空图表
+                NomineeRankingSeriesCollection = new SeriesCollection();
+                NomineeRankingLabels = new List<string>();
+                return;
+            }
+
+            // 创建图表标签 - 使用反射获取属性值
+            var labels = new List<string>();
+            var values = new List<double>();
+
+            foreach (var item in nomineeVotes)
+            {
+                var nomineeNameProperty = item.GetType().GetProperty("NomineeName");
+                var voteCountProperty = item.GetType().GetProperty("VoteCount");
+
+                if (nomineeNameProperty != null && voteCountProperty != null)
+                {
+                    string nomineeName = nomineeNameProperty.GetValue(item)?.ToString() ?? "未知";
+                    int voteCount = Convert.ToInt32(voteCountProperty.GetValue(item));
+
+                    labels.Add(nomineeName);
+                    values.Add(voteCount);
+                }
+            }
+
+            // 更新图表
+            NomineeRankingSeriesCollection = new SeriesCollection
+            {
+                new ColumnSeries
+                {
+                    Title = "得票数",
+                    Values = new ChartValues<double>(values),
+                    Fill = new SolidColorBrush(Color.FromRgb(33, 150, 243)) // 使用蓝色
+                }
+            };
+
+            NomineeRankingLabels = labels;
+
+            // 更新X轴
+            NomineeRankingAxisX = new AxesCollection
+            {
+                new Axis
+                {
+                    Title = "提名对象",
+                    Labels = labels,
+                    Separator = new Separator
+                    {
+                        Step = 1,
+                        IsEnabled = true // 显示网格线
+                    }
+                }
+            };
+
+            // 更新Y轴
+            NomineeRankingAxisY = new AxesCollection
+            {
+                new Axis
+                {
+                    Title = "得票数",
+                    LabelFormatter = value => value.ToString("N0"),
+                    Separator = new Separator
+                    {
+                        Step = 1,
+                        IsEnabled = true // 显示网格线
+                    }
+                }
+            };
         }
 
         #endregion
@@ -1659,5 +1592,225 @@ namespace SIASGraduate.ViewModels
             Row4Visible = new GridLength(0);
             Row5Visible = new GridLength(0);
         });
+
+        // 恢复加载投票详情数据方法
+        private void LoadVoteDetails()
+        {
+            try
+            {
+                using (var context = new DataBaseContext())
+                {
+                    // 加载奖项列表
+                    if (Awards == null || Awards.Count == 0)
+                    {
+                        var awardsList = context.Awards.OrderBy(a => a.AwardId).ToList();
+                        // 添加"全部奖项"选项
+                        awardsList.Insert(0, new Award { AwardId = 0, AwardName = "全部奖项" });
+                        Awards = new ObservableCollection<Award>(awardsList);
+                        
+                        // 设置默认选中"全部奖项"
+                        SelectedAward = Awards.FirstOrDefault();
+                        
+                        // 为投票排名设置同样的默认选项
+                        SelectedRankingAward = SelectedAward;
+                    }
+
+                    // 查询投票详情数据
+                    var voteDetailsQuery = (from n in context.Nominations
+                                         join a in context.Awards on n.AwardId equals a.AwardId
+                                         join d in context.Departments on n.DepartmentId equals d.DepartmentId into depts
+                                         from dept in depts.DefaultIfEmpty()
+                                         select new VoteDetailDto
+                                         {
+                                             NominationId = n.NominationId,
+                                             AwardId = a.AwardId,
+                                             AwardName = a.AwardName,
+                                             DepartmentId = n.DepartmentId,
+                                             DepartmentName = dept != null ? dept.DepartmentName : "未指定",
+                                             NomineeName = n.NominatedEmployeeId.HasValue ?
+                                                 context.Employees.Where(e => e.EmployeeId == n.NominatedEmployeeId.Value)
+                                                     .Select(e => e.EmployeeName).FirstOrDefault() :
+                                                 (n.NominatedAdminId.HasValue ?
+                                                     context.Admins.Where(ad => ad.AdminId == n.NominatedAdminId.Value)
+                                                         .Select(ad => ad.AdminName).FirstOrDefault() : "未知"),
+                                             Introduction = n.Introduction,
+                                             NominateReason = n.NominateReason,
+                                             VoteCount = context.VoteRecords.Count(vr => vr.NominationId == n.NominationId),
+                                             EmployeeVoteCount = context.VoteRecords
+                                                 .Join(context.Employees,
+                                                     vr => vr.VoterEmployeeId,
+                                                     e => e.EmployeeId,
+                                                     (vr, e) => new { VoteRecord = vr, Employee = e })
+                                                 .Count(x => x.VoteRecord.NominationId == n.NominationId),
+                                             AdminVoteCount = context.VoteRecords
+                                                 .Join(context.Admins,
+                                                     vr => vr.VoterAdminId,
+                                                     a => a.AdminId,
+                                                     (vr, a) => new { VoteRecord = vr, Admin = a })
+                                                 .Count(x => x.VoteRecord.NominationId == n.NominationId)
+                                         }).ToList();
+
+                    // 保存所有数据
+                    allVoteDetails = voteDetailsQuery;
+
+                    // 更新显示的数据
+                    VoteDetails = new ObservableCollection<VoteDetailDto>(voteDetailsQuery);
+                }
+            }
+            catch (Exception ex)
+            {
+                Debug.WriteLine($"加载投票详情时出错: {ex.Message}");
+                Debug.WriteLine(ex.StackTrace);
+
+                // 确保集合初始化
+                if (VoteDetails == null)
+                {
+                    VoteDetails = new ObservableCollection<VoteDetailDto>();
+                }
+
+                if (Awards == null)
+                {
+                    Awards = new ObservableCollection<Award>();
+                }
+            }
+        }
+        
+        /// <summary>
+        /// 查看提名详情
+        /// </summary>
+        private void ViewNominationDetails(VoteDetailDto voteDetail)
+        {
+            if (voteDetail == null) return;
+
+            try
+            {
+                // 创建并显示提名详情窗口，使用完整类型名以避免歧义
+                var detailsWindow = new SIASGraduate.Views.EditMessage.NominationDetailsWindows.NominationDetailsWindow();
+                
+                // 加载提名详情前先确保显示窗口，以便UI上下文初始化
+                detailsWindow.Show();
+
+                try
+                {
+                    // 使用更安全的方式加载详情，避免立即使用EF查询
+                    System.Windows.Threading.Dispatcher.CurrentDispatcher.BeginInvoke(
+                        new Action(() => detailsWindow.LoadNominationDetails(voteDetail)),
+                        System.Windows.Threading.DispatcherPriority.Background);
+                }
+                catch (Exception ex)
+                {
+                    HandyControl.Controls.Growl.ErrorGlobal($"加载详情异常: {ex.Message}");
+                    System.Diagnostics.Debug.WriteLine($"加载详情异常: {ex}");
+                }
+            }
+            catch (Exception ex)
+            {
+                HandyControl.Controls.Growl.ErrorGlobal($"打开详情窗口异常: {ex.Message}");
+                System.Diagnostics.Debug.WriteLine($"打开详情窗口异常: {ex}");
+            }
+        }
+
+        // 修改更新饼图方法，使用泛型
+        private void UpdatePieChart<T>(List<T> awardNominations) where T : class
+        {
+            if (awardNominations == null || awardNominations.Count == 0)
+            {
+                SeriesCollection = new SeriesCollection();
+                return;
+            }
+
+            // 清空现有集合
+            SeriesCollection = new SeriesCollection();
+
+            // 生成饼图数据
+            foreach (var award in awardNominations)
+            {
+                var awardNameProperty = award.GetType().GetProperty("AwardName");
+                var countProperty = award.GetType().GetProperty("Count");
+
+                if (awardNameProperty != null && countProperty != null)
+                {
+                    string awardName = awardNameProperty.GetValue(award)?.ToString() ?? "未知";
+                    int count = Convert.ToInt32(countProperty.GetValue(award));
+
+                    var color = GetRandomColor();
+                    SeriesCollection.Add(new PieSeries
+                    {
+                        Title = awardName,
+                        Values = new ChartValues<int> { count },
+                        DataLabels = false,
+                        LabelPoint = PieChartTitleOnlyFormat,
+                        Fill = new SolidColorBrush(color)
+                    });
+                }
+            }
+        }
+
+        // 修改更新排名条形图方法，使用泛型
+        private void UpdateRankingBarChart<T>(List<T> awardVotes) where T : class
+        {
+            if (awardVotes == null || awardVotes.Count == 0)
+            {
+                RankingSeriesCollection = new SeriesCollection();
+                RankingLabels = new List<string>();
+                return;
+            }
+
+            // 准备条形图数据
+            var rankingLabels = new List<string>();
+            var rankingValues = new List<int>();
+
+            foreach (var award in awardVotes)
+            {
+                var awardNameProperty = award.GetType().GetProperty("AwardName");
+                var voteCountProperty = award.GetType().GetProperty("VoteCount");
+
+                if (awardNameProperty != null && voteCountProperty != null)
+                {
+                    string awardName = awardNameProperty.GetValue(award)?.ToString() ?? "未知";
+                    int voteCount = Convert.ToInt32(voteCountProperty.GetValue(award));
+
+                    rankingLabels.Add(awardName);
+                    rankingValues.Add(voteCount);
+                }
+            }
+
+            // 设置各奖项得票总数图表的轴
+            RankingAxisX = new AxesCollection
+            {
+                new Axis
+                {
+                    Title = "奖项",
+                    Labels = rankingLabels,
+                    FontWeight = FontWeights.Bold,
+                    Position = AxisPosition.LeftBottom,
+                    Separator = new LiveCharts.Wpf.Separator { Step = 1 },
+                    LabelsRotation = 0,
+                    Margin = new Thickness(0, 20, 0, 0)  // 向下移动标签
+                }
+            };
+
+            RankingAxisY = new AxesCollection
+            {
+                new Axis
+                {
+                    Title = "票数",
+                    MinValue = 0,
+                    Foreground = Brushes.Black
+                }
+            };
+
+            // 创建条形图集合
+            RankingSeriesCollection = new SeriesCollection
+            {
+                new ColumnSeries
+                {
+                    Title = "得票数",
+                    Values = new ChartValues<int>(rankingValues),
+                    Fill = Brushes.CornflowerBlue,
+                    DataLabels = true
+                }
+            };
+        }
     }
 }

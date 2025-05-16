@@ -457,7 +457,51 @@
                 </Grid>
                 <!--  第四行:投票排名图表  -->
                 <StackPanel Grid.Row="3">
-                    <Label Content="投票排名:" Style="{DynamicResource HomeLable}" />
+                    <!--  添加带筛选的Grid布局，类似投票详情部分  -->
+                    <Grid Margin="0,0,0,10">
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="Auto" />
+                            <ColumnDefinition Width="250" />
+                            <ColumnDefinition Width="*" />
+                        </Grid.ColumnDefinitions>
+
+                        <!--  标题  -->
+                        <Label
+                            Grid.Column="0"
+                            Content="投票排名:"
+                            Style="{DynamicResource HomeLable}" />
+
+                        <!--  筛选奖项文本  -->
+                        <TextBlock
+                            Grid.Column="1"
+                            Margin="20,0,10,0"
+                            VerticalAlignment="Center"
+                            FontSize="14"
+                            Text="筛选奖项:" />
+
+                        <!--  奖项下拉框  -->
+                        <ComboBox
+                            Grid.Column="2"
+                            Height="30"
+                            Margin="0,5"
+                            hc:InfoElement.Placeholder="选择奖项筛选..."
+                            DisplayMemberPath="AwardName"
+                            IsEditable="True"
+                            IsTextSearchCaseSensitive="False"
+                            IsTextSearchEnabled="True"
+                            ItemsSource="{Binding Awards}"
+                            SelectedItem="{Binding SelectedRankingAward}"
+                            StaysOpenOnEdit="True"
+                            TextSearch.TextPath="AwardName">
+                            <i:Interaction.Triggers>
+                                <i:EventTrigger EventName="SelectionChanged">
+                                    <i:InvokeCommandAction Command="{Binding FilterRankingCommand}" />
+                                </i:EventTrigger>
+                            </i:Interaction.Triggers>
+                        </ComboBox>
+                    </Grid>
+                    
                     <Border
                         Margin="10"
                         Padding="10"
